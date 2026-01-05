@@ -1,17 +1,17 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 
 <div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+    <div class="status-bar-safe-area"></div>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
+    <header class="app-header">
+        <h1 class="app-title">Denly</h1>
+    </header>
 
-        <article class="content px-4">
+    <main class="main-content">
+        <article class="content">
             @Body
         </article>
     </main>
+
+    <NavMenu />
 </div>
