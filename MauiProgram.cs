@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Denly.Services;
 
 namespace Denly;
 
@@ -15,6 +16,7 @@ public static class MauiProgram
 			});
 
 		builder.Services.AddMauiBlazorWebView();
+		builder.Services.AddSingleton<IScheduleService, LocalScheduleService>();
 
 #if DEBUG
 		builder.Services.AddBlazorWebViewDeveloperTools();

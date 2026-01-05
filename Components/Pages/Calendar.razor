@@ -1,6 +1,325 @@
 @page "/schedule"
+@using Denly.Models
+@using Denly.Services
+@inject IScheduleService ScheduleService
 
-<div class="page-container">
-    <h1>Schedule</h1>
-    <p class="placeholder-text">Shared custody schedule and appointments</p>
+<div class="schedule-page">
+    <!-- Month Navigation -->
+    <div class="month-nav">
+        <button class="nav-btn" @onclick="PreviousMonth">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+        </button>
+        <h2 class="month-title">@CurrentDate.ToString("MMMM yyyy")</h2>
+        <button class="nav-btn" @onclick="NextMonth">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Calendar Grid -->
+    <div class="calendar-container">
+        <div class="calendar-header">
+            @foreach (var day in DayNames)
+            {
+                <div class="day-name">@day</div>
+            }
+        </div>
+        <div class="calendar-grid">
+            @foreach (var day in CalendarDays)
+            {
+                <div class="calendar-day @(day.IsCurrentMonth ? "" : "other-month") @(day.IsToday ? "today" : "") @(day.Date == SelectedDate ? "selected" : "")"
+                     @onclick="() => SelectDay(day.Date)">
+                    <span class="day-number">@day.Date.Day</span>
+                    @if (day.Events.Any())
+                    {
+                        <div class="event-dots">
+                            @foreach (var evt in day.Events.Take(3))
+                            {
+                                <span class="event-dot" style="background-color: @evt.Type.GetColor()"></span>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Selected Day Events -->
+    @if (SelectedDate.HasValue)
+    {
+        <div class="day-events">
+            <div class="day-events-header">
+                <h3>@SelectedDate.Value.ToString("dddd, MMM d")</h3>
+                <button class="add-btn" @onclick="OpenAddEventModal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Add
+                </button>
+            </div>
+
+            @if (SelectedDayEvents.Any())
+            {
+                <div class="events-list">
+                    @foreach (var evt in SelectedDayEvents)
+                    {
+                        <div class="event-card" @onclick="() => OpenEditEventModal(evt)">
+                            <div class="event-color-bar" style="background-color: @evt.Type.GetColor()"></div>
+                            <div class="event-content">
+                                <div class="event-title">@evt.Title</div>
+                                <div class="event-meta">
+                                    <span class="event-type">@evt.Type.GetDisplayName()</span>
+                                    @if (evt.Time.HasValue)
+                                    {
+                                        <span class="event-time">@FormatTime(evt.Time.Value)</span>
+                                    }
+                                </div>
+                            </div>
+                            <svg class="event-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="no-events">
+                    <p>No events scheduled</p>
+                    <button class="add-event-link" @onclick="OpenAddEventModal">Add an event</button>
+                </div>
+            }
+        </div>
+    }
 </div>
+
+<!-- Event Modal -->
+@if (ShowEventModal)
+{
+    <div class="modal-overlay" @onclick="CloseModal">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>@(IsEditing ? "Edit Event" : "New Event")</h3>
+                <button class="close-btn" @onclick="CloseModal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" @bind="EditingEvent.Title" placeholder="Event title" />
+                </div>
+
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" @bind="EditingEventDate" />
+                </div>
+
+                <div class="form-group">
+                    <label>Time (optional)</label>
+                    <input type="time" @bind="EditingEventTime" />
+                </div>
+
+                <div class="form-group">
+                    <label>Type</label>
+                    <div class="type-selector">
+                        @foreach (EventType type in Enum.GetValues<EventType>())
+                        {
+                            <button class="type-btn @(EditingEvent.Type == type ? "selected" : "")"
+                                    style="--type-color: @type.GetColor()"
+                                    @onclick="() => EditingEvent.Type = type">
+                                @type.GetDisplayName()
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                @if (IsEditing)
+                {
+                    <button class="delete-btn" @onclick="DeleteEvent">Delete</button>
+                }
+                <button class="cancel-btn" @onclick="CloseModal">Cancel</button>
+                <button class="save-btn" @onclick="SaveEvent" disabled="@string.IsNullOrWhiteSpace(EditingEvent.Title)">
+                    @(IsEditing ? "Save" : "Add Event")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private DateTime CurrentDate = DateTime.Today;
+    private DateTime? SelectedDate;
+    private List<CalendarDay> CalendarDays = new();
+    private List<ScheduleEvent> MonthEvents = new();
+    private List<ScheduleEvent> SelectedDayEvents = new();
+
+    private bool ShowEventModal;
+    private bool IsEditing;
+    private ScheduleEvent EditingEvent = new();
+    private DateTime EditingEventDate;
+    private TimeOnly? EditingEventTime;
+
+    private static readonly string[] DayNames = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        SelectedDate = DateTime.Today;
+        await LoadMonthData();
+    }
+
+    private async Task LoadMonthData()
+    {
+        MonthEvents = await ScheduleService.GetEventsByMonthAsync(CurrentDate.Year, CurrentDate.Month);
+        BuildCalendarDays();
+
+        if (SelectedDate.HasValue)
+        {
+            await LoadSelectedDayEvents();
+        }
+    }
+
+    private void BuildCalendarDays()
+    {
+        CalendarDays.Clear();
+
+        var firstOfMonth = new DateTime(CurrentDate.Year, CurrentDate.Month, 1);
+        var startDate = firstOfMonth.AddDays(-(int)firstOfMonth.DayOfWeek);
+
+        for (int i = 0; i < 42; i++)
+        {
+            var date = startDate.AddDays(i);
+            var dayEvents = MonthEvents.Where(e => e.Date.Date == date.Date).ToList();
+
+            CalendarDays.Add(new CalendarDay
+            {
+                Date = date,
+                IsCurrentMonth = date.Month == CurrentDate.Month,
+                IsToday = date.Date == DateTime.Today,
+                Events = dayEvents
+            });
+        }
+    }
+
+    private async Task LoadSelectedDayEvents()
+    {
+        if (SelectedDate.HasValue)
+        {
+            SelectedDayEvents = await ScheduleService.GetEventsByDateAsync(SelectedDate.Value);
+        }
+    }
+
+    private async Task SelectDay(DateTime date)
+    {
+        SelectedDate = date;
+
+        if (date.Month != CurrentDate.Month)
+        {
+            CurrentDate = new DateTime(date.Year, date.Month, 1);
+            await LoadMonthData();
+        }
+        else
+        {
+            await LoadSelectedDayEvents();
+        }
+    }
+
+    private async Task PreviousMonth()
+    {
+        CurrentDate = CurrentDate.AddMonths(-1);
+        await LoadMonthData();
+    }
+
+    private async Task NextMonth()
+    {
+        CurrentDate = CurrentDate.AddMonths(1);
+        await LoadMonthData();
+    }
+
+    private void OpenAddEventModal()
+    {
+        IsEditing = false;
+        EditingEvent = new ScheduleEvent
+        {
+            Date = SelectedDate ?? DateTime.Today,
+            Type = EventType.Other
+        };
+        EditingEventDate = EditingEvent.Date;
+        EditingEventTime = null;
+        ShowEventModal = true;
+    }
+
+    private void OpenEditEventModal(ScheduleEvent evt)
+    {
+        IsEditing = true;
+        EditingEvent = new ScheduleEvent
+        {
+            Id = evt.Id,
+            Title = evt.Title,
+            Date = evt.Date,
+            Time = evt.Time,
+            Type = evt.Type,
+            CreatedAt = evt.CreatedAt
+        };
+        EditingEventDate = evt.Date;
+        EditingEventTime = evt.Time.HasValue ? TimeOnly.FromTimeSpan(evt.Time.Value) : null;
+        ShowEventModal = true;
+    }
+
+    private void CloseModal()
+    {
+        ShowEventModal = false;
+        EditingEvent = new();
+    }
+
+    private async Task SaveEvent()
+    {
+        if (string.IsNullOrWhiteSpace(EditingEvent.Title))
+            return;
+
+        EditingEvent.Date = EditingEventDate;
+        EditingEvent.Time = EditingEventTime?.ToTimeSpan();
+
+        await ScheduleService.SaveEventAsync(EditingEvent);
+        CloseModal();
+
+        if (EditingEventDate.Month != CurrentDate.Month || EditingEventDate.Year != CurrentDate.Year)
+        {
+            CurrentDate = new DateTime(EditingEventDate.Year, EditingEventDate.Month, 1);
+            SelectedDate = EditingEventDate;
+        }
+
+        await LoadMonthData();
+    }
+
+    private async Task DeleteEvent()
+    {
+        await ScheduleService.DeleteEventAsync(EditingEvent.Id);
+        CloseModal();
+        await LoadMonthData();
+    }
+
+    private string FormatTime(TimeSpan time)
+    {
+        var dt = DateTime.Today.Add(time);
+        return dt.ToString("h:mm tt");
+    }
+
+    private class CalendarDay
+    {
+        public DateTime Date { get; set; }
+        public bool IsCurrentMonth { get; set; }
+        public bool IsToday { get; set; }
+        public List<ScheduleEvent> Events { get; set; } = new();
+    }
+}
