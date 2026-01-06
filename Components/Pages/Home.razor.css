@@ -1,0 +1,242 @@
+/* Home Page - Dashboard Overview */
+
+.home-page {
+    padding: 0.5rem;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+/* Page Header */
+.page-header {
+    padding: 0.5rem 0 1.25rem;
+    text-align: center;
+}
+
+.page-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #374151;
+    margin: 0;
+}
+
+.header-subtitle {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+/* Dashboard Cards */
+.dashboard-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e5e7eb;
+    cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.1s;
+}
+
+.dashboard-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-card:active {
+    transform: scale(0.99);
+}
+
+/* Card Header */
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.card-header h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #374151;
+    margin: 0;
+    flex: 1;
+}
+
+.card-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.schedule-icon {
+    background-color: #e07a5f20;
+    color: #e07a5f;
+}
+
+.balance-icon {
+    background-color: #81b29a20;
+    color: #81b29a;
+}
+
+.vault-icon {
+    background-color: #5b8db820;
+    color: #5b8db8;
+}
+
+.card-chevron {
+    width: 20px;
+    height: 20px;
+    color: #9ca3af;
+}
+
+/* Card Content */
+.card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+}
+
+.card-empty {
+    text-align: center;
+    padding: 0.75rem;
+    color: #9ca3af;
+}
+
+.card-empty p {
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+/* Event Items */
+.event-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.event-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.event-item:first-child {
+    padding-top: 0;
+}
+
+.event-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.event-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+.event-title {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: #374151;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.event-date {
+    font-size: 0.8125rem;
+    color: #6b7280;
+}
+
+/* Balance Display */
+.balance-display {
+    padding: 0.5rem 0;
+}
+
+.balance-settled {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #10b981;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.balance-settled svg {
+    width: 20px;
+    height: 20px;
+}
+
+.balance-owed {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.balance-who {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.balance-amount {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+/* Document Items */
+.document-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.document-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.document-item:first-child {
+    padding-top: 0;
+}
+
+.document-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.document-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+.document-name {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: #374151;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.document-folder {
+    font-size: 0.8125rem;
+    color: #6b7280;
+}

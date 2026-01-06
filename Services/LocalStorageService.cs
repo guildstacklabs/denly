@@ -8,6 +8,7 @@ public interface IScheduleService
     Task<List<ScheduleEvent>> GetAllEventsAsync();
     Task<List<ScheduleEvent>> GetEventsByDateAsync(DateTime date);
     Task<List<ScheduleEvent>> GetEventsByMonthAsync(int year, int month);
+    Task<List<ScheduleEvent>> GetUpcomingEventsAsync(int count = 3);
     Task<ScheduleEvent?> GetEventByIdAsync(string id);
     Task SaveEventAsync(ScheduleEvent evt);
     Task DeleteEventAsync(string id);
@@ -79,6 +80,20 @@ public class LocalScheduleService : IScheduleService
                      .OrderBy(e => e.Date)
                      .ThenBy(e => e.Time ?? TimeSpan.MaxValue)
                      .ToList();
+    }
+
+    public async Task<List<ScheduleEvent>> GetUpcomingEventsAsync(int count = 3)
+    {
+        var events = await LoadEventsAsync();
+        var today = DateTime.Today;
+        var now = DateTime.Now.TimeOfDay;
+
+        return events
+            .Where(e => e.Date.Date > today || (e.Date.Date == today && (!e.Time.HasValue || e.Time.Value >= now)))
+            .OrderBy(e => e.Date)
+            .ThenBy(e => e.Time ?? TimeSpan.MaxValue)
+            .Take(count)
+            .ToList();
     }
 
     public async Task<ScheduleEvent?> GetEventByIdAsync(string id)

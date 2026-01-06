@@ -8,6 +8,7 @@ public interface IDocumentService
     Task<List<Document>> GetAllDocumentsAsync();
     Task<List<Document>> GetDocumentsByFolderAsync(DocumentFolder folder);
     Task<List<Document>> SearchDocumentsAsync(string searchTerm);
+    Task<List<Document>> GetRecentDocumentsAsync(int count = 3);
     Task<Document?> GetDocumentByIdAsync(string id);
     Task SaveDocumentAsync(Document document);
     Task DeleteDocumentAsync(string id);
@@ -89,6 +90,15 @@ public class LocalDocumentService : IDocumentService
                         (d.FileName?.ToLowerInvariant().Contains(term) ?? false))
             .OrderBy(d => d.Folder)
             .ThenBy(d => d.Name)
+            .ToList();
+    }
+
+    public async Task<List<Document>> GetRecentDocumentsAsync(int count = 3)
+    {
+        var documents = await LoadDocumentsAsync();
+        return documents
+            .OrderByDescending(d => d.CreatedAt)
+            .Take(count)
             .ToList();
     }
 
