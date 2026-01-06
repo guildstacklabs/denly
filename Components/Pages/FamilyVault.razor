@@ -222,6 +222,68 @@
     </div>
 }
 
+<!-- Source Picker Modal -->
+@if (ShowSourcePicker)
+{
+    <div class="modal-overlay" @onclick="CloseModal">
+        <div class="modal-content source-picker-modal" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>Add Document</h3>
+                <button class="close-btn" @onclick="CloseModal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="source-options">
+                    <button class="source-option" @onclick="TakePhoto">
+                        <div class="source-icon camera">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                <circle cx="12" cy="13" r="4"></circle>
+                            </svg>
+                        </div>
+                        <div class="source-text">
+                            <span class="source-title">Camera</span>
+                            <span class="source-desc">Take a photo</span>
+                        </div>
+                    </button>
+
+                    <button class="source-option" @onclick="PickFromGallery">
+                        <div class="source-icon gallery">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                <polyline points="21 15 16 10 5 21"></polyline>
+                            </svg>
+                        </div>
+                        <div class="source-text">
+                            <span class="source-title">Photo Gallery</span>
+                            <span class="source-desc">Choose existing photo</span>
+                        </div>
+                    </button>
+
+                    <button class="source-option" @onclick="PickFromFiles">
+                        <div class="source-icon files">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                        </div>
+                        <div class="source-text">
+                            <span class="source-title">Files</span>
+                            <span class="source-desc">Browse device files</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 <!-- Add/Edit Document Modal -->
 @if (ShowEditModal)
 {
@@ -238,6 +300,29 @@
             </div>
 
             <div class="modal-body">
+                @if (!string.IsNullOrEmpty(EditingDocument.FilePath))
+                {
+                    <div class="file-preview-section">
+                        @if (IsImageFile(EditingDocument.FileName))
+                        {
+                            <div class="image-preview">
+                                <img src="@EditingDocument.FilePath" alt="Preview" />
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="file-preview">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                                <span>@EditingDocument.FileName</span>
+                            </div>
+                        }
+                        <button class="change-file-btn" @onclick="ChangeFile">Change</button>
+                    </div>
+                }
+
                 <div class="form-group">
                     <label>Document Name</label>
                     <input type="text" @bind="EditingDocument.Name" placeholder="e.g., Birth Certificate, Insurance Card" />
@@ -257,12 +342,12 @@
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label>File (optional)</label>
-                    <div class="file-input-wrapper">
-                        @if (string.IsNullOrEmpty(EditingDocument.FileName))
-                        {
-                            <button class="file-select-btn" @onclick="SelectFile">
+                @if (!IsEditing && string.IsNullOrEmpty(EditingDocument.FilePath))
+                {
+                    <div class="form-group">
+                        <label>File (optional)</label>
+                        <div class="file-input-wrapper">
+                            <button class="file-select-btn" @onclick="OpenSourcePicker">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                     <polyline points="17 8 12 3 7 8"></polyline>
@@ -270,25 +355,9 @@
                                 </svg>
                                 Attach File
                             </button>
-                        }
-                        else
-                        {
-                            <div class="file-selected">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                    <polyline points="14 2 14 8 20 8"></polyline>
-                                </svg>
-                                <span>@EditingDocument.FileName</span>
-                                <button class="remove-file" @onclick="RemoveFile">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                                    </svg>
-                                </button>
-                            </div>
-                        }
+                        </div>
                     </div>
-                </div>
+                }
 
                 <div class="form-group">
                     <label>Notes (optional)</label>
@@ -318,6 +387,7 @@
 
     private bool ShowViewModal;
     private bool ShowEditModal;
+    private bool ShowSourcePicker;
     private bool IsEditing;
     private Document? ViewingDocument;
     private Document EditingDocument = new();
@@ -382,6 +452,19 @@
             Folder = SelectedFolder ?? DocumentFolder.Other
         };
         ShowViewModal = false;
+        ShowEditModal = false;
+        ShowSourcePicker = true;
+    }
+
+    private void OpenSourcePicker()
+    {
+        ShowEditModal = false;
+        ShowSourcePicker = true;
+    }
+
+    private void ShowEditModalWithFile()
+    {
+        ShowSourcePicker = false;
         ShowEditModal = true;
     }
 
@@ -415,6 +498,7 @@
     {
         ShowViewModal = false;
         ShowEditModal = false;
+        ShowSourcePicker = false;
         ViewingDocument = null;
         EditingDocument = new();
     }
@@ -438,7 +522,46 @@
         await LoadData();
     }
 
-    private async Task SelectFile()
+    private async Task TakePhoto()
+    {
+        try
+        {
+            if (!MediaPicker.Default.IsCaptureSupported)
+                return;
+
+            var photo = await MediaPicker.Default.CapturePhotoAsync();
+            if (photo != null)
+            {
+                EditingDocument.FilePath = photo.FullPath;
+                EditingDocument.FileName = photo.FileName;
+                ShowEditModalWithFile();
+            }
+        }
+        catch
+        {
+            // Camera not available or user cancelled
+        }
+    }
+
+    private async Task PickFromGallery()
+    {
+        try
+        {
+            var photo = await MediaPicker.Default.PickPhotoAsync();
+            if (photo != null)
+            {
+                EditingDocument.FilePath = photo.FullPath;
+                EditingDocument.FileName = photo.FileName;
+                ShowEditModalWithFile();
+            }
+        }
+        catch
+        {
+            // Gallery not available or user cancelled
+        }
+    }
+
+    private async Task PickFromFiles()
     {
         try
         {
@@ -451,6 +574,7 @@
             {
                 EditingDocument.FilePath = result.FullPath;
                 EditingDocument.FileName = result.FileName;
+                ShowEditModalWithFile();
             }
         }
         catch
@@ -459,10 +583,25 @@
         }
     }
 
+    private void ChangeFile()
+    {
+        ShowEditModal = false;
+        ShowSourcePicker = true;
+    }
+
     private void RemoveFile()
     {
         EditingDocument.FilePath = null;
         EditingDocument.FileName = null;
+    }
+
+    private bool IsImageFile(string? fileName)
+    {
+        if (string.IsNullOrEmpty(fileName))
+            return false;
+
+        var extension = Path.GetExtension(fileName).ToLowerInvariant();
+        return extension is ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" or ".webp" or ".heic";
     }
 
     private string TruncateText(string text, int maxLength)

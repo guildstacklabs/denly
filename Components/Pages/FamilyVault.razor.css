@@ -681,3 +681,150 @@
         padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
     }
 }
+
+/* Source Picker Modal */
+.source-picker-modal .modal-body {
+    padding: 1rem 1.25rem 1.5rem;
+}
+
+.source-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.source-option {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    padding: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+}
+
+.source-option:hover {
+    border-color: #5b8db8;
+    background-color: #f8fafc;
+}
+
+.source-option:active {
+    transform: scale(0.99);
+}
+
+.source-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.source-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.source-icon.camera {
+    background-color: #dbeafe;
+    color: #2563eb;
+}
+
+.source-icon.gallery {
+    background-color: #fce7f3;
+    color: #db2777;
+}
+
+.source-icon.files {
+    background-color: #d1fae5;
+    color: #059669;
+}
+
+.source-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.source-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.source-desc {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+/* File Preview Section */
+.file-preview-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: #f9fafb;
+    border-radius: 12px;
+    margin-bottom: 1.25rem;
+}
+
+.image-preview {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.file-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.file-preview svg {
+    width: 32px;
+    height: 32px;
+    color: #5b8db8;
+    flex-shrink: 0;
+}
+
+.file-preview span {
+    font-size: 0.9375rem;
+    color: #374151;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.change-file-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: white;
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s;
+}
+
+.change-file-btn:hover {
+    border-color: #5b8db8;
+    color: #5b8db8;
+}
