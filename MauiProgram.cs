@@ -17,6 +17,7 @@ public static class MauiProgram
 
 		builder.Services.AddMauiBlazorWebView();
 		builder.Services.AddSingleton<IScheduleService, LocalScheduleService>();
+		builder.Services.AddSingleton<IExpenseService, LocalExpenseService>();
 
 #if DEBUG
 		builder.Services.AddBlazorWebViewDeveloperTools();
