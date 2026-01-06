@@ -24,56 +24,177 @@
     color: #6b7280;
 }
 
-/* Dashboard Cards */
-.dashboard-card {
-    background: white;
+/* Welcome Section for New Users */
+.welcome-section {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 20px;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    border: 1px solid #e2e8f0;
+}
+
+.welcome-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1rem;
+    background: linear-gradient(135deg, #5b8db8 0%, #4a7a9e 100%);
     border-radius: 16px;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    border: 1px solid #e5e7eb;
-    cursor: pointer;
-    transition: box-shadow 0.2s, transform 0.1s;
-}
-
-.dashboard-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.dashboard-card:active {
-    transform: scale(0.99);
-}
-
-/* Card Header */
-.card-header {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
+    justify-content: center;
 }
 
-.card-header h2 {
-    font-size: 1rem;
-    font-weight: 600;
+.welcome-icon svg {
+    width: 32px;
+    height: 32px;
+    color: white;
+}
+
+.welcome-title {
+    font-size: 1.5rem;
+    font-weight: 700;
     color: #374151;
-    margin: 0;
-    flex: 1;
+    margin: 0 0 0.25rem;
 }
 
-.card-icon {
-    width: 36px;
-    height: 36px;
+.welcome-subtitle {
+    font-size: 1rem;
+    color: #5b8db8;
+    font-weight: 500;
+    margin: 0 0 1rem;
+}
+
+.welcome-text {
+    font-size: 0.9375rem;
+    color: #6b7280;
+    line-height: 1.5;
+    margin: 0 0 1.5rem;
+}
+
+.quick-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
+.quick-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex: 1;
+    max-width: 100px;
+}
+
+.quick-action-btn:hover {
+    border-color: #5b8db8;
+    box-shadow: 0 2px 8px rgba(91, 141, 184, 0.15);
+}
+
+.quick-action-btn:active {
+    transform: scale(0.98);
+}
+
+.quick-action-icon {
+    width: 40px;
+    height: 40px;
     border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.card-icon svg {
+.quick-action-icon svg {
     width: 20px;
     height: 20px;
 }
 
+.quick-action-btn span {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #374151;
+}
+
+/* Section Cards - Improved Visual Hierarchy */
+.section-card {
+    background: white;
+    border-radius: 16px;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, #fafbfc 0%, #f5f7f9 100%);
+    border-bottom: 1px solid #f0f1f3;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.section-header:hover {
+    background: linear-gradient(135deg, #f5f7f9 0%, #eef1f4 100%);
+}
+
+.section-header h2 {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #374151;
+    margin: 0;
+    flex: 1;
+}
+
+.section-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.section-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.section-chevron {
+    width: 18px;
+    height: 18px;
+    color: #9ca3af;
+}
+
+.section-content {
+    padding: 1rem;
+}
+
+.section-empty {
+    text-align: center;
+    padding: 0.5rem;
+}
+
+.section-empty p {
+    margin: 0 0 0.25rem;
+    font-size: 0.9375rem;
+    color: #6b7280;
+}
+
+.empty-hint {
+    font-size: 0.8125rem;
+    color: #9ca3af;
+}
+
+/* Legacy card styles - keep for backwards compat */
 .schedule-icon {
     background-color: #e07a5f20;
     color: #e07a5f;
@@ -87,30 +208,6 @@
 .vault-icon {
     background-color: #5b8db820;
     color: #5b8db8;
-}
-
-.card-chevron {
-    width: 20px;
-    height: 20px;
-    color: #9ca3af;
-}
-
-/* Card Content */
-.card-content {
-    display: flex;
-    flex-direction: column;
-    gap: 0.625rem;
-}
-
-.card-empty {
-    text-align: center;
-    padding: 0.75rem;
-    color: #9ca3af;
-}
-
-.card-empty p {
-    margin: 0;
-    font-size: 0.875rem;
 }
 
 /* Event Items */

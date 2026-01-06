@@ -12,134 +12,198 @@
         <span class="header-subtitle">Co-parenting made simple</span>
     </div>
 
-    <!-- Coming Up Section -->
-    <div class="dashboard-card" @onclick='() => Navigation.NavigateTo("/schedule")'>
-        <div class="card-header">
-            <div class="card-icon schedule-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
+    @if (_isNewUser)
+    {
+        <!-- Welcome Screen for New Users -->
+        <div class="welcome-section">
+            <div class="welcome-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
                 </svg>
             </div>
-            <h2>Coming Up</h2>
-            <svg class="card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-        </div>
+            <h2 class="welcome-title">Welcome to Denly</h2>
+            <p class="welcome-subtitle">Your shared family den</p>
+            <p class="welcome-text">A calm space to coordinate schedules, share costs, and keep important documents together.</p>
 
-        @if (_upcomingEvents.Any())
-        {
-            <div class="card-content">
-                @foreach (var evt in _upcomingEvents)
-                {
-                    <div class="event-item">
-                        <div class="event-dot" style="background-color: @evt.Type.GetColor()"></div>
-                        <div class="event-info">
-                            <span class="event-title">@evt.Title</span>
-                            <span class="event-date">@FormatEventDate(evt)</span>
-                        </div>
-                    </div>
-                }
-            </div>
-        }
-        else
-        {
-            <div class="card-empty">
-                <p>No upcoming events</p>
-            </div>
-        }
-    </div>
-
-    <!-- Balance Section -->
-    <div class="dashboard-card" @onclick='() => Navigation.NavigateTo("/costs")'>
-        <div class="card-header">
-            <div class="card-icon balance-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="1" x2="12" y2="23"></line>
-                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                </svg>
-            </div>
-            <h2>Balance</h2>
-            <svg class="card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-        </div>
-
-        <div class="card-content">
-            <div class="balance-display">
-                @if (_balance == 0)
-                {
-                    <div class="balance-settled">
+            <div class="quick-actions">
+                <button class="quick-action-btn" @onclick='() => Navigation.NavigateTo("/schedule")'>
+                    <div class="quick-action-icon schedule-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
                         </svg>
-                        <span>All settled up</span>
+                    </div>
+                    <span>Add Event</span>
+                </button>
+                <button class="quick-action-btn" @onclick='() => Navigation.NavigateTo("/costs")'>
+                    <div class="quick-action-icon balance-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="1" x2="12" y2="23"></line>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                    </div>
+                    <span>Add Expense</span>
+                </button>
+                <button class="quick-action-btn" @onclick='() => Navigation.NavigateTo("/vault")'>
+                    <div class="quick-action-icon vault-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                    </div>
+                    <span>Add Document</span>
+                </button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Coming Up Section -->
+        <div class="section-card">
+            <div class="section-header" @onclick='() => Navigation.NavigateTo("/schedule")'>
+                <div class="section-icon schedule-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                </div>
+                <h2>Coming Up</h2>
+                <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </div>
+
+            <div class="section-content">
+                @if (_upcomingEvents.Any())
+                {
+                    @foreach (var evt in _upcomingEvents)
+                    {
+                        <div class="event-item">
+                            <div class="event-dot" style="background-color: @evt.Type.GetColor()"></div>
+                            <div class="event-info">
+                                <span class="event-title">@evt.Title</span>
+                                <span class="event-date">@FormatEventDate(evt)</span>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="section-empty">
+                        <p>No upcoming events scheduled</p>
+                        <span class="empty-hint">Tap to add your first event</span>
                     </div>
                 }
-                else if (_balance > 0)
+            </div>
+        </div>
+
+        <!-- Balance Section -->
+        <div class="section-card">
+            <div class="section-header" @onclick='() => Navigation.NavigateTo("/costs")'>
+                <div class="section-icon balance-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="1" x2="12" y2="23"></line>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                </div>
+                <h2>Shared Costs</h2>
+                <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </div>
+
+            <div class="section-content">
+                @if (_hasExpenses)
                 {
-                    <div class="balance-owed">
-                        <span class="balance-who">Parent A owes Parent B</span>
-                        <span class="balance-amount">@_balance.ToString("C")</span>
+                    <div class="balance-display">
+                        @if (_balance == 0)
+                        {
+                            <div class="balance-settled">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                                <span>All settled up</span>
+                            </div>
+                        }
+                        else if (_balance > 0)
+                        {
+                            <div class="balance-owed">
+                                <span class="balance-who">Parent A owes Parent B</span>
+                                <span class="balance-amount">@_balance.ToString("C")</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="balance-owed">
+                                <span class="balance-who">Parent B owes Parent A</span>
+                                <span class="balance-amount">@Math.Abs(_balance).ToString("C")</span>
+                            </div>
+                        }
                     </div>
                 }
                 else
                 {
-                    <div class="balance-owed">
-                        <span class="balance-who">Parent B owes Parent A</span>
-                        <span class="balance-amount">@Math.Abs(_balance).ToString("C")</span>
+                    <div class="section-empty">
+                        <p>No shared expenses yet</p>
+                        <span class="empty-hint">Start tracking costs together</span>
                     </div>
                 }
             </div>
         </div>
-    </div>
 
-    <!-- Recent Documents Section -->
-    <div class="dashboard-card" @onclick='() => Navigation.NavigateTo("/vault")'>
-        <div class="card-header">
-            <div class="card-icon vault-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
+        <!-- Recent Documents Section -->
+        <div class="section-card">
+            <div class="section-header" @onclick='() => Navigation.NavigateTo("/vault")'>
+                <div class="section-icon vault-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                </div>
+                <h2>Family Vault</h2>
+                <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 18 15 12 9 6"></polyline>
                 </svg>
             </div>
-            <h2>Family Vault</h2>
-            <svg class="card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-        </div>
 
-        @if (_recentDocuments.Any())
-        {
-            <div class="card-content">
-                @foreach (var doc in _recentDocuments)
+            <div class="section-content">
+                @if (_recentDocuments.Any())
                 {
-                    <div class="document-item">
-                        <div class="document-dot" style="background-color: @doc.Folder.GetColor()"></div>
-                        <div class="document-info">
-                            <span class="document-name">@doc.Name</span>
-                            <span class="document-folder">@doc.Folder.GetDisplayName()</span>
+                    @foreach (var doc in _recentDocuments)
+                    {
+                        <div class="document-item">
+                            <div class="document-dot" style="background-color: @doc.Folder.GetColor()"></div>
+                            <div class="document-info">
+                                <span class="document-name">@doc.Name</span>
+                                <span class="document-folder">@doc.Folder.GetDisplayName()</span>
+                            </div>
                         </div>
+                    }
+                }
+                else
+                {
+                    <div class="section-empty">
+                        <p>Your vault is empty</p>
+                        <span class="empty-hint">Keep important family documents safe here</span>
                     </div>
                 }
             </div>
-        }
-        else
-        {
-            <div class="card-empty">
-                <p>No documents yet</p>
-            </div>
-        }
-    </div>
+        </div>
+    }
 </div>
 
 @code {
     private List<ScheduleEvent> _upcomingEvents = new();
     private decimal _balance;
+    private bool _hasExpenses;
     private List<Document> _recentDocuments = new();
+    private bool _isNewUser;
 
     protected override async Task OnInitializedAsync()
     {
@@ -151,6 +215,14 @@
         _upcomingEvents = await ScheduleService.GetUpcomingEventsAsync(3);
         _balance = await ExpenseService.GetBalanceAsync();
         _recentDocuments = await DocumentService.GetRecentDocumentsAsync(3);
+
+        // Check if there are any expenses
+        var allExpenses = await ExpenseService.GetAllExpensesAsync();
+        _hasExpenses = allExpenses.Any();
+
+        // Determine if this is a new user (no data anywhere)
+        var allEvents = await ScheduleService.GetUpcomingEventsAsync(100);
+        _isNewUser = !allEvents.Any() && !_hasExpenses && !_recentDocuments.Any();
     }
 
     private string FormatEventDate(ScheduleEvent evt)

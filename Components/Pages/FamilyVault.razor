@@ -161,7 +161,8 @@
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                         <polyline points="14 2 14 8 20 8"></polyline>
                     </svg>
-                    <p>No documents stored yet</p>
+                    <p>Your vault is empty</p>
+                    <span class="empty-hint">Keep important family documents safe here</span>
                 }
                 <button class="add-document-link" @onclick="OpenAddDocumentModal">Add your first document</button>
             </div>
@@ -215,8 +216,29 @@
             </div>
 
             <div class="modal-footer">
-                <button class="delete-btn" @onclick="DeleteDocument">Delete</button>
+                <button class="delete-btn" @onclick="ShowDeleteConfirmation">Delete</button>
                 <button class="edit-btn" @onclick="OpenEditDocumentModal">Edit</button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Delete Confirmation Modal -->
+@if (ShowDeleteModal)
+{
+    <div class="modal-overlay" @onclick="CancelDelete">
+        <div class="modal-content confirm-modal" @onclick:stopPropagation="true">
+            <div class="confirm-icon delete-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+            </div>
+            <h3 class="confirm-title">Delete this document?</h3>
+            <p class="confirm-text">This can't be undone.</p>
+            <div class="confirm-actions">
+                <button class="cancel-btn" @onclick="CancelDelete">Cancel</button>
+                <button class="delete-confirm-btn" @onclick="ConfirmDelete">Delete</button>
             </div>
         </div>
     </div>
@@ -388,6 +410,7 @@
     private bool ShowViewModal;
     private bool ShowEditModal;
     private bool ShowSourcePicker;
+    private bool ShowDeleteModal;
     private bool IsEditing;
     private Document? ViewingDocument;
     private Document EditingDocument = new();
@@ -513,11 +536,24 @@
         await LoadData();
     }
 
-    private async Task DeleteDocument()
+    private void ShowDeleteConfirmation()
+    {
+        ShowViewModal = false;
+        ShowDeleteModal = true;
+    }
+
+    private void CancelDelete()
+    {
+        ShowDeleteModal = false;
+        ShowViewModal = true;
+    }
+
+    private async Task ConfirmDelete()
     {
         if (ViewingDocument == null) return;
 
         await DocumentService.DeleteDocumentAsync(ViewingDocument.Id);
+        ShowDeleteModal = false;
         CloseModal();
         await LoadData();
     }

@@ -114,7 +114,8 @@
         else
         {
             <div class="no-expenses">
-                <p>No expenses recorded yet</p>
+                <p>No shared expenses yet</p>
+                <span class="empty-hint">Start tracking costs together</span>
                 <button class="add-expense-link" @onclick="OpenAddExpenseModal">Add your first expense</button>
             </div>
         }
@@ -224,12 +225,33 @@
             <div class="modal-footer">
                 @if (IsEditing)
                 {
-                    <button class="delete-btn" @onclick="DeleteExpense">Delete</button>
+                    <button class="delete-btn" @onclick="ShowDeleteConfirmation">Delete</button>
                 }
                 <button class="cancel-btn" @onclick="CloseModal">Cancel</button>
                 <button class="save-btn" @onclick="SaveExpense" disabled="@(!IsValidExpense)">
                     @(IsEditing ? "Save" : "Add Expense")
                 </button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Delete Confirmation Modal -->
+@if (ShowDeleteModal)
+{
+    <div class="modal-overlay" @onclick="CancelDelete">
+        <div class="modal-content confirm-modal" @onclick:stopPropagation="true">
+            <div class="confirm-icon delete-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+            </div>
+            <h3 class="confirm-title">Delete this expense?</h3>
+            <p class="confirm-text">This can't be undone.</p>
+            <div class="confirm-actions">
+                <button class="cancel-btn" @onclick="CancelDelete">Cancel</button>
+                <button class="delete-confirm-btn" @onclick="ConfirmDelete">Delete</button>
             </div>
         </div>
     </div>
@@ -296,6 +318,7 @@
 
     private bool ShowExpenseModal;
     private bool ShowSettleUpModal;
+    private bool ShowDeleteModal;
     private bool IsEditing;
     private Expense EditingExpense = new();
     private DateTime EditingExpenseDate;
@@ -380,13 +403,26 @@
         await LoadData();
     }
 
-    private async Task DeleteExpense()
+    private void ShowDeleteConfirmation()
+    {
+        ShowExpenseModal = false;
+        ShowDeleteModal = true;
+    }
+
+    private void CancelDelete()
+    {
+        ShowDeleteModal = false;
+        ShowExpenseModal = true;
+    }
+
+    private async Task ConfirmDelete()
     {
         if (!string.IsNullOrEmpty(EditingExpense.ReceiptPath))
         {
             await ExpenseService.DeleteReceiptAsync(EditingExpense.ReceiptPath);
         }
         await ExpenseService.DeleteExpenseAsync(EditingExpense.Id);
+        ShowDeleteModal = false;
         CloseModal();
         await LoadData();
     }
