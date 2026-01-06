@@ -451,3 +451,239 @@
         padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
     }
 }
+
+/* Settle Up Button */
+.settle-up-btn {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    background-color: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 10px;
+    color: white;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.settle-up-btn:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Settlement Card */
+.settlement-card {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    border-radius: 12px;
+    padding: 0.875rem;
+    border: 1px solid #6ee7b7;
+}
+
+.settlement-icon {
+    width: 40px;
+    height: 40px;
+    background-color: #10b981;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.875rem;
+    flex-shrink: 0;
+}
+
+.settlement-icon svg {
+    width: 20px;
+    height: 20px;
+    color: white;
+}
+
+.settlement-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.settlement-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.25rem;
+}
+
+.settlement-description {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #065f46;
+}
+
+.settlement-amount {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #065f46;
+    flex-shrink: 0;
+}
+
+.settlement-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: #047857;
+}
+
+.settlement-date::before {
+    content: "\00B7";
+    margin-right: 0.5rem;
+}
+
+/* Settled Expense Styling */
+.expense-card.settled {
+    opacity: 0.7;
+    background-color: #f9fafb;
+}
+
+.settled-badge {
+    display: inline-block;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    background-color: #d1fae5;
+    color: #065f46;
+    padding: 0.125rem 0.5rem;
+    border-radius: 10px;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+}
+
+/* Receipt Indicator */
+.receipt-indicator {
+    display: inline-flex;
+    align-items: center;
+    color: #5b8db8;
+}
+
+.receipt-indicator svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Receipt Section in Modal */
+.receipt-section {
+    min-height: 80px;
+}
+
+.receipt-buttons {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.receipt-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 1rem;
+    border: 2px dashed #d1d5db;
+    border-radius: 10px;
+    background: #f9fafb;
+    color: #6b7280;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.receipt-btn:hover {
+    border-color: #5b8db8;
+    background-color: #f0f7fc;
+    color: #5b8db8;
+}
+
+.receipt-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+.receipt-preview {
+    position: relative;
+    display: inline-block;
+}
+
+.receipt-preview img {
+    max-width: 120px;
+    max-height: 120px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    object-fit: cover;
+}
+
+.remove-receipt-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: #ef4444;
+    border: 2px solid white;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.remove-receipt-btn svg {
+    width: 12px;
+    height: 12px;
+}
+
+.remove-receipt-btn:hover {
+    background-color: #dc2626;
+}
+
+/* Settle Up Modal */
+.settle-up-modal .modal-body {
+    padding: 2rem 1.25rem;
+}
+
+.settle-up-summary {
+    text-align: center;
+}
+
+.settle-up-icon {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, #5b8db8 0%, #4a7a9e 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.25rem;
+}
+
+.settle-up-icon svg {
+    width: 32px;
+    height: 32px;
+    color: white;
+}
+
+.settle-up-text {
+    font-size: 1rem;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.settle-up-amount {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #5b8db8;
+    margin-bottom: 1rem;
+}
+
+.settle-up-note {
+    font-size: 0.875rem;
+    color: #6b7280;
+}

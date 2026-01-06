@@ -24,8 +24,20 @@ public class Expense
     public DateTime Date { get; set; } = DateTime.Today;
     public ExpenseCategory Category { get; set; } = ExpenseCategory.Other;
     public Parent PaidBy { get; set; } = Parent.ParentA;
+    public string? ReceiptPath { get; set; }
+    public string? SettlementId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class Settlement
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public decimal Amount { get; set; }
+    public DateTime Date { get; set; } = DateTime.Today;
+    public Parent FromParent { get; set; }
+    public Parent ToParent { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
 public static class ExpenseCategoryExtensions

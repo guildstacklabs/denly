@@ -36,34 +36,78 @@
             </div>
         }
         <div class="balance-note">Based on 50/50 split</div>
+        @if (Balance != 0)
+        {
+            <button class="settle-up-btn" @onclick="OpenSettleUpModal">Settle Up</button>
+        }
     </div>
 
-    <!-- Expenses List -->
+    <!-- Expenses & Settlements List -->
     <div class="expenses-section">
-        <h2>Expenses</h2>
+        <h2>History</h2>
 
-        @if (_expenses.Any())
+        @if (_allEntries.Any())
         {
             <div class="expenses-list">
-                @foreach (var expense in _expenses)
+                @foreach (var entry in _allEntries)
                 {
-                    <div class="expense-card" @onclick="() => OpenEditExpenseModal(expense)">
-                        <div class="expense-color-bar" style="background-color: @expense.Category.GetColor()"></div>
-                        <div class="expense-content">
-                            <div class="expense-header">
-                                <div class="expense-description">@expense.Description</div>
-                                <div class="expense-amount">@expense.Amount.ToString("C")</div>
+                    @if (entry.Settlement != null)
+                    {
+                        <div class="settlement-card">
+                            <div class="settlement-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 12l2 2 4-4"></path>
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                </svg>
                             </div>
-                            <div class="expense-meta">
-                                <span class="expense-category">@expense.Category.GetDisplayName()</span>
-                                <span class="expense-date">@expense.Date.ToString("MMM d")</span>
-                                <span class="expense-payer">@expense.PaidBy.GetDisplayName()</span>
+                            <div class="settlement-content">
+                                <div class="settlement-header">
+                                    <div class="settlement-description">Settlement</div>
+                                    <div class="settlement-amount">@entry.Settlement.Amount.ToString("C")</div>
+                                </div>
+                                <div class="settlement-meta">
+                                    <span class="settlement-detail">@entry.Settlement.FromParent.GetDisplayName() paid @entry.Settlement.ToParent.GetDisplayName()</span>
+                                    <span class="settlement-date">@entry.Settlement.Date.ToString("MMM d")</span>
+                                </div>
                             </div>
                         </div>
-                        <svg class="expense-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
-                    </div>
+                    }
+                    else if (entry.Expense != null)
+                    {
+                        <div class="expense-card @(entry.Expense.SettlementId != null ? "settled" : "")" @onclick="() => OpenEditExpenseModal(entry.Expense)">
+                            <div class="expense-color-bar" style="background-color: @entry.Expense.Category.GetColor()"></div>
+                            <div class="expense-content">
+                                <div class="expense-header">
+                                    <div class="expense-description">
+                                        @entry.Expense.Description
+                                        @if (entry.Expense.SettlementId != null)
+                                        {
+                                            <span class="settled-badge">Settled</span>
+                                        }
+                                    </div>
+                                    <div class="expense-amount">@entry.Expense.Amount.ToString("C")</div>
+                                </div>
+                                <div class="expense-meta">
+                                    <span class="expense-category">@entry.Expense.Category.GetDisplayName()</span>
+                                    <span class="expense-date">@entry.Expense.Date.ToString("MMM d")</span>
+                                    <span class="expense-payer">@entry.Expense.PaidBy.GetDisplayName()</span>
+                                    @if (!string.IsNullOrEmpty(entry.Expense.ReceiptPath))
+                                    {
+                                        <span class="receipt-indicator">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                                <polyline points="21 15 16 10 5 21"></polyline>
+                                            </svg>
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                            <svg class="expense-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </div>
+                    }
                 }
             </div>
         }
@@ -137,6 +181,44 @@
                         }
                     </div>
                 </div>
+
+                <div class="form-group">
+                    <label>Receipt (optional)</label>
+                    <div class="receipt-section">
+                        @if (!string.IsNullOrEmpty(EditingExpense.ReceiptPath))
+                        {
+                            <div class="receipt-preview">
+                                <img src="@EditingExpense.ReceiptPath" alt="Receipt" />
+                                <button class="remove-receipt-btn" @onclick="RemoveReceipt" type="button">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </svg>
+                                </button>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="receipt-buttons">
+                                <button class="receipt-btn" @onclick="TakePhoto" type="button">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                        <circle cx="12" cy="13" r="4"></circle>
+                                    </svg>
+                                    Camera
+                                </button>
+                                <button class="receipt-btn" @onclick="PickFromGallery" type="button">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                        <polyline points="21 15 16 10 5 21"></polyline>
+                                    </svg>
+                                    Gallery
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
             </div>
 
             <div class="modal-footer">
@@ -153,11 +235,67 @@
     </div>
 }
 
+<!-- Settle Up Modal -->
+@if (ShowSettleUpModal)
+{
+    <div class="modal-overlay" @onclick="CloseSettleUpModal">
+        <div class="modal-content settle-up-modal" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>Settle Up</h3>
+                <button class="close-btn" @onclick="CloseSettleUpModal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="settle-up-summary">
+                    <div class="settle-up-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="1" x2="12" y2="23"></line>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                    </div>
+                    @if (Balance > 0)
+                    {
+                        <div class="settle-up-text">
+                            <strong>@Parent.ParentA.GetDisplayName()</strong> owes
+                            <strong>@Parent.ParentB.GetDisplayName()</strong>
+                        </div>
+                        <div class="settle-up-amount">@Balance.ToString("C")</div>
+                    }
+                    else
+                    {
+                        <div class="settle-up-text">
+                            <strong>@Parent.ParentB.GetDisplayName()</strong> owes
+                            <strong>@Parent.ParentA.GetDisplayName()</strong>
+                        </div>
+                        <div class="settle-up-amount">@Math.Abs(Balance).ToString("C")</div>
+                    }
+                    <div class="settle-up-note">
+                        This will mark all current expenses as settled.
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="cancel-btn" @onclick="CloseSettleUpModal">Cancel</button>
+                <button class="save-btn" @onclick="ConfirmSettlement">Confirm Settlement</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private List<Expense> _expenses = new();
+    private List<Settlement> _settlements = new();
+    private List<HistoryEntry> _allEntries = new();
     private decimal Balance;
 
     private bool ShowExpenseModal;
+    private bool ShowSettleUpModal;
     private bool IsEditing;
     private Expense EditingExpense = new();
     private DateTime EditingExpenseDate;
@@ -173,7 +311,20 @@
     private async Task LoadData()
     {
         _expenses = await ExpenseService.GetAllExpensesAsync();
+        _settlements = await ExpenseService.GetAllSettlementsAsync();
         Balance = await ExpenseService.GetBalanceAsync();
+
+        // Combine expenses and settlements into a unified list sorted by date
+        _allEntries = new List<HistoryEntry>();
+        foreach (var expense in _expenses)
+        {
+            _allEntries.Add(new HistoryEntry { Expense = expense, SortDate = expense.Date, SortCreatedAt = expense.CreatedAt });
+        }
+        foreach (var settlement in _settlements)
+        {
+            _allEntries.Add(new HistoryEntry { Settlement = settlement, SortDate = settlement.Date, SortCreatedAt = settlement.CreatedAt });
+        }
+        _allEntries = _allEntries.OrderByDescending(e => e.SortDate).ThenByDescending(e => e.SortCreatedAt).ToList();
     }
 
     private void OpenAddExpenseModal()
@@ -201,6 +352,8 @@
             Date = expense.Date,
             Category = expense.Category,
             PaidBy = expense.PaidBy,
+            ReceiptPath = expense.ReceiptPath,
+            SettlementId = expense.SettlementId,
             CreatedAt = expense.CreatedAt
         };
         EditingExpenseDate = expense.Date;
@@ -229,8 +382,94 @@
 
     private async Task DeleteExpense()
     {
+        if (!string.IsNullOrEmpty(EditingExpense.ReceiptPath))
+        {
+            await ExpenseService.DeleteReceiptAsync(EditingExpense.ReceiptPath);
+        }
         await ExpenseService.DeleteExpenseAsync(EditingExpense.Id);
         CloseModal();
         await LoadData();
+    }
+
+    private async Task TakePhoto()
+    {
+        try
+        {
+            if (!MediaPicker.Default.IsCaptureSupported)
+                return;
+
+            var photo = await MediaPicker.Default.CapturePhotoAsync();
+            if (photo != null)
+            {
+                await SaveReceiptFromFile(photo);
+            }
+        }
+        catch
+        {
+            // Handle gracefully - camera not available
+        }
+    }
+
+    private async Task PickFromGallery()
+    {
+        try
+        {
+            var photo = await MediaPicker.Default.PickPhotoAsync();
+            if (photo != null)
+            {
+                await SaveReceiptFromFile(photo);
+            }
+        }
+        catch
+        {
+            // Handle gracefully - gallery not available
+        }
+    }
+
+    private async Task SaveReceiptFromFile(FileResult photo)
+    {
+        using var stream = await photo.OpenReadAsync();
+        var receiptPath = await ExpenseService.SaveReceiptAsync(stream, photo.FileName);
+        EditingExpense.ReceiptPath = receiptPath;
+        StateHasChanged();
+    }
+
+    private async Task RemoveReceipt()
+    {
+        if (!string.IsNullOrEmpty(EditingExpense.ReceiptPath))
+        {
+            await ExpenseService.DeleteReceiptAsync(EditingExpense.ReceiptPath);
+            EditingExpense.ReceiptPath = null;
+            StateHasChanged();
+        }
+    }
+
+    private void OpenSettleUpModal()
+    {
+        ShowSettleUpModal = true;
+    }
+
+    private void CloseSettleUpModal()
+    {
+        ShowSettleUpModal = false;
+    }
+
+    private async Task ConfirmSettlement()
+    {
+        var amount = Math.Abs(Balance);
+        var fromParent = Balance > 0 ? Parent.ParentA : Parent.ParentB;
+        var toParent = Balance > 0 ? Parent.ParentB : Parent.ParentA;
+
+        await ExpenseService.CreateSettlementAsync(amount, fromParent, toParent);
+        CloseSettleUpModal();
+        await LoadData();
+    }
+
+    private class HistoryEntry
+    {
+        public Expense? Expense { get; set; }
+        public Settlement? Settlement { get; set; }
+        public DateTime SortDate { get; set; }
+        public DateTime SortCreatedAt { get; set; }
     }
 }

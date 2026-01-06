@@ -30,3 +30,12 @@ Fair-priced, community-driven alternative to expensive co-parenting apps like Ou
 ## Timeline
 
 6 months to App Store launch
+
+## Future Enhancements
+
+### Shared Costs - Timeline View
+
+- Restyle expense list as a visual timeline
+- Show settlements as distinct "milestone" markers in the timeline
+- Add filtering: by date range, category, settled/unsettled status
+- Goal: make it easy to see the full history at a glance while quickly finding specific expenses

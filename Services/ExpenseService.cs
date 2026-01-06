@@ -10,12 +10,19 @@ public interface IExpenseService
     Task SaveExpenseAsync(Expense expense);
     Task DeleteExpenseAsync(string id);
     Task<decimal> GetBalanceAsync();
+    Task<List<Settlement>> GetAllSettlementsAsync();
+    Task<Settlement> CreateSettlementAsync(decimal amount, Parent fromParent, Parent toParent);
+    Task<string> SaveReceiptAsync(Stream imageStream, string fileName);
+    Task DeleteReceiptAsync(string receiptPath);
 }
 
 public class LocalExpenseService : IExpenseService
 {
-    private readonly string _filePath;
-    private List<Expense>? _cache;
+    private readonly string _expensesFilePath;
+    private readonly string _settlementsFilePath;
+    private readonly string _receiptsDirectory;
+    private List<Expense>? _expensesCache;
+    private List<Settlement>? _settlementsCache;
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
         WriteIndented = true,
@@ -24,38 +31,72 @@ public class LocalExpenseService : IExpenseService
 
     public LocalExpenseService()
     {
-        _filePath = Path.Combine(FileSystem.AppDataDirectory, "expenses.json");
+        _expensesFilePath = Path.Combine(FileSystem.AppDataDirectory, "expenses.json");
+        _settlementsFilePath = Path.Combine(FileSystem.AppDataDirectory, "settlements.json");
+        _receiptsDirectory = Path.Combine(FileSystem.AppDataDirectory, "receipts");
+        Directory.CreateDirectory(_receiptsDirectory);
     }
 
     private async Task<List<Expense>> LoadExpensesAsync()
     {
-        if (_cache != null)
-            return _cache;
+        if (_expensesCache != null)
+            return _expensesCache;
 
-        if (!File.Exists(_filePath))
+        if (!File.Exists(_expensesFilePath))
         {
-            _cache = new List<Expense>();
-            return _cache;
+            _expensesCache = new List<Expense>();
+            return _expensesCache;
         }
 
         try
         {
-            var json = await File.ReadAllTextAsync(_filePath);
-            _cache = JsonSerializer.Deserialize<List<Expense>>(json, _jsonOptions) ?? new List<Expense>();
+            var json = await File.ReadAllTextAsync(_expensesFilePath);
+            _expensesCache = JsonSerializer.Deserialize<List<Expense>>(json, _jsonOptions) ?? new List<Expense>();
         }
         catch
         {
-            _cache = new List<Expense>();
+            _expensesCache = new List<Expense>();
         }
 
-        return _cache;
+        return _expensesCache;
     }
 
     private async Task SaveExpensesAsync(List<Expense> expenses)
     {
         var json = JsonSerializer.Serialize(expenses, _jsonOptions);
-        await File.WriteAllTextAsync(_filePath, json);
-        _cache = expenses;
+        await File.WriteAllTextAsync(_expensesFilePath, json);
+        _expensesCache = expenses;
+    }
+
+    private async Task<List<Settlement>> LoadSettlementsAsync()
+    {
+        if (_settlementsCache != null)
+            return _settlementsCache;
+
+        if (!File.Exists(_settlementsFilePath))
+        {
+            _settlementsCache = new List<Settlement>();
+            return _settlementsCache;
+        }
+
+        try
+        {
+            var json = await File.ReadAllTextAsync(_settlementsFilePath);
+            _settlementsCache = JsonSerializer.Deserialize<List<Settlement>>(json, _jsonOptions) ?? new List<Settlement>();
+        }
+        catch
+        {
+            _settlementsCache = new List<Settlement>();
+        }
+
+        return _settlementsCache;
+    }
+
+    private async Task SaveSettlementsAsync(List<Settlement> settlements)
+    {
+        var json = JsonSerializer.Serialize(settlements, _jsonOptions);
+        await File.WriteAllTextAsync(_settlementsFilePath, json);
+        _settlementsCache = settlements;
     }
 
     public async Task<List<Expense>> GetAllExpensesAsync()
@@ -106,9 +147,12 @@ public class LocalExpenseService : IExpenseService
     {
         var expenses = await LoadExpensesAsync();
 
+        // Only consider unsettled expenses for balance calculation
+        var unsettledExpenses = expenses.Where(e => e.SettlementId == null).ToList();
+
         // Calculate how much each parent has paid
-        var parentAPaid = expenses.Where(e => e.PaidBy == Parent.ParentA).Sum(e => e.Amount);
-        var parentBPaid = expenses.Where(e => e.PaidBy == Parent.ParentB).Sum(e => e.Amount);
+        var parentAPaid = unsettledExpenses.Where(e => e.PaidBy == Parent.ParentA).Sum(e => e.Amount);
+        var parentBPaid = unsettledExpenses.Where(e => e.PaidBy == Parent.ParentB).Sum(e => e.Amount);
 
         // With 50/50 split, each parent should pay half of total
         var total = parentAPaid + parentBPaid;
@@ -117,5 +161,59 @@ public class LocalExpenseService : IExpenseService
         // Positive = Parent A owes Parent B
         // Negative = Parent B owes Parent A
         return fairShare - parentAPaid;
+    }
+
+    public async Task<List<Settlement>> GetAllSettlementsAsync()
+    {
+        var settlements = await LoadSettlementsAsync();
+        return settlements.OrderByDescending(s => s.Date).ThenByDescending(s => s.CreatedAt).ToList();
+    }
+
+    public async Task<Settlement> CreateSettlementAsync(decimal amount, Parent fromParent, Parent toParent)
+    {
+        var settlement = new Settlement
+        {
+            Amount = amount,
+            Date = DateTime.Today,
+            FromParent = fromParent,
+            ToParent = toParent,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        // Mark all unsettled expenses with this settlement ID
+        var expenses = await LoadExpensesAsync();
+        foreach (var expense in expenses.Where(e => e.SettlementId == null))
+        {
+            expense.SettlementId = settlement.Id;
+            expense.UpdatedAt = DateTime.UtcNow;
+        }
+        await SaveExpensesAsync(expenses);
+
+        // Save the settlement
+        var settlements = await LoadSettlementsAsync();
+        settlements.Add(settlement);
+        await SaveSettlementsAsync(settlements);
+
+        return settlement;
+    }
+
+    public async Task<string> SaveReceiptAsync(Stream imageStream, string fileName)
+    {
+        var extension = Path.GetExtension(fileName);
+        var uniqueName = $"{Guid.NewGuid()}{extension}";
+        var filePath = Path.Combine(_receiptsDirectory, uniqueName);
+
+        using var fileStream = File.Create(filePath);
+        await imageStream.CopyToAsync(fileStream);
+
+        return filePath;
+    }
+
+    public async Task DeleteReceiptAsync(string receiptPath)
+    {
+        if (!string.IsNullOrEmpty(receiptPath) && File.Exists(receiptPath))
+        {
+            await Task.Run(() => File.Delete(receiptPath));
+        }
     }
 }
