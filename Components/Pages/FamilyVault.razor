@@ -1,0 +1,475 @@
+@page "/vault"
+@using Denly.Models
+@using Denly.Services
+@inject IDocumentService DocumentService
+
+<div class="vault-page">
+    <!-- Header -->
+    <div class="page-header">
+        <h1>Family Vault</h1>
+        <button class="add-btn" @onclick="OpenAddDocumentModal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Add
+        </button>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="search-container">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        <input type="text"
+               class="search-input"
+               placeholder="Search documents..."
+               @bind="SearchTerm"
+               @bind:event="oninput"
+               @onkeyup="OnSearchChanged" />
+        @if (!string.IsNullOrEmpty(SearchTerm))
+        {
+            <button class="clear-search" @onclick="ClearSearch">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        }
+    </div>
+
+    <!-- Folder Filter -->
+    <div class="folder-tabs">
+        <button class="folder-tab @(SelectedFolder == null ? "active" : "")"
+                @onclick="() => SelectFolder(null)">
+            All
+            <span class="tab-count">@_documents.Count</span>
+        </button>
+        @foreach (DocumentFolder folder in Enum.GetValues<DocumentFolder>())
+        {
+            var count = _folderCounts.GetValueOrDefault(folder, 0);
+            <button class="folder-tab @(SelectedFolder == folder ? "active" : "")"
+                    style="--folder-color: @folder.GetColor()"
+                    @onclick="() => SelectFolder(folder)">
+                @folder.GetDisplayName()
+                @if (count > 0)
+                {
+                    <span class="tab-count">@count</span>
+                }
+            </button>
+        }
+    </div>
+
+    <!-- Documents List -->
+    <div class="documents-section">
+        @if (_filteredDocuments.Any())
+        {
+            @if (string.IsNullOrEmpty(SearchTerm) && SelectedFolder == null)
+            {
+                <!-- Grouped by folder -->
+                @foreach (var group in _filteredDocuments.GroupBy(d => d.Folder))
+                {
+                    <div class="folder-group">
+                        <div class="folder-header" style="--folder-color: @group.Key.GetColor()">
+                            <div class="folder-color-dot"></div>
+                            <h2>@group.Key.GetDisplayName()</h2>
+                            <span class="folder-count">@group.Count()</span>
+                        </div>
+                        <div class="documents-list">
+                            @foreach (var doc in group)
+                            {
+                                <div class="document-card" @onclick="() => OpenViewDocumentModal(doc)">
+                                    <div class="document-icon" style="background-color: @doc.Folder.GetColor()20; color: @doc.Folder.GetColor()">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14 2 14 8 20 8"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div class="document-content">
+                                        <div class="document-name">@doc.Name</div>
+                                        @if (!string.IsNullOrEmpty(doc.FileName))
+                                        {
+                                            <div class="document-file">@doc.FileName</div>
+                                        }
+                                        else if (!string.IsNullOrEmpty(doc.Notes))
+                                        {
+                                            <div class="document-notes">@TruncateText(doc.Notes, 50)</div>
+                                        }
+                                    </div>
+                                    <svg class="document-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="9 18 15 12 9 6"></polyline>
+                                    </svg>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <!-- Flat list for search/filter results -->
+                <div class="documents-list">
+                    @foreach (var doc in _filteredDocuments)
+                    {
+                        <div class="document-card" @onclick="() => OpenViewDocumentModal(doc)">
+                            <div class="document-icon" style="background-color: @doc.Folder.GetColor()20; color: @doc.Folder.GetColor()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                            </div>
+                            <div class="document-content">
+                                <div class="document-name">@doc.Name</div>
+                                <div class="document-meta">
+                                    <span class="document-folder" style="color: @doc.Folder.GetColor()">@doc.Folder.GetDisplayName()</span>
+                                    @if (!string.IsNullOrEmpty(doc.FileName))
+                                    {
+                                        <span class="document-file">@doc.FileName</span>
+                                    }
+                                </div>
+                            </div>
+                            <svg class="document-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </div>
+                    }
+                </div>
+            }
+        }
+        else
+        {
+            <div class="no-documents">
+                @if (!string.IsNullOrEmpty(SearchTerm))
+                {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <p>No documents found for "@SearchTerm"</p>
+                }
+                else if (SelectedFolder != null)
+                {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                    </svg>
+                    <p>No @SelectedFolder.Value.GetDisplayName().ToLower() documents yet</p>
+                }
+                else
+                {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    <p>No documents stored yet</p>
+                }
+                <button class="add-document-link" @onclick="OpenAddDocumentModal">Add your first document</button>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- View/Edit Document Modal -->
+@if (ShowViewModal && ViewingDocument != null)
+{
+    <div class="modal-overlay" @onclick="CloseModal">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>@ViewingDocument.Name</h3>
+                <button class="close-btn" @onclick="CloseModal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="modal-body view-mode">
+                <div class="detail-row">
+                    <span class="detail-label">Folder</span>
+                    <span class="detail-value folder-badge" style="--folder-color: @ViewingDocument.Folder.GetColor()">
+                        @ViewingDocument.Folder.GetDisplayName()
+                    </span>
+                </div>
+
+                @if (!string.IsNullOrEmpty(ViewingDocument.FileName))
+                {
+                    <div class="detail-row">
+                        <span class="detail-label">File</span>
+                        <span class="detail-value file-name">@ViewingDocument.FileName</span>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(ViewingDocument.Notes))
+                {
+                    <div class="detail-row notes-row">
+                        <span class="detail-label">Notes</span>
+                        <p class="detail-value notes-text">@ViewingDocument.Notes</p>
+                    </div>
+                }
+
+                <div class="detail-row">
+                    <span class="detail-label">Added</span>
+                    <span class="detail-value">@ViewingDocument.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</span>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="delete-btn" @onclick="DeleteDocument">Delete</button>
+                <button class="edit-btn" @onclick="OpenEditDocumentModal">Edit</button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Add/Edit Document Modal -->
+@if (ShowEditModal)
+{
+    <div class="modal-overlay" @onclick="CloseModal">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>@(IsEditing ? "Edit Document" : "New Document")</h3>
+                <button class="close-btn" @onclick="CloseModal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Document Name</label>
+                    <input type="text" @bind="EditingDocument.Name" placeholder="e.g., Birth Certificate, Insurance Card" />
+                </div>
+
+                <div class="form-group">
+                    <label>Folder</label>
+                    <div class="folder-selector">
+                        @foreach (DocumentFolder folder in Enum.GetValues<DocumentFolder>())
+                        {
+                            <button class="folder-btn @(EditingDocument.Folder == folder ? "selected" : "")"
+                                    style="--folder-color: @folder.GetColor()"
+                                    @onclick="() => EditingDocument.Folder = folder">
+                                @folder.GetDisplayName()
+                            </button>
+                        }
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>File (optional)</label>
+                    <div class="file-input-wrapper">
+                        @if (string.IsNullOrEmpty(EditingDocument.FileName))
+                        {
+                            <button class="file-select-btn" @onclick="SelectFile">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                                Attach File
+                            </button>
+                        }
+                        else
+                        {
+                            <div class="file-selected">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                                <span>@EditingDocument.FileName</span>
+                                <button class="remove-file" @onclick="RemoveFile">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </svg>
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Notes (optional)</label>
+                    <textarea @bind="EditingDocument.Notes"
+                              placeholder="Add any helpful details..."
+                              rows="3"></textarea>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="cancel-btn" @onclick="CloseModal">Cancel</button>
+                <button class="save-btn" @onclick="SaveDocument" disabled="@(!IsValidDocument)">
+                    @(IsEditing ? "Save" : "Add Document")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Document> _documents = new();
+    private List<Document> _filteredDocuments = new();
+    private Dictionary<DocumentFolder, int> _folderCounts = new();
+
+    private string SearchTerm = string.Empty;
+    private DocumentFolder? SelectedFolder;
+
+    private bool ShowViewModal;
+    private bool ShowEditModal;
+    private bool IsEditing;
+    private Document? ViewingDocument;
+    private Document EditingDocument = new();
+
+    private bool IsValidDocument => !string.IsNullOrWhiteSpace(EditingDocument.Name);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _documents = await DocumentService.GetAllDocumentsAsync();
+        _folderCounts = await DocumentService.GetFolderCountsAsync();
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        var filtered = _documents.AsEnumerable();
+
+        if (SelectedFolder != null)
+        {
+            filtered = filtered.Where(d => d.Folder == SelectedFolder);
+        }
+
+        if (!string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            var term = SearchTerm.ToLowerInvariant();
+            filtered = filtered.Where(d =>
+                d.Name.ToLowerInvariant().Contains(term) ||
+                d.Notes.ToLowerInvariant().Contains(term) ||
+                (d.FileName?.ToLowerInvariant().Contains(term) ?? false));
+        }
+
+        _filteredDocuments = filtered.ToList();
+    }
+
+    private void SelectFolder(DocumentFolder? folder)
+    {
+        SelectedFolder = folder;
+        ApplyFilters();
+    }
+
+    private void OnSearchChanged()
+    {
+        ApplyFilters();
+    }
+
+    private void ClearSearch()
+    {
+        SearchTerm = string.Empty;
+        ApplyFilters();
+    }
+
+    private void OpenAddDocumentModal()
+    {
+        IsEditing = false;
+        EditingDocument = new Document
+        {
+            Folder = SelectedFolder ?? DocumentFolder.Other
+        };
+        ShowViewModal = false;
+        ShowEditModal = true;
+    }
+
+    private void OpenViewDocumentModal(Document doc)
+    {
+        ViewingDocument = doc;
+        ShowEditModal = false;
+        ShowViewModal = true;
+    }
+
+    private void OpenEditDocumentModal()
+    {
+        if (ViewingDocument == null) return;
+
+        IsEditing = true;
+        EditingDocument = new Document
+        {
+            Id = ViewingDocument.Id,
+            Name = ViewingDocument.Name,
+            Folder = ViewingDocument.Folder,
+            Notes = ViewingDocument.Notes,
+            FilePath = ViewingDocument.FilePath,
+            FileName = ViewingDocument.FileName,
+            CreatedAt = ViewingDocument.CreatedAt
+        };
+        ShowViewModal = false;
+        ShowEditModal = true;
+    }
+
+    private void CloseModal()
+    {
+        ShowViewModal = false;
+        ShowEditModal = false;
+        ViewingDocument = null;
+        EditingDocument = new();
+    }
+
+    private async Task SaveDocument()
+    {
+        if (!IsValidDocument)
+            return;
+
+        await DocumentService.SaveDocumentAsync(EditingDocument);
+        CloseModal();
+        await LoadData();
+    }
+
+    private async Task DeleteDocument()
+    {
+        if (ViewingDocument == null) return;
+
+        await DocumentService.DeleteDocumentAsync(ViewingDocument.Id);
+        CloseModal();
+        await LoadData();
+    }
+
+    private async Task SelectFile()
+    {
+        try
+        {
+            var result = await FilePicker.Default.PickAsync(new PickOptions
+            {
+                PickerTitle = "Select a document"
+            });
+
+            if (result != null)
+            {
+                EditingDocument.FilePath = result.FullPath;
+                EditingDocument.FileName = result.FileName;
+            }
+        }
+        catch
+        {
+            // User cancelled or error occurred
+        }
+    }
+
+    private void RemoveFile()
+    {
+        EditingDocument.FilePath = null;
+        EditingDocument.FileName = null;
+    }
+
+    private string TruncateText(string text, int maxLength)
+    {
+        if (string.IsNullOrEmpty(text) || text.Length <= maxLength)
+            return text;
+
+        return text.Substring(0, maxLength) + "...";
+    }
+}
