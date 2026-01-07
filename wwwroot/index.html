@@ -24,6 +24,7 @@
     <script src="_framework/blazor.webview.js" autostart="false"></script>
     <script>
         function setSafeAreaInsets(top, bottom, left, right) {
+            // Set custom properties for Android (iOS uses native env() via CSS fallback)
             document.documentElement.style.setProperty('--safe-area-inset-top', top + 'px');
             document.documentElement.style.setProperty('--safe-area-inset-bottom', bottom + 'px');
             document.documentElement.style.setProperty('--safe-area-inset-left', left + 'px');

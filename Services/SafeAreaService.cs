@@ -19,6 +19,7 @@ public class AndroidSafeAreaService : ISafeAreaService
 #else
 public class DefaultSafeAreaService : ISafeAreaService
 {
+    // Return 0 - iOS uses native CSS env() via fallback pattern
     public int Top => 0;
     public int Bottom => 0;
     public int Left => 0;

@@ -147,7 +147,7 @@
                     <label>Amount</label>
                     <div class="amount-input-wrapper">
                         <span class="currency-symbol">$</span>
-                        <input type="number" step="0.01" min="0" @bind="EditingAmount" placeholder="0.00" />
+                        <input type="number" step="0.01" min="0" inputmode="decimal" @bind="EditingAmount" placeholder="0.00" />
                     </div>
                 </div>
 
@@ -322,9 +322,9 @@
     private bool IsEditing;
     private Expense EditingExpense = new();
     private DateTime EditingExpenseDate;
-    private decimal EditingAmount;
+    private decimal? EditingAmount;
 
-    private bool IsValidExpense => !string.IsNullOrWhiteSpace(EditingExpense.Description) && EditingAmount > 0;
+    private bool IsValidExpense => !string.IsNullOrWhiteSpace(EditingExpense.Description) && EditingAmount.HasValue && EditingAmount.Value > 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -360,7 +360,7 @@
             PaidBy = Parent.ParentA
         };
         EditingExpenseDate = EditingExpense.Date;
-        EditingAmount = 0;
+        EditingAmount = null;
         ShowExpenseModal = true;
     }
 
@@ -396,7 +396,7 @@
             return;
 
         EditingExpense.Date = EditingExpenseDate;
-        EditingExpense.Amount = EditingAmount;
+        EditingExpense.Amount = EditingAmount!.Value;
 
         await ExpenseService.SaveExpenseAsync(EditingExpense);
         CloseModal();
