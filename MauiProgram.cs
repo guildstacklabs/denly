@@ -19,6 +19,11 @@ public static class MauiProgram
 		builder.Services.AddSingleton<IScheduleService, LocalScheduleService>();
 		builder.Services.AddSingleton<IExpenseService, LocalExpenseService>();
 		builder.Services.AddSingleton<IDocumentService, LocalDocumentService>();
+#if ANDROID
+		builder.Services.AddSingleton<ISafeAreaService, AndroidSafeAreaService>();
+#else
+		builder.Services.AddSingleton<ISafeAreaService, DefaultSafeAreaService>();
+#endif
 
 #if DEBUG
 		builder.Services.AddBlazorWebViewDeveloperTools();

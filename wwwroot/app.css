@@ -147,19 +147,20 @@ h1:focus {
     text-align: start;
 }
 
-/* iOS safe area support */
-.status-bar-safe-area {
-    display: none;
+/* Safe area support for notches and rounded corners */
+:root {
+    --safe-area-inset-top: env(safe-area-inset-top, 0px);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-inset-left: env(safe-area-inset-left, 0px);
+    --safe-area-inset-right: env(safe-area-inset-right, 0px);
 }
 
-@supports (-webkit-touch-callout: none) {
-    .status-bar-safe-area {
-        display: flex;
-        position: sticky;
-        top: 0;
-        height: env(safe-area-inset-top);
-        background-color: var(--primary-blue);
-        width: 100%;
-        z-index: 101;
-    }
+.status-bar-safe-area {
+    display: flex;
+    position: sticky;
+    top: 0;
+    height: var(--safe-area-inset-top);
+    background-color: var(--primary-blue);
+    width: 100%;
+    z-index: 101;
 }

@@ -1,4 +1,6 @@
 @inherits LayoutComponentBase
+@inject IJSRuntime JS
+@inject Denly.Services.ISafeAreaService SafeArea
 
 <div class="page">
     <div class="status-bar-safe-area"></div>
@@ -15,3 +17,13 @@
 
     <NavMenu />
 </div>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("setSafeAreaInsets", SafeArea.Top, SafeArea.Bottom, SafeArea.Left, SafeArea.Right);
+        }
+    }
+}

@@ -13,8 +13,6 @@
 
 <body>
 
-    <div class="status-bar-safe-area"></div>
-
     <div id="app">Loading...</div>
 
     <div id="blazor-error-ui" data-nosnippet>
@@ -24,6 +22,14 @@
     </div>
 
     <script src="_framework/blazor.webview.js" autostart="false"></script>
+    <script>
+        function setSafeAreaInsets(top, bottom, left, right) {
+            document.documentElement.style.setProperty('--safe-area-inset-top', top + 'px');
+            document.documentElement.style.setProperty('--safe-area-inset-bottom', bottom + 'px');
+            document.documentElement.style.setProperty('--safe-area-inset-left', left + 'px');
+            document.documentElement.style.setProperty('--safe-area-inset-right', right + 'px');
+        }
+    </script>
 
 </body>
 
