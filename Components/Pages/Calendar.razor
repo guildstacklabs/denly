@@ -182,13 +182,13 @@
     private DateTime CurrentDate = DateTime.Today;
     private DateTime? SelectedDate;
     private List<CalendarDay> CalendarDays = new();
-    private List<ScheduleEvent> MonthEvents = new();
-    private List<ScheduleEvent> SelectedDayEvents = new();
+    private List<Event> MonthEvents = new();
+    private List<Event> SelectedDayEvents = new();
 
     private bool ShowEventModal;
     private bool ShowDeleteModal;
     private bool IsEditing;
-    private ScheduleEvent EditingEvent = new();
+    private Event EditingEvent = new();
     private DateTime EditingEventDate;
     private TimeOnly? EditingEventTime;
 
@@ -271,26 +271,30 @@
     private void OpenAddEventModal()
     {
         IsEditing = false;
-        EditingEvent = new ScheduleEvent
+        EditingEvent = new Event
         {
-            Date = SelectedDate ?? DateTime.Today,
-            Type = EventType.Other
+            Type = EventType.Other,
+            AllDay = true
         };
-        EditingEventDate = EditingEvent.Date;
+        // Use the selected date directly (it's already local time)
+        EditingEventDate = SelectedDate ?? DateTime.Today;
         EditingEventTime = null;
         ShowEventModal = true;
     }
 
-    private void OpenEditEventModal(ScheduleEvent evt)
+    private void OpenEditEventModal(Event evt)
     {
         IsEditing = true;
-        EditingEvent = new ScheduleEvent
+        EditingEvent = new Event
         {
             Id = evt.Id,
             Title = evt.Title,
-            Date = evt.Date,
-            Time = evt.Time,
+            StartsAt = evt.StartsAt,
+            EndsAt = evt.EndsAt,
+            AllDay = evt.AllDay,
             Type = evt.Type,
+            Location = evt.Location,
+            Notes = evt.Notes,
             CreatedAt = evt.CreatedAt
         };
         EditingEventDate = evt.Date;
@@ -301,7 +305,7 @@
     private void CloseModal()
     {
         ShowEventModal = false;
-        EditingEvent = new();
+        EditingEvent = new Event();
     }
 
     private async Task SaveEvent()
@@ -309,8 +313,25 @@
         if (string.IsNullOrWhiteSpace(EditingEvent.Title))
             return;
 
-        EditingEvent.Date = EditingEventDate;
-        EditingEvent.Time = EditingEventTime?.ToTimeSpan();
+        // Set StartsAt based on date and optional time
+        // Convert local time to UTC for storage
+        // Must explicitly specify Kind=Local since input bindings return Unspecified
+        if (EditingEventTime.HasValue)
+        {
+            var localDateTime = DateTime.SpecifyKind(
+                EditingEventDate.Date.Add(EditingEventTime.Value.ToTimeSpan()),
+                DateTimeKind.Local
+            );
+            EditingEvent.StartsAt = localDateTime.ToUniversalTime();
+            EditingEvent.AllDay = false;
+        }
+        else
+        {
+            // For all-day events, store as start of day in UTC
+            var localDate = DateTime.SpecifyKind(EditingEventDate.Date, DateTimeKind.Local);
+            EditingEvent.StartsAt = localDate.ToUniversalTime();
+            EditingEvent.AllDay = true;
+        }
 
         await ScheduleService.SaveEventAsync(EditingEvent);
         CloseModal();
@@ -355,6 +376,6 @@
         public DateTime Date { get; set; }
         public bool IsCurrentMonth { get; set; }
         public bool IsToday { get; set; }
-        public List<ScheduleEvent> Events { get; set; } = new();
+        public List<Event> Events { get; set; } = new();
     }
 }

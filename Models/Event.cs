@@ -1,0 +1,113 @@
+using System.Text.Json.Serialization;
+using Newtonsoft.Json;
+using Supabase.Postgrest.Attributes;
+using Supabase.Postgrest.Models;
+
+namespace Denly.Models;
+
+public enum EventType
+{
+    Handoff,
+    Doctor,
+    School,
+    Activity,
+    Family,
+    Other
+}
+
+[Table("events")]
+public class Event : BaseModel
+{
+    [PrimaryKey("id", false)]
+    [Column("id")]
+    [JsonProperty("id")]
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    [Column("den_id")]
+    [JsonProperty("den_id")]
+    public string DenId { get; set; } = string.Empty;
+
+    [Column("child_id")]
+    [JsonProperty("child_id")]
+    public string? ChildId { get; set; }
+
+    [Column("title")]
+    [JsonProperty("title")]
+    public string Title { get; set; } = string.Empty;
+
+    [Column("event_type")]
+    [JsonProperty("event_type")]
+    public string EventTypeString
+    {
+        get => Type.ToString().ToLowerInvariant();
+        set => Type = Enum.TryParse<EventType>(value, true, out var result) ? result : EventType.Other;
+    }
+
+    [Newtonsoft.Json.JsonIgnore]
+    [System.Text.Json.Serialization.JsonIgnore]
+    public EventType Type { get; set; } = EventType.Other;
+
+    [Column("starts_at")]
+    [JsonProperty("starts_at")]
+    public DateTime StartsAt { get; set; } = DateTime.Today;
+
+    [Column("ends_at")]
+    [JsonProperty("ends_at")]
+    public DateTime? EndsAt { get; set; }
+
+    [Column("all_day")]
+    [JsonProperty("all_day")]
+    public bool AllDay { get; set; } = false;
+
+    [Column("location")]
+    [JsonProperty("location")]
+    public string? Location { get; set; }
+
+    [Column("notes")]
+    [JsonProperty("notes")]
+    public string? Notes { get; set; }
+
+    [Column("created_by")]
+    [JsonProperty("created_by")]
+    public string CreatedBy { get; set; } = string.Empty;
+
+    [Column("created_at")]
+    [JsonProperty("created_at")]
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Helper properties for UI compatibility
+    // Convert from UTC (stored) to local time for display
+    // Supabase returns DateTime with Kind=Unspecified, so we must specify UTC explicitly
+    [Newtonsoft.Json.JsonIgnore]
+    [System.Text.Json.Serialization.JsonIgnore]
+    public DateTime Date => DateTime.SpecifyKind(StartsAt, DateTimeKind.Utc).ToLocalTime().Date;
+
+    [Newtonsoft.Json.JsonIgnore]
+    [System.Text.Json.Serialization.JsonIgnore]
+    public TimeSpan? Time => AllDay ? null : DateTime.SpecifyKind(StartsAt, DateTimeKind.Utc).ToLocalTime().TimeOfDay;
+}
+
+public static class EventTypeExtensions
+{
+    public static string GetDisplayName(this EventType type) => type switch
+    {
+        EventType.Handoff => "Handoff",
+        EventType.Doctor => "Doctor/Health",
+        EventType.School => "School",
+        EventType.Activity => "Activity",
+        EventType.Family => "Family",
+        EventType.Other => "Other",
+        _ => "Other"
+    };
+
+    public static string GetColor(this EventType type) => type switch
+    {
+        EventType.Handoff => "#e07a5f",      // Warm terracotta - transitions between homes
+        EventType.Doctor => "#81b29a",       // Sage green - health/wellness
+        EventType.School => "#f2cc8f",       // Soft gold - school events
+        EventType.Activity => "#3d85c6",     // Calm blue - activities
+        EventType.Family => "#a78bba",       // Soft purple - family gatherings
+        EventType.Other => "#9ca3af",        // Neutral gray
+        _ => "#9ca3af"
+    };
+}

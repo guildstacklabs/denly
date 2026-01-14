@@ -87,14 +87,10 @@
                                         </svg>
                                     </div>
                                     <div class="document-content">
-                                        <div class="document-name">@doc.Name</div>
+                                        <div class="document-name">@doc.Title</div>
                                         @if (!string.IsNullOrEmpty(doc.FileName))
                                         {
                                             <div class="document-file">@doc.FileName</div>
-                                        }
-                                        else if (!string.IsNullOrEmpty(doc.Notes))
-                                        {
-                                            <div class="document-notes">@TruncateText(doc.Notes, 50)</div>
                                         }
                                     </div>
                                     <svg class="document-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -120,7 +116,7 @@
                                 </svg>
                             </div>
                             <div class="document-content">
-                                <div class="document-name">@doc.Name</div>
+                                <div class="document-name">@doc.Title</div>
                                 <div class="document-meta">
                                     <span class="document-folder" style="color: @doc.Folder.GetColor()">@doc.Folder.GetDisplayName()</span>
                                     @if (!string.IsNullOrEmpty(doc.FileName))
@@ -176,7 +172,7 @@
     <div class="modal-overlay" @onclick="CloseModal">
         <div class="modal-content" @onclick:stopPropagation="true">
             <div class="modal-header">
-                <h3>@ViewingDocument.Name</h3>
+                <h3>@ViewingDocument.Title</h3>
                 <button class="close-btn" @onclick="CloseModal">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -198,14 +194,6 @@
                     <div class="detail-row">
                         <span class="detail-label">File</span>
                         <span class="detail-value file-name">@ViewingDocument.FileName</span>
-                    </div>
-                }
-
-                @if (!string.IsNullOrEmpty(ViewingDocument.Notes))
-                {
-                    <div class="detail-row notes-row">
-                        <span class="detail-label">Notes</span>
-                        <p class="detail-value notes-text">@ViewingDocument.Notes</p>
                     </div>
                 }
 
@@ -322,13 +310,13 @@
             </div>
 
             <div class="modal-body">
-                @if (!string.IsNullOrEmpty(EditingDocument.FilePath))
+                @if (!string.IsNullOrEmpty(_pendingFilePath) || !string.IsNullOrEmpty(EditingDocument.FileUrl))
                 {
                     <div class="file-preview-section">
-                        @if (IsImageFile(EditingDocument.FileName))
+                        @if (IsImageFile(_pendingFileName ?? EditingDocument.FileName))
                         {
                             <div class="image-preview">
-                                <img src="@EditingDocument.FilePath" alt="Preview" />
+                                <img src="@(_pendingFilePath ?? EditingDocument.FileUrl)" alt="Preview" />
                             </div>
                         }
                         else
@@ -338,7 +326,7 @@
                                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                     <polyline points="14 2 14 8 20 8"></polyline>
                                 </svg>
-                                <span>@EditingDocument.FileName</span>
+                                <span>@(_pendingFileName ?? EditingDocument.FileName)</span>
                             </div>
                         }
                         <button class="change-file-btn" @onclick="ChangeFile">Change</button>
@@ -347,7 +335,7 @@
 
                 <div class="form-group">
                     <label>Document Name</label>
-                    <input type="text" @bind="EditingDocument.Name" placeholder="e.g., Birth Certificate, Insurance Card" />
+                    <input type="text" @bind="EditingDocument.Title" placeholder="e.g., Birth Certificate, Insurance Card" />
                 </div>
 
                 <div class="form-group">
@@ -364,7 +352,7 @@
                     </div>
                 </div>
 
-                @if (!IsEditing && string.IsNullOrEmpty(EditingDocument.FilePath))
+                @if (!IsEditing && string.IsNullOrEmpty(_pendingFilePath))
                 {
                     <div class="form-group">
                         <label>File (optional)</label>
@@ -380,13 +368,6 @@
                         </div>
                     </div>
                 }
-
-                <div class="form-group">
-                    <label>Notes (optional)</label>
-                    <textarea @bind="EditingDocument.Notes"
-                              placeholder="Add any helpful details..."
-                              rows="3"></textarea>
-                </div>
             </div>
 
             <div class="modal-footer">
@@ -415,7 +396,11 @@
     private Document? ViewingDocument;
     private Document EditingDocument = new();
 
-    private bool IsValidDocument => !string.IsNullOrWhiteSpace(EditingDocument.Name);
+    // Temporary file info before upload
+    private string? _pendingFilePath;
+    private string? _pendingFileName;
+
+    private bool IsValidDocument => !string.IsNullOrWhiteSpace(EditingDocument.Title);
 
     protected override async Task OnInitializedAsync()
     {
@@ -442,8 +427,7 @@
         {
             var term = SearchTerm.ToLowerInvariant();
             filtered = filtered.Where(d =>
-                d.Name.ToLowerInvariant().Contains(term) ||
-                d.Notes.ToLowerInvariant().Contains(term) ||
+                d.Title.ToLowerInvariant().Contains(term) ||
                 (d.FileName?.ToLowerInvariant().Contains(term) ?? false));
         }
 
@@ -474,6 +458,8 @@
         {
             Folder = SelectedFolder ?? DocumentFolder.Other
         };
+        _pendingFilePath = null;
+        _pendingFileName = null;
         ShowViewModal = false;
         ShowEditModal = false;
         ShowSourcePicker = true;
@@ -506,13 +492,14 @@
         EditingDocument = new Document
         {
             Id = ViewingDocument.Id,
-            Name = ViewingDocument.Name,
+            Title = ViewingDocument.Title,
             Folder = ViewingDocument.Folder,
-            Notes = ViewingDocument.Notes,
-            FilePath = ViewingDocument.FilePath,
-            FileName = ViewingDocument.FileName,
+            FileUrl = ViewingDocument.FileUrl,
+            ChildId = ViewingDocument.ChildId,
             CreatedAt = ViewingDocument.CreatedAt
         };
+        _pendingFilePath = null;
+        _pendingFileName = null;
         ShowViewModal = false;
         ShowEditModal = true;
     }
@@ -523,13 +510,23 @@
         ShowEditModal = false;
         ShowSourcePicker = false;
         ViewingDocument = null;
-        EditingDocument = new();
+        EditingDocument = new Document();
+        _pendingFilePath = null;
+        _pendingFileName = null;
     }
 
     private async Task SaveDocument()
     {
         if (!IsValidDocument)
             return;
+
+        // If there's a pending file, we need to upload it
+        // For now, we'll set the FileUrl to the local path
+        // In production, this would upload to Supabase Storage
+        if (!string.IsNullOrEmpty(_pendingFilePath))
+        {
+            EditingDocument.FileUrl = _pendingFilePath;
+        }
 
         await DocumentService.SaveDocumentAsync(EditingDocument);
         CloseModal();
@@ -568,8 +565,8 @@
             var photo = await MediaPicker.Default.CapturePhotoAsync();
             if (photo != null)
             {
-                EditingDocument.FilePath = photo.FullPath;
-                EditingDocument.FileName = photo.FileName;
+                _pendingFilePath = photo.FullPath;
+                _pendingFileName = photo.FileName;
                 ShowEditModalWithFile();
             }
         }
@@ -586,8 +583,8 @@
             var photo = await MediaPicker.Default.PickPhotoAsync();
             if (photo != null)
             {
-                EditingDocument.FilePath = photo.FullPath;
-                EditingDocument.FileName = photo.FileName;
+                _pendingFilePath = photo.FullPath;
+                _pendingFileName = photo.FileName;
                 ShowEditModalWithFile();
             }
         }
@@ -608,8 +605,8 @@
 
             if (result != null)
             {
-                EditingDocument.FilePath = result.FullPath;
-                EditingDocument.FileName = result.FileName;
+                _pendingFilePath = result.FullPath;
+                _pendingFileName = result.FileName;
                 ShowEditModalWithFile();
             }
         }
@@ -625,12 +622,6 @@
         ShowSourcePicker = true;
     }
 
-    private void RemoveFile()
-    {
-        EditingDocument.FilePath = null;
-        EditingDocument.FileName = null;
-    }
-
     private bool IsImageFile(string? fileName)
     {
         if (string.IsNullOrEmpty(fileName))
@@ -638,13 +629,5 @@
 
         var extension = Path.GetExtension(fileName).ToLowerInvariant();
         return extension is ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" or ".webp" or ".heic";
-    }
-
-    private string TruncateText(string text, int maxLength)
-    {
-        if (string.IsNullOrEmpty(text) || text.Length <= maxLength)
-            return text;
-
-        return text.Substring(0, maxLength) + "...";
     }
 }

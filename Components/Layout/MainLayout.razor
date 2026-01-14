@@ -1,29 +1,165 @@
 @inherits LayoutComponentBase
+@implements IDisposable
 @inject IJSRuntime JS
 @inject Denly.Services.ISafeAreaService SafeArea
+@inject Denly.Services.IAuthService Auth
+@inject Denly.Services.IDenService DenService
+@inject Denly.Services.IToastService Toast
+@inject NavigationManager Navigation
 
-<div class="page">
-    <div class="status-bar-safe-area"></div>
+@if (_isLoading)
+{
+    <div class="auth-loading">
+        <div class="loading-spinner"></div>
+    </div>
+}
+else if (_isAuthenticated)
+{
+    <div class="page">
+        <div class="status-bar-safe-area"></div>
 
-    <header class="app-header">
-        <h1 class="app-title">Denly</h1>
-    </header>
+        <header class="app-header">
+            @if (_userDens.Count > 1)
+            {
+                <select class="den-switcher" value="@_currentDenId" @onchange="OnDenChanged">
+                    @foreach (var den in _userDens)
+                    {
+                        <option value="@den.Id">@den.Name</option>
+                    }
+                </select>
+            }
+            else
+            {
+                <h1 class="app-title">Denly</h1>
+            }
+            <button class="profile-btn" @onclick="NavigateToSettings">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+            </button>
+        </header>
 
-    <main class="main-content">
-        <article class="content">
-            @Body
-        </article>
-    </main>
+        <main class="main-content">
+            <article class="content">
+                @Body
+            </article>
+        </main>
 
-    <NavMenu />
-</div>
+        <NavMenu />
+
+        <!-- Toast Container -->
+        @if (_toasts.Any())
+        {
+            <div class="toast-container">
+                @foreach (var toast in _toasts)
+                {
+                    <div class="toast toast-@toast.Type.ToString().ToLowerInvariant()">
+                        @if (toast.Type == Denly.Services.ToastType.Success)
+                        {
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        }
+                        else if (toast.Type == Denly.Services.ToastType.Error)
+                        {
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="15" y1="9" x2="9" y2="15"></line>
+                                <line x1="9" y1="9" x2="15" y2="15"></line>
+                            </svg>
+                        }
+                        else
+                        {
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="16" x2="12" y2="12"></line>
+                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                            </svg>
+                        }
+                        <span>@toast.Message</span>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+}
 
 @code {
+    private bool _isLoading = true;
+    private bool _isAuthenticated;
+    private string? _currentDenId;
+    private List<Denly.Models.Den> _userDens = new();
+    private List<ToastItem> _toasts = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.InitializeAsync();
+        await DenService.InitializeAsync();
+
+        _isAuthenticated = await Auth.IsAuthenticatedAsync();
+        _isLoading = false;
+
+        if (!_isAuthenticated)
+        {
+            Navigation.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+
+        // Load user's dens
+        _userDens = await DenService.GetUserDensAsync();
+        _currentDenId = DenService.GetCurrentDenId();
+
+        // Subscribe to toast events
+        Toast.OnShow += HandleToast;
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        if (firstRender && _isAuthenticated)
         {
             await JS.InvokeVoidAsync("setSafeAreaInsets", SafeArea.Top, SafeArea.Bottom, SafeArea.Left, SafeArea.Right);
         }
+    }
+
+    private void HandleToast(object? sender, Denly.Services.ToastEventArgs e)
+    {
+        var toast = new ToastItem { Message = e.Message, Type = e.Type };
+        _toasts.Add(toast);
+        InvokeAsync(StateHasChanged);
+
+        // Auto-dismiss after duration
+        _ = Task.Delay(e.DurationMs).ContinueWith(_ =>
+        {
+            _toasts.Remove(toast);
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private async Task OnDenChanged(ChangeEventArgs e)
+    {
+        var newDenId = e.Value?.ToString();
+        if (!string.IsNullOrEmpty(newDenId) && newDenId != _currentDenId)
+        {
+            _currentDenId = newDenId;
+            await DenService.SetCurrentDenAsync(newDenId);
+            Navigation.NavigateTo("/", forceLoad: true);
+        }
+    }
+
+    private void NavigateToSettings()
+    {
+        Navigation.NavigateTo("/settings");
+    }
+
+    public void Dispose()
+    {
+        Toast.OnShow -= HandleToast;
+    }
+
+    private class ToastItem
+    {
+        public string Message { get; set; } = string.Empty;
+        public Denly.Services.ToastType Type { get; set; }
     }
 }

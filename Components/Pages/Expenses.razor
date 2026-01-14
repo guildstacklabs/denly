@@ -2,6 +2,8 @@
 @using Denly.Models
 @using Denly.Services
 @inject IExpenseService ExpenseService
+@inject IDenService DenService
+@inject IAuthService AuthService
 
 <div class="expenses-page">
     <!-- Header with Balance -->
@@ -19,24 +21,22 @@
     <!-- Balance Card -->
     <div class="balance-card">
         <div class="balance-label">Current Balance</div>
-        @if (Balance == 0)
+        @if (_totalOwed == 0)
         {
             <div class="balance-amount settled">All settled up</div>
-        }
-        else if (Balance > 0)
-        {
-            <div class="balance-amount owes">
-                Parent A owes Parent B <span class="amount">@Balance.ToString("C")</span>
-            </div>
         }
         else
         {
             <div class="balance-amount owes">
-                Parent B owes Parent A <span class="amount">@Math.Abs(Balance).ToString("C")</span>
+                @if (!string.IsNullOrEmpty(_owesFromName) && !string.IsNullOrEmpty(_owesToName))
+                {
+                    <span>@_owesFromName owes @_owesToName</span>
+                }
+                <span class="amount">@_totalOwed.ToString("C")</span>
             </div>
         }
-        <div class="balance-note">Based on 50/50 split</div>
-        @if (Balance != 0)
+        <div class="balance-note">Based on equal split</div>
+        @if (_totalOwed > 0 && !string.IsNullOrEmpty(_owesFromId) && !string.IsNullOrEmpty(_owesToId))
         {
             <button class="settle-up-btn" @onclick="OpenSettleUpModal">Settle Up</button>
         }
@@ -66,21 +66,21 @@
                                     <div class="settlement-amount">@entry.Settlement.Amount.ToString("C")</div>
                                 </div>
                                 <div class="settlement-meta">
-                                    <span class="settlement-detail">@entry.Settlement.FromParent.GetDisplayName() paid @entry.Settlement.ToParent.GetDisplayName()</span>
-                                    <span class="settlement-date">@entry.Settlement.Date.ToString("MMM d")</span>
+                                    <span class="settlement-detail">@(entry.Settlement.FromUserName ?? "Unknown") paid @(entry.Settlement.ToUserName ?? "Unknown")</span>
+                                    <span class="settlement-date">@entry.Settlement.CreatedAt.ToString("MMM d")</span>
                                 </div>
                             </div>
                         </div>
                     }
                     else if (entry.Expense != null)
                     {
-                        <div class="expense-card @(entry.Expense.SettlementId != null ? "settled" : "")" @onclick="() => OpenEditExpenseModal(entry.Expense)">
-                            <div class="expense-color-bar" style="background-color: @entry.Expense.Category.GetColor()"></div>
+                        <div class="expense-card @(entry.Expense.IsSettled ? "settled" : "")" @onclick="() => OpenEditExpenseModal(entry.Expense)">
+                            <div class="expense-color-bar" style="background-color: #3d85c6"></div>
                             <div class="expense-content">
                                 <div class="expense-header">
                                     <div class="expense-description">
                                         @entry.Expense.Description
-                                        @if (entry.Expense.SettlementId != null)
+                                        @if (entry.Expense.IsSettled)
                                         {
                                             <span class="settled-badge">Settled</span>
                                         }
@@ -88,10 +88,9 @@
                                     <div class="expense-amount">@entry.Expense.Amount.ToString("C")</div>
                                 </div>
                                 <div class="expense-meta">
-                                    <span class="expense-category">@entry.Expense.Category.GetDisplayName()</span>
-                                    <span class="expense-date">@entry.Expense.Date.ToString("MMM d")</span>
-                                    <span class="expense-payer">@entry.Expense.PaidBy.GetDisplayName()</span>
-                                    @if (!string.IsNullOrEmpty(entry.Expense.ReceiptPath))
+                                    <span class="expense-date">@entry.Expense.CreatedAt.ToString("MMM d")</span>
+                                    <span class="expense-payer">@(entry.Expense.PaidByName ?? "Unknown")</span>
+                                    @if (!string.IsNullOrEmpty(entry.Expense.ReceiptUrl))
                                     {
                                         <span class="receipt-indicator">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -152,32 +151,13 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Date</label>
-                    <input type="date" @bind="EditingExpenseDate" />
-                </div>
-
-                <div class="form-group">
-                    <label>Category</label>
-                    <div class="type-selector">
-                        @foreach (ExpenseCategory category in Enum.GetValues<ExpenseCategory>())
-                        {
-                            <button class="type-btn @(EditingExpense.Category == category ? "selected" : "")"
-                                    style="--type-color: @category.GetColor()"
-                                    @onclick="() => EditingExpense.Category = category">
-                                @category.GetDisplayName()
-                            </button>
-                        }
-                    </div>
-                </div>
-
-                <div class="form-group">
                     <label>Who paid?</label>
                     <div class="payer-selector">
-                        @foreach (Parent parent in Enum.GetValues<Parent>())
+                        @foreach (var member in _denMembers)
                         {
-                            <button class="payer-btn @(EditingExpense.PaidBy == parent ? "selected" : "")"
-                                    @onclick="() => EditingExpense.PaidBy = parent">
-                                @parent.GetDisplayName()
+                            <button class="payer-btn @(EditingExpense.PaidBy == member.UserId ? "selected" : "")"
+                                    @onclick="() => EditingExpense.PaidBy = member.UserId">
+                                @(member.DisplayName ?? member.Email ?? "Unknown")
                             </button>
                         }
                     </div>
@@ -186,10 +166,10 @@
                 <div class="form-group">
                     <label>Receipt (optional)</label>
                     <div class="receipt-section">
-                        @if (!string.IsNullOrEmpty(EditingExpense.ReceiptPath))
+                        @if (!string.IsNullOrEmpty(EditingExpense.ReceiptUrl))
                         {
                             <div class="receipt-preview">
-                                <img src="@EditingExpense.ReceiptPath" alt="Receipt" />
+                                <img src="@EditingExpense.ReceiptUrl" alt="Receipt" />
                                 <button class="remove-receipt-btn" @onclick="RemoveReceipt" type="button">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -280,22 +260,11 @@
                             <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                         </svg>
                     </div>
-                    @if (Balance > 0)
-                    {
-                        <div class="settle-up-text">
-                            <strong>@Parent.ParentA.GetDisplayName()</strong> owes
-                            <strong>@Parent.ParentB.GetDisplayName()</strong>
-                        </div>
-                        <div class="settle-up-amount">@Balance.ToString("C")</div>
-                    }
-                    else
-                    {
-                        <div class="settle-up-text">
-                            <strong>@Parent.ParentB.GetDisplayName()</strong> owes
-                            <strong>@Parent.ParentA.GetDisplayName()</strong>
-                        </div>
-                        <div class="settle-up-amount">@Math.Abs(Balance).ToString("C")</div>
-                    }
+                    <div class="settle-up-text">
+                        <strong>@_owesFromName</strong> owes
+                        <strong>@_owesToName</strong>
+                    </div>
+                    <div class="settle-up-amount">@_totalOwed.ToString("C")</div>
                     <div class="settle-up-note">
                         This will mark all current expenses as settled.
                     </div>
@@ -314,20 +283,30 @@
     private List<Expense> _expenses = new();
     private List<Settlement> _settlements = new();
     private List<HistoryEntry> _allEntries = new();
-    private decimal Balance;
+    private List<DenMember> _denMembers = new();
+    private Dictionary<string, decimal> _balances = new();
+    private decimal _totalOwed;
+    private string? _owesFromId;
+    private string? _owesToId;
+    private string? _owesFromName;
+    private string? _owesToName;
+    private string? _currentUserId;
 
     private bool ShowExpenseModal;
     private bool ShowSettleUpModal;
     private bool ShowDeleteModal;
     private bool IsEditing;
     private Expense EditingExpense = new();
-    private DateTime EditingExpenseDate;
     private decimal? EditingAmount;
 
-    private bool IsValidExpense => !string.IsNullOrWhiteSpace(EditingExpense.Description) && EditingAmount.HasValue && EditingAmount.Value > 0;
+    private bool IsValidExpense => !string.IsNullOrWhiteSpace(EditingExpense.Description) &&
+                                   EditingAmount.HasValue && EditingAmount.Value > 0 &&
+                                   !string.IsNullOrEmpty(EditingExpense.PaidBy);
 
     protected override async Task OnInitializedAsync()
     {
+        var user = await AuthService.GetCurrentUserAsync();
+        _currentUserId = user?.Id;
         await LoadData();
     }
 
@@ -335,31 +314,60 @@
     {
         _expenses = await ExpenseService.GetAllExpensesAsync();
         _settlements = await ExpenseService.GetAllSettlementsAsync();
-        Balance = await ExpenseService.GetBalanceAsync();
+        _balances = await ExpenseService.GetBalancesAsync();
+        _denMembers = await DenService.GetDenMembersAsync();
+
+        // Calculate who owes whom
+        CalculateOwed();
 
         // Combine expenses and settlements into a unified list sorted by date
         _allEntries = new List<HistoryEntry>();
         foreach (var expense in _expenses)
         {
-            _allEntries.Add(new HistoryEntry { Expense = expense, SortDate = expense.Date, SortCreatedAt = expense.CreatedAt });
+            _allEntries.Add(new HistoryEntry { Expense = expense, SortDate = expense.CreatedAt });
         }
         foreach (var settlement in _settlements)
         {
-            _allEntries.Add(new HistoryEntry { Settlement = settlement, SortDate = settlement.Date, SortCreatedAt = settlement.CreatedAt });
+            _allEntries.Add(new HistoryEntry { Settlement = settlement, SortDate = settlement.CreatedAt });
         }
-        _allEntries = _allEntries.OrderByDescending(e => e.SortDate).ThenByDescending(e => e.SortCreatedAt).ToList();
+        _allEntries = _allEntries.OrderByDescending(e => e.SortDate).ToList();
     }
 
-    private void OpenAddExpenseModal()
+    private void CalculateOwed()
+    {
+        _totalOwed = 0;
+        _owesFromId = null;
+        _owesToId = null;
+        _owesFromName = null;
+        _owesToName = null;
+
+        if (_balances.Count < 2) return;
+
+        // Find who owes money (negative balance) and who is owed (positive balance)
+        var owes = _balances.Where(b => b.Value < 0).OrderBy(b => b.Value).FirstOrDefault();
+        var owed = _balances.Where(b => b.Value > 0).OrderByDescending(b => b.Value).FirstOrDefault();
+
+        if (owes.Key != null && owed.Key != null)
+        {
+            _totalOwed = Math.Min(Math.Abs(owes.Value), owed.Value);
+            _owesFromId = owes.Key;
+            _owesToId = owed.Key;
+
+            var fromMember = _denMembers.FirstOrDefault(m => m.UserId == _owesFromId);
+            var toMember = _denMembers.FirstOrDefault(m => m.UserId == _owesToId);
+
+            _owesFromName = fromMember?.DisplayName ?? fromMember?.Email ?? "Unknown";
+            _owesToName = toMember?.DisplayName ?? toMember?.Email ?? "Unknown";
+        }
+    }
+
+    private async Task OpenAddExpenseModal()
     {
         IsEditing = false;
         EditingExpense = new Expense
         {
-            Date = DateTime.Today,
-            Category = ExpenseCategory.Other,
-            PaidBy = Parent.ParentA
+            PaidBy = _currentUserId ?? _denMembers.FirstOrDefault()?.UserId ?? string.Empty
         };
-        EditingExpenseDate = EditingExpense.Date;
         EditingAmount = null;
         ShowExpenseModal = true;
     }
@@ -372,14 +380,12 @@
             Id = expense.Id,
             Description = expense.Description,
             Amount = expense.Amount,
-            Date = expense.Date,
-            Category = expense.Category,
             PaidBy = expense.PaidBy,
-            ReceiptPath = expense.ReceiptPath,
-            SettlementId = expense.SettlementId,
+            ReceiptUrl = expense.ReceiptUrl,
+            SettledAt = expense.SettledAt,
+            ChildId = expense.ChildId,
             CreatedAt = expense.CreatedAt
         };
-        EditingExpenseDate = expense.Date;
         EditingAmount = expense.Amount;
         ShowExpenseModal = true;
     }
@@ -387,7 +393,7 @@
     private void CloseModal()
     {
         ShowExpenseModal = false;
-        EditingExpense = new();
+        EditingExpense = new Expense();
     }
 
     private async Task SaveExpense()
@@ -395,7 +401,6 @@
         if (!IsValidExpense)
             return;
 
-        EditingExpense.Date = EditingExpenseDate;
         EditingExpense.Amount = EditingAmount!.Value;
 
         await ExpenseService.SaveExpenseAsync(EditingExpense);
@@ -417,9 +422,9 @@
 
     private async Task ConfirmDelete()
     {
-        if (!string.IsNullOrEmpty(EditingExpense.ReceiptPath))
+        if (!string.IsNullOrEmpty(EditingExpense.ReceiptUrl))
         {
-            await ExpenseService.DeleteReceiptAsync(EditingExpense.ReceiptPath);
+            await ExpenseService.DeleteReceiptAsync(EditingExpense.ReceiptUrl);
         }
         await ExpenseService.DeleteExpenseAsync(EditingExpense.Id);
         ShowDeleteModal = false;
@@ -465,17 +470,17 @@
     private async Task SaveReceiptFromFile(FileResult photo)
     {
         using var stream = await photo.OpenReadAsync();
-        var receiptPath = await ExpenseService.SaveReceiptAsync(stream, photo.FileName);
-        EditingExpense.ReceiptPath = receiptPath;
+        var receiptUrl = await ExpenseService.SaveReceiptAsync(stream, photo.FileName);
+        EditingExpense.ReceiptUrl = receiptUrl;
         StateHasChanged();
     }
 
     private async Task RemoveReceipt()
     {
-        if (!string.IsNullOrEmpty(EditingExpense.ReceiptPath))
+        if (!string.IsNullOrEmpty(EditingExpense.ReceiptUrl))
         {
-            await ExpenseService.DeleteReceiptAsync(EditingExpense.ReceiptPath);
-            EditingExpense.ReceiptPath = null;
+            await ExpenseService.DeleteReceiptAsync(EditingExpense.ReceiptUrl);
+            EditingExpense.ReceiptUrl = null;
             StateHasChanged();
         }
     }
@@ -492,11 +497,10 @@
 
     private async Task ConfirmSettlement()
     {
-        var amount = Math.Abs(Balance);
-        var fromParent = Balance > 0 ? Parent.ParentA : Parent.ParentB;
-        var toParent = Balance > 0 ? Parent.ParentB : Parent.ParentA;
+        if (string.IsNullOrEmpty(_owesFromId) || string.IsNullOrEmpty(_owesToId))
+            return;
 
-        await ExpenseService.CreateSettlementAsync(amount, fromParent, toParent);
+        await ExpenseService.CreateSettlementAsync(_totalOwed, _owesFromId, _owesToId);
         CloseSettleUpModal();
         await LoadData();
     }
@@ -506,6 +510,5 @@
         public Expense? Expense { get; set; }
         public Settlement? Settlement { get; set; }
         public DateTime SortDate { get; set; }
-        public DateTime SortCreatedAt { get; set; }
     }
 }

@@ -1,0 +1,108 @@
+@page "/create-den"
+@layout LoginLayout
+@using Denly.Services
+@inject IAuthService Auth
+@inject IDenService DenService
+@inject NavigationManager Navigation
+
+<div class="create-den-container">
+    <div class="create-den-header">
+        <div class="den-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+        </div>
+        <h1>Create Your Den</h1>
+        <p class="description">
+            A den is your shared family space for coordinating schedules, expenses, and documents with your co-parent.
+        </p>
+    </div>
+
+    <div class="form-section">
+        <div class="form-group">
+            <label>Den Name</label>
+            <input type="text"
+                   @bind="_denName"
+                   @bind:event="oninput"
+                   placeholder="e.g., Smith Family"
+                   disabled="@_isLoading" />
+            <span class="form-hint">Choose a name that works for both parents</span>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="error-message">@_errorMessage</div>
+        }
+
+        <button class="btn-primary"
+                @onclick="HandleCreateDen"
+                disabled="@(!IsValidForm || _isLoading)">
+            @(_isLoading ? "Creating..." : "Create Den")
+        </button>
+    </div>
+
+    <div class="alternative-section">
+        <span class="divider-text">or</span>
+        <button class="btn-secondary" @onclick="GoToJoinDen" disabled="@_isLoading">
+            Join an Existing Den
+        </button>
+        <p class="join-hint">Have an invite code from your co-parent?</p>
+    </div>
+</div>
+
+@code {
+    private string _denName = string.Empty;
+    private string? _errorMessage;
+    private bool _isLoading;
+
+    private bool IsValidForm => !string.IsNullOrWhiteSpace(_denName) && _denName.Length >= 2;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.InitializeAsync();
+
+        // If not authenticated, redirect to login
+        if (!await Auth.IsAuthenticatedAsync())
+        {
+            Navigation.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+
+        // If already has a den, redirect to home
+        if (await Auth.HasDenAsync())
+        {
+            Navigation.NavigateTo("/", forceLoad: true);
+        }
+    }
+
+    private async Task HandleCreateDen()
+    {
+        if (!IsValidForm) return;
+
+        _isLoading = true;
+        _errorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            await DenService.InitializeAsync();
+            var den = await DenService.CreateDenAsync(_denName.Trim());
+            Console.WriteLine($"[CreateDen] Successfully created den: {den.Id} - {den.Name}");
+            Navigation.NavigateTo("/", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CreateDen] Error creating den: {ex.Message}");
+            Console.WriteLine($"[CreateDen] Stack trace: {ex.StackTrace}");
+            _errorMessage = "Failed to create den. Please try again.";
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void GoToJoinDen()
+    {
+        Navigation.NavigateTo("/join-den");
+    }
+}

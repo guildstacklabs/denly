@@ -16,9 +16,18 @@ public static class MauiProgram
 			});
 
 		builder.Services.AddMauiBlazorWebView();
-		builder.Services.AddSingleton<IScheduleService, LocalScheduleService>();
-		builder.Services.AddSingleton<IExpenseService, LocalExpenseService>();
-		builder.Services.AddSingleton<IDocumentService, LocalDocumentService>();
+
+		// Core services
+		builder.Services.AddSingleton<IAuthService, SupabaseAuthService>();
+		builder.Services.AddSingleton<IDenService, SupabaseDenService>();
+		builder.Services.AddSingleton<IToastService, ToastService>();
+
+		// Data services (Supabase)
+		builder.Services.AddSingleton<IScheduleService, SupabaseScheduleService>();
+		builder.Services.AddSingleton<IExpenseService, SupabaseExpenseService>();
+		builder.Services.AddSingleton<IDocumentService, SupabaseDocumentService>();
+
+		// Platform services
 #if ANDROID
 		builder.Services.AddSingleton<ISafeAreaService, AndroidSafeAreaService>();
 #else

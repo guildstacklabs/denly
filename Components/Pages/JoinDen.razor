@@ -1,0 +1,203 @@
+@page "/join-den"
+@layout LoginLayout
+@using Denly.Models
+@using Denly.Services
+@inject IDenService DenService
+@inject IAuthService Auth
+@inject NavigationManager Navigation
+
+<div class="join-den-container">
+    <div class="join-den-header">
+        <div class="den-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="8.5" cy="7" r="4"></circle>
+                <line x1="20" y1="8" x2="20" y2="14"></line>
+                <line x1="23" y1="11" x2="17" y2="11"></line>
+            </svg>
+        </div>
+        <h1>Join a Den</h1>
+        <p class="description">
+            Enter the invite code your co-parent shared with you.
+        </p>
+    </div>
+
+    <div class="form-section">
+        <div class="form-group">
+            <label>Invite Code</label>
+            <input type="text"
+                   @bind="_inviteCode"
+                   @bind:event="oninput"
+                   @onkeyup="OnCodeKeyUp"
+                   placeholder="ABCD1234"
+                   maxlength="10"
+                   autocapitalize="characters"
+                   disabled="@_isLoading"
+                   class="code-input @(_error != null ? "error" : "")" />
+            @if (_error != null)
+            {
+                <span class="form-error">@_error</span>
+            }
+            else
+            {
+                <span class="form-hint">The code is 8 characters, letters and numbers</span>
+            }
+        </div>
+
+        <button class="btn-primary"
+                @onclick="ValidateCode"
+                disabled="@(!IsValidCode || _isLoading)">
+            @(_isLoading ? "Checking..." : "Continue")
+        </button>
+    </div>
+
+    <div class="alternative-section">
+        <span class="divider-text">or</span>
+        <button class="btn-secondary" @onclick="GoToCreateDen" disabled="@_isLoading">
+            Create a New Den
+        </button>
+    </div>
+
+    <button class="back-link" @onclick="GoBack" disabled="@_isLoading">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+        Back
+    </button>
+</div>
+
+<!-- Confirmation Modal -->
+@if (_showConfirmModal && _validatedInvite != null)
+{
+    <div class="modal-overlay">
+        <div class="modal-content confirm-modal">
+            <div class="confirm-icon success-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+            </div>
+            <h3 class="confirm-title">Join @_validatedInvite.DenName?</h3>
+            <p class="confirm-text">You'll be able to view and add to the shared calendar, expenses, and documents.</p>
+            <div class="confirm-actions">
+                <button class="cancel-btn" @onclick="CancelJoin" disabled="@_isJoining">Cancel</button>
+                <button class="join-btn" @onclick="HandleJoinDen" disabled="@_isJoining">
+                    @(_isJoining ? "Joining..." : "Join Den")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private string _inviteCode = string.Empty;
+    private string? _error;
+    private bool _isLoading;
+    private bool _isJoining;
+    private bool _showConfirmModal;
+    private DenInvite? _validatedInvite;
+
+    private bool IsValidCode => !string.IsNullOrWhiteSpace(_inviteCode) &&
+                                 _inviteCode.Replace(" ", "").Replace("-", "").Length >= 8;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.InitializeAsync();
+        await DenService.InitializeAsync();
+
+        // If not authenticated, redirect to login
+        if (!await Auth.IsAuthenticatedAsync())
+        {
+            Navigation.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+
+        // If already has a den, redirect to home
+        if (await Auth.HasDenAsync())
+        {
+            Navigation.NavigateTo("/", forceLoad: true);
+        }
+    }
+
+    private async Task OnCodeKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && IsValidCode && !_isLoading)
+        {
+            await ValidateCode();
+        }
+    }
+
+    private async Task ValidateCode()
+    {
+        if (!IsValidCode || _isLoading) return;
+
+        _isLoading = true;
+        _error = null;
+        StateHasChanged();
+
+        // Check rate limit first
+        var failedAttempts = await DenService.GetFailedAttemptsCountAsync();
+        if (failedAttempts >= 5)
+        {
+            _error = "Too many attempts. Please try again later.";
+            _isLoading = false;
+            return;
+        }
+
+        var normalizedCode = _inviteCode.Replace(" ", "").Replace("-", "").ToUpperInvariant();
+        _validatedInvite = await DenService.ValidateInviteCodeAsync(normalizedCode);
+
+        if (_validatedInvite != null)
+        {
+            _showConfirmModal = true;
+        }
+        else
+        {
+            var remaining = 4 - failedAttempts;
+            _error = remaining > 0
+                ? $"Invalid or expired code. {remaining} attempt{(remaining != 1 ? "s" : "")} remaining."
+                : "Invalid or expired code. Please try again later.";
+        }
+
+        _isLoading = false;
+    }
+
+    private async Task HandleJoinDen()
+    {
+        if (_validatedInvite == null || _isJoining) return;
+
+        _isJoining = true;
+        StateHasChanged();
+
+        var result = await DenService.JoinDenAsync(_inviteCode);
+
+        if (result.Success)
+        {
+            Navigation.NavigateTo("/", forceLoad: true);
+        }
+        else
+        {
+            _showConfirmModal = false;
+            _error = result.Error ?? "Failed to join den. Please try again.";
+            _validatedInvite = null;
+        }
+
+        _isJoining = false;
+    }
+
+    private void CancelJoin()
+    {
+        _showConfirmModal = false;
+        _validatedInvite = null;
+    }
+
+    private void GoToCreateDen()
+    {
+        Navigation.NavigateTo("/create-den");
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/login");
+    }
+}

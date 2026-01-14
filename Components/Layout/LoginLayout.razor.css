@@ -1,0 +1,14 @@
+.login-page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: linear-gradient(180deg, #5b8db8 0%, #4a7a9e 100%);
+}
+
+.login-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    padding-bottom: env(safe-area-inset-bottom, var(--safe-area-inset-bottom, 0px));
+}

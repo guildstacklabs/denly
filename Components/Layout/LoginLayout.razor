@@ -1,0 +1,21 @@
+@inherits LayoutComponentBase
+@inject IJSRuntime JS
+@inject Denly.Services.ISafeAreaService SafeArea
+
+<div class="login-page">
+    <div class="status-bar-safe-area"></div>
+
+    <main class="login-content">
+        @Body
+    </main>
+</div>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("setSafeAreaInsets", SafeArea.Top, SafeArea.Bottom, SafeArea.Left, SafeArea.Right);
+        }
+    }
+}

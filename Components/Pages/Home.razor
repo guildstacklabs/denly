@@ -121,7 +121,10 @@
                 @if (_hasExpenses)
                 {
                     <div class="balance-display">
-                        @if (_balance == 0)
+                        @{
+                            var totalOwed = GetTotalOwed();
+                        }
+                        @if (totalOwed == 0)
                         {
                             <div class="balance-settled">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -131,18 +134,11 @@
                                 <span>All settled up</span>
                             </div>
                         }
-                        else if (_balance > 0)
-                        {
-                            <div class="balance-owed">
-                                <span class="balance-who">Parent A owes Parent B</span>
-                                <span class="balance-amount">@_balance.ToString("C")</span>
-                            </div>
-                        }
                         else
                         {
                             <div class="balance-owed">
-                                <span class="balance-who">Parent B owes Parent A</span>
-                                <span class="balance-amount">@Math.Abs(_balance).ToString("C")</span>
+                                <span class="balance-who">Outstanding balance</span>
+                                <span class="balance-amount">@totalOwed.ToString("C")</span>
                             </div>
                         }
                     </div>
@@ -199,33 +195,49 @@
 </div>
 
 @code {
-    private List<ScheduleEvent> _upcomingEvents = new();
-    private decimal _balance;
+    private List<Event> _upcomingEvents = new();
+    private Dictionary<string, decimal> _balances = new();
     private bool _hasExpenses;
     private List<Document> _recentDocuments = new();
     private bool _isNewUser;
 
     protected override async Task OnInitializedAsync()
     {
+        Console.WriteLine("[Home] OnInitializedAsync starting");
         await LoadDashboardData();
+        Console.WriteLine("[Home] OnInitializedAsync complete");
     }
 
     private async Task LoadDashboardData()
     {
+        Console.WriteLine("[Home] LoadDashboardData starting");
+
         _upcomingEvents = await ScheduleService.GetUpcomingEventsAsync(3);
-        _balance = await ExpenseService.GetBalanceAsync();
+        Console.WriteLine($"[Home] Upcoming events loaded: {_upcomingEvents.Count}");
+        foreach (var evt in _upcomingEvents)
+        {
+            Console.WriteLine($"[Home]   - Event: {evt.Title}, Date: {evt.StartsAt}, DenId: {evt.DenId}");
+        }
+
+        _balances = await ExpenseService.GetBalancesAsync();
+        Console.WriteLine($"[Home] Balances loaded: {_balances.Count} entries");
+
         _recentDocuments = await DocumentService.GetRecentDocumentsAsync(3);
+        Console.WriteLine($"[Home] Recent documents loaded: {_recentDocuments.Count}");
 
         // Check if there are any expenses
         var allExpenses = await ExpenseService.GetAllExpensesAsync();
         _hasExpenses = allExpenses.Any();
+        Console.WriteLine($"[Home] Has expenses: {_hasExpenses}");
 
         // Determine if this is a new user (no data anywhere)
         var allEvents = await ScheduleService.GetUpcomingEventsAsync(100);
+        Console.WriteLine($"[Home] All events count (for new user check): {allEvents.Count}");
         _isNewUser = !allEvents.Any() && !_hasExpenses && !_recentDocuments.Any();
+        Console.WriteLine($"[Home] Is new user: {_isNewUser}");
     }
 
-    private string FormatEventDate(ScheduleEvent evt)
+    private string FormatEventDate(Event evt)
     {
         var dateStr = evt.Date.Date == DateTime.Today
             ? "Today"
@@ -240,5 +252,14 @@
         }
 
         return dateStr;
+    }
+
+    private decimal GetTotalOwed()
+    {
+        // Return the maximum absolute balance (what someone owes)
+        if (_balances.Count == 0) return 0;
+        var maxBalance = _balances.Values.Max();
+        var minBalance = _balances.Values.Min();
+        return Math.Max(Math.Abs(maxBalance), Math.Abs(minBalance));
     }
 }

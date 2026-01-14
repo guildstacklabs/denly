@@ -70,89 +70,37 @@ That's it. No complex setup wizards.
 
 ## Data Model
 
+> **See [DATABASE.md](./DATABASE.md)** for the complete, authoritative database schema with all columns, types, and constraints.
+
+### Entity Overview
+
 ```
-User
-├── id (uuid)
-├── email
-├── name
-├── avatar_url (optional)
-└── created_at
-
-Den
-├── id (uuid)
-├── name
-├── created_at
-└── created_by → User.id
-
-DenMember
-├── id (uuid)
-├── den_id → Den.id
-├── user_id → User.id
-├── role: enum (owner, co-parent, observer)
-├── invited_by → User.id
-├── joined_at
-└── UNIQUE(den_id, user_id)
-
-Child
-├── id (uuid)
-├── den_id → Den.id
-├── name
-├── birth_date (optional)
-├── color (for UI: hex or preset name)
-└── created_at
-
-Event
-├── id (uuid)
-├── den_id → Den.id
-├── child_id → Child.id (optional, null = all children)
-├── title
-├── event_type: enum (handoff, doctor, school, activity, family, other)
-├── starts_at
-├── ends_at (optional, null = no end time)
-├── all_day: boolean
-├── location (optional)
-├── notes (optional)
-├── created_by → User.id
-└── created_at
-
-Expense
-├── id (uuid)
-├── den_id → Den.id
-├── child_id → Child.id (optional, null = shared/household)
-├── description
-├── amount (decimal)
-├── paid_by → User.id
-├── receipt_url (optional)
-├── created_by → User.id
-├── created_at
-└── settled_at (null until part of a settlement)
-
-Settlement
-├── id (uuid)
-├── den_id → Den.id
-├── from_user_id → User.id (who paid)
-├── to_user_id → User.id (who received)
-├── amount (decimal)
-├── note (optional)
-├── created_by → User.id
-└── created_at
-
-Document
-├── id (uuid)
-├── den_id → Den.id
-├── child_id → Child.id (optional, null = den-wide like custody agreement)
-├── title
-├── category: enum (medical, school, legal, identity, other)
-├── file_url
-├── uploaded_by → User.id
-└── created_at
+profiles       - User accounts (extends Supabase auth.users)
+dens           - Coordination spaces between co-parents
+den_members    - Junction table linking users to dens with roles
+children       - Children belonging to a den
+events         - Calendar events (handoffs, appointments, etc.)
+expenses       - Shared expenses between co-parents
+settlements    - Records of settling up balances
+documents      - Stored documents (medical records, IDs, etc.)
+den_invites    - Invite codes for joining a den
+invite_attempts - Rate limiting for invite code attempts
 ```
+
+### Key Relationships
+
+- **Den** → created_by → profiles
+- **DenMember** → den_id → dens, user_id → profiles, invited_by → profiles
+- **Child** → den_id → dens
+- **Event/Expense/Document** → den_id → dens, child_id → children (optional)
+- **Expense** → paid_by → profiles
+- **Settlement** → from_user_id/to_user_id → profiles
 
 ### Notes on the Model
 
 **child_id is optional on Event, Expense, Document:** This allows "family dinner" events, "groceries" expenses, or "custody agreement" documents that apply to the whole den, not a specific child.
 
-**Settlements are separate from Expenses:** An expense creates a balance. A settlement zeroes it out. This matches your existing flow and keeps the accounting clean.
+**Settlements are separate from Expenses:** An expense creates a balance. A settlement zeroes it out. When a settlement is created, all unsettled expenses are marked with `settled_at`.
 
 **No split_type or percentage fields:** For MVP, assume 50/50 split. Can add complexity later if users request it. Most co-parents split equally or have fixed arrangements they track mentally.
 
@@ -203,27 +151,27 @@ The app always operates in the context of one den at a time.
 
 ---
 
-## Migration Path
+## Implementation Status
 
-**MVP (Current - Local Storage):**
-- Single implicit den
-- No auth, no members
-- Data model matches schema above minus user relationships
+**V1 (Current - Supabase):**
+- Full schema with Supabase auth (Google, Email/Password)
+- Den creation and management
+- Invite co-parent flow with 8-character codes
+- Rate limiting on invite attempts
+- All data stored in Supabase PostgreSQL
+- File storage in Supabase Storage (receipts, documents)
 
-**V1 (Supabase):**
-- Full schema with auth
-- Single den per user (simplify onboarding)
-- Invite co-parent flow
-
-**V1.5:**
+**V1.5 (Planned):**
 - Multi-den support
 - Den switcher UI
 - Observer invites
+- Children management UI
 
-**V2 (If needed):**
+**V2 (Future):**
 - Ownership transfer
 - Member removal flow
 - Data export on departure
+- Notification preferences per den
 
 ---
 
