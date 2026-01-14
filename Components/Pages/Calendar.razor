@@ -125,28 +125,38 @@
 
                 <div class="form-group">
                     <label>Time (optional)</label>
-                    <div class="time-picker">
-                        <select @bind="EditingHour" class="time-select">
-                            <option value="">--</option>
-                            @for (int h = 1; h <= 12; h++)
-                            {
-                                <option value="@h">@h</option>
-                            }
-                        </select>
-                        <span class="time-separator">:</span>
-                        <select @bind="EditingMinute" class="time-select">
-                            <option value="">--</option>
-                            <option value="0">00</option>
-                            <option value="15">15</option>
-                            <option value="30">30</option>
-                            <option value="45">45</option>
-                        </select>
-                        <select @bind="EditingAmPm" class="time-select ampm-select">
-                            <option value="">--</option>
-                            <option value="AM">AM</option>
-                            <option value="PM">PM</option>
-                        </select>
+                    <div class="time-picker-native @(ShowTimeError ? "time-picker-error" : "")">
+                        <div class="time-picker-wheel">
+                            <select @bind="EditingHour" class="wheel-select @(ShowTimeError && !EditingHour.HasValue ? "wheel-select-error" : "")">
+                                <option value="">--</option>
+                                <option value="12">12</option>
+                                @for (int h = 1; h <= 11; h++)
+                                {
+                                    <option value="@h">@h</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="time-picker-wheel">
+                            <select @bind="EditingMinute" class="wheel-select @(ShowTimeError && !EditingMinute.HasValue ? "wheel-select-error" : "")">
+                                <option value="">--</option>
+                                <option value="0">00</option>
+                                <option value="15">15</option>
+                                <option value="30">30</option>
+                                <option value="45">45</option>
+                            </select>
+                        </div>
+                        <div class="time-picker-wheel">
+                            <select @bind="EditingAmPm" class="wheel-select @(ShowTimeError && string.IsNullOrEmpty(EditingAmPm) ? "wheel-select-error" : "")">
+                                <option value="">--</option>
+                                <option value="AM">AM</option>
+                                <option value="PM">PM</option>
+                            </select>
+                        </div>
                     </div>
+                    @if (ShowTimeError)
+                    {
+                        <span class="time-error-message">Please select hour, minute, and AM/PM</span>
+                    }
                 </div>
 
                 <div class="form-group">
@@ -349,6 +359,19 @@
     }
 
     private bool HasValidTime => EditingHour.HasValue && EditingMinute.HasValue && !string.IsNullOrEmpty(EditingAmPm);
+
+    private bool HasPartialTime
+    {
+        get
+        {
+            var hasHour = EditingHour.HasValue;
+            var hasMinute = EditingMinute.HasValue;
+            var hasAmPm = !string.IsNullOrEmpty(EditingAmPm);
+            var selectedCount = (hasHour ? 1 : 0) + (hasMinute ? 1 : 0) + (hasAmPm ? 1 : 0);
+            // Partial if 1 or 2 values selected (not 0 and not all 3)
+            return selectedCount > 0 && selectedCount < 3;
+        }
+    }
 
     private async Task SaveEvent()
     {
