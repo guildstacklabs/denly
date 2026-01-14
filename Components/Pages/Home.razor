@@ -12,7 +12,14 @@
         <span class="header-subtitle">Co-parenting made simple</span>
     </div>
 
-    @if (_isNewUser)
+    @if (_isLoading)
+    {
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <p>Loading your den...</p>
+        </div>
+    }
+    else if (_isNewUser)
     {
         <!-- Welcome Screen for New Users -->
         <div class="welcome-section">
@@ -200,6 +207,7 @@
     private bool _hasExpenses;
     private List<Document> _recentDocuments = new();
     private bool _isNewUser;
+    private bool _isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -210,31 +218,38 @@
 
     private async Task LoadDashboardData()
     {
+        _isLoading = true;
         Console.WriteLine("[Home] LoadDashboardData starting");
 
-        _upcomingEvents = await ScheduleService.GetUpcomingEventsAsync(3);
-        Console.WriteLine($"[Home] Upcoming events loaded: {_upcomingEvents.Count}");
-        foreach (var evt in _upcomingEvents)
+        try
         {
-            Console.WriteLine($"[Home]   - Event: {evt.Title}, Date: {evt.StartsAt}, DenId: {evt.DenId}");
+            _upcomingEvents = await ScheduleService.GetUpcomingEventsAsync(3);
+            Console.WriteLine($"[Home] Upcoming events loaded: {_upcomingEvents.Count}");
+
+            _balances = await ExpenseService.GetBalancesAsync();
+            Console.WriteLine($"[Home] Balances loaded: {_balances.Count} entries");
+
+            _recentDocuments = await DocumentService.GetRecentDocumentsAsync(3);
+            Console.WriteLine($"[Home] Recent documents loaded: {_recentDocuments.Count}");
+
+            // Check if there are any expenses
+            var allExpenses = await ExpenseService.GetAllExpensesAsync();
+            _hasExpenses = allExpenses.Any();
+            Console.WriteLine($"[Home] Has expenses: {_hasExpenses}");
+
+            // Determine if this is a new user (no data anywhere)
+            var allEvents = await ScheduleService.GetUpcomingEventsAsync(100);
+            _isNewUser = !allEvents.Any() && !_hasExpenses && !_recentDocuments.Any();
+            Console.WriteLine($"[Home] Is new user: {_isNewUser}");
         }
-
-        _balances = await ExpenseService.GetBalancesAsync();
-        Console.WriteLine($"[Home] Balances loaded: {_balances.Count} entries");
-
-        _recentDocuments = await DocumentService.GetRecentDocumentsAsync(3);
-        Console.WriteLine($"[Home] Recent documents loaded: {_recentDocuments.Count}");
-
-        // Check if there are any expenses
-        var allExpenses = await ExpenseService.GetAllExpensesAsync();
-        _hasExpenses = allExpenses.Any();
-        Console.WriteLine($"[Home] Has expenses: {_hasExpenses}");
-
-        // Determine if this is a new user (no data anywhere)
-        var allEvents = await ScheduleService.GetUpcomingEventsAsync(100);
-        Console.WriteLine($"[Home] All events count (for new user check): {allEvents.Count}");
-        _isNewUser = !allEvents.Any() && !_hasExpenses && !_recentDocuments.Any();
-        Console.WriteLine($"[Home] Is new user: {_isNewUser}");
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Home] Error loading dashboard: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 
     private string FormatEventDate(Event evt)
