@@ -1,41 +1,20 @@
 using Denly.Models;
-using Supabase;
-
 namespace Denly.Services;
 
-public class SupabaseExpenseService : IExpenseService
+public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
 {
     private const string ReceiptsBucket = "receipts";
 
-    private readonly IDenService _denService;
-    private readonly IAuthService _authService;
-    private bool _isInitialized;
-
-    // Use the authenticated client from AuthService
-    private Supabase.Client? SupabaseClient => _authService.GetSupabaseClient();
-
     public SupabaseExpenseService(IDenService denService, IAuthService authService)
+        : base(denService, authService)
     {
-        _denService = denService;
-        _authService = authService;
-    }
-
-    private async Task EnsureInitializedAsync()
-    {
-        if (_isInitialized) return;
-
-        // Ensure auth service is initialized (which creates the authenticated client)
-        await _authService.InitializeAsync();
-        // Ensure den service is initialized (to restore current den from storage)
-        await _denService.InitializeAsync();
-        _isInitialized = true;
     }
 
     public async Task<List<Expense>> GetAllExpensesAsync()
     {
         await EnsureInitializedAsync();
 
-        var denId = _denService.GetCurrentDenId();
+        var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return new List<Expense>();
 
         try
@@ -113,7 +92,7 @@ public class SupabaseExpenseService : IExpenseService
 
         await EnsureInitializedAsync();
 
-        var denId = _denService.GetCurrentDenId();
+        var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId))
         {
             Console.WriteLine("[ExpenseService] Error: No den selected");
@@ -231,7 +210,7 @@ public class SupabaseExpenseService : IExpenseService
             var unsettledExpenses = expenseResponse.Models;
 
             // Get den members
-            var members = await _denService.GetDenMembersAsync(denId);
+            var members = await DenService.GetDenMembersAsync(denId);
             var memberIds = members.Select(m => m.UserId).ToList();
 
             if (memberIds.Count < 2)
@@ -261,7 +240,7 @@ public class SupabaseExpenseService : IExpenseService
     {
         await EnsureInitializedAsync();
 
-        var denId = _denService.GetCurrentDenId();
+        var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return new List<Settlement>();
 
         try
@@ -326,7 +305,7 @@ public class SupabaseExpenseService : IExpenseService
 
         await EnsureInitializedAsync();
 
-        var denId = _denService.GetCurrentDenId();
+        var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId))
         {
             Console.WriteLine("[ExpenseService] Error: No den selected");
