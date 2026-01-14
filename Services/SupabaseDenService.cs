@@ -55,15 +55,37 @@ public class SupabaseDenService : IDenService
             Console.WriteLine($"[DenService] InitializeAsync - exception type: {ex.GetType().Name}");
         }
 
-        // If no den in storage, check if user has any dens in database
+        // Validate stored den belongs to current user, or find user's actual den
+        if (!string.IsNullOrEmpty(_currentDenId))
+        {
+            Console.WriteLine("[DenService] InitializeAsync - validating stored den belongs to current user...");
+            var isValid = await ValidateUserDenMembershipAsync(_currentDenId);
+            if (!isValid)
+            {
+                Console.WriteLine("[DenService] InitializeAsync - stored den does not belong to current user, clearing...");
+                _currentDenId = null;
+                SecureStorage.Remove(CurrentDenStorageKey);
+            }
+        }
+
+        // If no valid den, check if user has any dens in database
         if (string.IsNullOrEmpty(_currentDenId))
         {
-            Console.WriteLine("[DenService] InitializeAsync - no den in storage, checking database for user's dens...");
+            Console.WriteLine("[DenService] InitializeAsync - no valid den, checking database for user's dens...");
             await TryLoadUserDenAsync();
         }
 
         _isInitialized = true;
         Console.WriteLine($"[DenService] InitializeAsync - complete, currentDenId: {_currentDenId ?? "null"}");
+    }
+
+    public Task ResetAsync()
+    {
+        Console.WriteLine("[DenService] ResetAsync - clearing state");
+        _isInitialized = false;
+        _currentDenId = null;
+        SecureStorage.Remove(CurrentDenStorageKey);
+        return Task.CompletedTask;
     }
 
     private async Task TryLoadUserDenAsync()
@@ -96,6 +118,35 @@ public class SupabaseDenService : IDenService
         catch (Exception ex)
         {
             Console.WriteLine($"[DenService] TryLoadUserDenAsync - error: {ex.Message}");
+        }
+    }
+
+    private async Task<bool> ValidateUserDenMembershipAsync(string denId)
+    {
+        try
+        {
+            var supabaseUser = SupabaseClient?.Auth.CurrentUser;
+            if (supabaseUser == null || string.IsNullOrEmpty(supabaseUser.Id))
+            {
+                Console.WriteLine("[DenService] ValidateUserDenMembershipAsync - no authenticated user");
+                return false;
+            }
+
+            Console.WriteLine($"[DenService] ValidateUserDenMembershipAsync - checking if user {supabaseUser.Id} is member of den {denId}");
+
+            var membership = await SupabaseClient!
+                .From<DenMember>()
+                .Where(m => m.UserId == supabaseUser.Id && m.DenId == denId)
+                .Get();
+
+            var isMember = membership.Models.Count > 0;
+            Console.WriteLine($"[DenService] ValidateUserDenMembershipAsync - result: {isMember}");
+            return isMember;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DenService] ValidateUserDenMembershipAsync - error: {ex.Message}");
+            return false;
         }
     }
 
@@ -507,74 +558,100 @@ public class SupabaseDenService : IDenService
 
     public async Task<JoinDenResult> JoinDenAsync(string code)
     {
-        var user = await _authService.GetCurrentUserAsync();
-        if (user == null)
-            return new JoinDenResult(false, "User not authenticated");
-
-        // Check rate limit
-        var failedAttempts = await GetFailedAttemptsCountAsync(RateLimitMinutes);
-        if (failedAttempts >= MaxFailedAttempts)
+        try
         {
-            return new JoinDenResult(false, $"Too many attempts. Please try again later.", 0);
-        }
+            Console.WriteLine($"[DenService] JoinDenAsync - starting with code: {code}");
 
-        var normalizedCode = NormalizeCode(code);
-        var invite = await ValidateInviteCodeAsync(normalizedCode);
+            var user = await _authService.GetCurrentUserAsync();
+            if (user == null)
+            {
+                Console.WriteLine("[DenService] JoinDenAsync - user not authenticated");
+                return new JoinDenResult(false, "User not authenticated");
+            }
+            Console.WriteLine($"[DenService] JoinDenAsync - user: {user.Id}");
 
-        // Log attempt
-        await LogAttemptAsync(user.Id, invite != null);
+            // Check rate limit
+            var failedAttempts = await GetFailedAttemptsCountAsync(RateLimitMinutes);
+            Console.WriteLine($"[DenService] JoinDenAsync - failed attempts: {failedAttempts}");
+            if (failedAttempts >= MaxFailedAttempts)
+            {
+                return new JoinDenResult(false, $"Too many attempts. Please try again later.", 0);
+            }
 
-        if (invite == null)
-        {
-            var remaining = MaxFailedAttempts - failedAttempts - 1;
-            return new JoinDenResult(false, "Invalid or expired code", remaining);
-        }
+            var normalizedCode = NormalizeCode(code);
+            Console.WriteLine($"[DenService] JoinDenAsync - normalized code: {normalizedCode}");
+            var invite = await ValidateInviteCodeAsync(normalizedCode);
 
-        // Check if already a member
-        var existingMember = await SupabaseClient!
-            .From<DenMember>()
-            .Where(m => m.DenId == invite.DenId && m.UserId == user.Id)
-            .Get();
+            // Log attempt
+            await LogAttemptAsync(user.Id, invite != null);
 
-        if (existingMember.Models.Count > 0)
-        {
-            // Already a member, just set as current
+            if (invite == null)
+            {
+                Console.WriteLine("[DenService] JoinDenAsync - invite not found or invalid");
+                var remaining = MaxFailedAttempts - failedAttempts - 1;
+                return new JoinDenResult(false, "Invalid or expired code", remaining);
+            }
+            Console.WriteLine($"[DenService] JoinDenAsync - invite valid, denId: {invite.DenId}");
+
+            // Check if already a member
+            var existingMember = await SupabaseClient!
+                .From<DenMember>()
+                .Where(m => m.DenId == invite.DenId && m.UserId == user.Id)
+                .Get();
+
+            if (existingMember.Models.Count > 0)
+            {
+                Console.WriteLine("[DenService] JoinDenAsync - user already a member, setting as current");
+                // Already a member, just set as current
+                await SetCurrentDenAsync(invite.DenId);
+                var existingDen = await GetCurrentDenAsync();
+                return new JoinDenResult(true, Den: existingDen);
+            }
+
+            Console.WriteLine("[DenService] JoinDenAsync - adding user as new member");
+            // Add as member with role from invite
+            var member = new DenMember
+            {
+                Id = Guid.NewGuid().ToString(),
+                DenId = invite.DenId,
+                UserId = user.Id,
+                Role = invite.Role ?? "co-parent",
+                InvitedBy = invite.CreatedBy,
+                JoinedAt = DateTime.UtcNow
+            };
+
+            await SupabaseClient!
+                .From<DenMember>()
+                .Insert(member);
+            Console.WriteLine("[DenService] JoinDenAsync - member inserted successfully");
+
+            // Mark invite as used
+            Console.WriteLine("[DenService] JoinDenAsync - marking invite as used");
+            invite.UsedAt = DateTime.UtcNow;
+            invite.UsedBy = user.Id;
+
+            await SupabaseClient!
+                .From<DenInvite>()
+                .Where(i => i.Id == invite.Id)
+                .Set(i => i.UsedAt!, invite.UsedAt)
+                .Set(i => i.UsedBy!, invite.UsedBy)
+                .Update();
+            Console.WriteLine("[DenService] JoinDenAsync - invite updated");
+
+            // Set as current den
+            Console.WriteLine("[DenService] JoinDenAsync - setting current den");
             await SetCurrentDenAsync(invite.DenId);
-            var existingDen = await GetCurrentDenAsync();
-            return new JoinDenResult(true, Den: existingDen);
+            var den = await GetCurrentDenAsync();
+            Console.WriteLine($"[DenService] JoinDenAsync - complete, den: {den?.Name}");
+
+            return new JoinDenResult(true, Den: den);
         }
-
-        // Add as member with role from invite
-        var member = new DenMember
+        catch (Exception ex)
         {
-            Id = Guid.NewGuid().ToString(),
-            DenId = invite.DenId,
-            UserId = user.Id,
-            Role = invite.Role ?? "co-parent",
-            InvitedBy = invite.CreatedBy,
-            JoinedAt = DateTime.UtcNow
-        };
-
-        await SupabaseClient!
-            .From<DenMember>()
-            .Insert(member);
-
-        // Mark invite as used
-        invite.UsedAt = DateTime.UtcNow;
-        invite.UsedBy = user.Id;
-
-        await SupabaseClient!
-            .From<DenInvite>()
-            .Where(i => i.Id == invite.Id)
-            .Set(i => i.UsedAt!, invite.UsedAt)
-            .Set(i => i.UsedBy!, invite.UsedBy)
-            .Update();
-
-        // Set as current den
-        await SetCurrentDenAsync(invite.DenId);
-        var den = await GetCurrentDenAsync();
-
-        return new JoinDenResult(true, Den: den);
+            Console.WriteLine($"[DenService] JoinDenAsync - ERROR: {ex.Message}");
+            Console.WriteLine($"[DenService] JoinDenAsync - Stack: {ex.StackTrace}");
+            return new JoinDenResult(false, $"Failed to join den: {ex.Message}");
+        }
     }
 
     public async Task<int> GetFailedAttemptsCountAsync(int minutes = 15)

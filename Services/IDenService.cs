@@ -6,6 +6,7 @@ public interface IDenService
 {
     // Initialization
     Task InitializeAsync();
+    Task ResetAsync();
 
     // Den management
     Task<Den?> GetCurrentDenAsync();

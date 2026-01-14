@@ -49,6 +49,12 @@
         </button>
         <p class="join-hint">Have an invite code from your co-parent?</p>
     </div>
+
+    <div class="logout-section">
+        <button class="btn-link" @onclick="HandleLogout" disabled="@_isLoading">
+            Log out and use a different account
+        </button>
+    </div>
 </div>
 
 @code {
@@ -104,5 +110,23 @@
     private void GoToJoinDen()
     {
         Navigation.NavigateTo("/join-den");
+    }
+
+    private async Task HandleLogout()
+    {
+        _isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            await Auth.SignOutAsync();
+            Navigation.NavigateTo("/login", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CreateDen] Error logging out: {ex.Message}");
+            _isLoading = false;
+            StateHasChanged();
+        }
     }
 }

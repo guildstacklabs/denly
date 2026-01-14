@@ -125,7 +125,28 @@
 
                 <div class="form-group">
                     <label>Time (optional)</label>
-                    <input type="time" @bind="EditingEventTime" />
+                    <div class="time-picker">
+                        <select @bind="EditingHour" class="time-select">
+                            <option value="">--</option>
+                            @for (int h = 1; h <= 12; h++)
+                            {
+                                <option value="@h">@h</option>
+                            }
+                        </select>
+                        <span class="time-separator">:</span>
+                        <select @bind="EditingMinute" class="time-select">
+                            <option value="">--</option>
+                            <option value="0">00</option>
+                            <option value="15">15</option>
+                            <option value="30">30</option>
+                            <option value="45">45</option>
+                        </select>
+                        <select @bind="EditingAmPm" class="time-select ampm-select">
+                            <option value="">--</option>
+                            <option value="AM">AM</option>
+                            <option value="PM">PM</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -190,7 +211,9 @@
     private bool IsEditing;
     private Event EditingEvent = new();
     private DateTime EditingEventDate;
-    private TimeOnly? EditingEventTime;
+    private int? EditingHour;
+    private int? EditingMinute;
+    private string? EditingAmPm;
 
     private static readonly string[] DayNames = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 
@@ -278,7 +301,9 @@
         };
         // Use the selected date directly (it's already local time)
         EditingEventDate = SelectedDate ?? DateTime.Today;
-        EditingEventTime = null;
+        EditingHour = null;
+        EditingMinute = null;
+        EditingAmPm = null;
         ShowEventModal = true;
     }
 
@@ -298,7 +323,22 @@
             CreatedAt = evt.CreatedAt
         };
         EditingEventDate = evt.Date;
-        EditingEventTime = evt.Time.HasValue ? TimeOnly.FromTimeSpan(evt.Time.Value) : null;
+
+        // Convert TimeSpan to hour/minute/ampm
+        if (evt.Time.HasValue)
+        {
+            var time = evt.Time.Value;
+            var hour24 = time.Hours;
+            EditingAmPm = hour24 >= 12 ? "PM" : "AM";
+            EditingHour = hour24 == 0 ? 12 : (hour24 > 12 ? hour24 - 12 : hour24);
+            EditingMinute = time.Minutes;
+        }
+        else
+        {
+            EditingHour = null;
+            EditingMinute = null;
+            EditingAmPm = null;
+        }
         ShowEventModal = true;
     }
 
@@ -308,20 +348,28 @@
         EditingEvent = new Event();
     }
 
+    private bool HasValidTime => EditingHour.HasValue && EditingMinute.HasValue && !string.IsNullOrEmpty(EditingAmPm);
+
     private async Task SaveEvent()
     {
         if (string.IsNullOrWhiteSpace(EditingEvent.Title))
             return;
 
         Console.WriteLine($"[Calendar] SaveEvent - TimeZone: {TimeZoneInfo.Local.DisplayName}, Offset: {TimeZoneInfo.Local.BaseUtcOffset}");
-        Console.WriteLine($"[Calendar] Inputs - Date: {EditingEventDate:yyyy-MM-dd} (Kind: {EditingEventDate.Kind}), Time: {EditingEventTime}");
+        Console.WriteLine($"[Calendar] Inputs - Date: {EditingEventDate:yyyy-MM-dd} (Kind: {EditingEventDate.Kind}), Hour: {EditingHour}, Minute: {EditingMinute}, AmPm: {EditingAmPm}");
 
         // Set StartsAt based on date and optional time
         // Convert local time to UTC for storage
         // Must explicitly specify Kind=Local since input bindings return Unspecified
-        if (EditingEventTime.HasValue)
+        if (HasValidTime)
         {
-            var dt = EditingEventDate.Date.Add(EditingEventTime.Value.ToTimeSpan());
+            // Convert 12-hour to 24-hour format
+            var hour24 = EditingHour!.Value;
+            if (EditingAmPm == "PM" && hour24 != 12) hour24 += 12;
+            if (EditingAmPm == "AM" && hour24 == 12) hour24 = 0;
+
+            var timeSpan = new TimeSpan(hour24, EditingMinute!.Value, 0);
+            var dt = EditingEventDate.Date.Add(timeSpan);
             var localDateTime = DateTime.SpecifyKind(dt, DateTimeKind.Local);
 
             Console.WriteLine($"[Calendar] Combined Local: {localDateTime:O} (Kind: {localDateTime.Kind})");

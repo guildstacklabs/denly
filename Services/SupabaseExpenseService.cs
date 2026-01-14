@@ -225,7 +225,7 @@ public class SupabaseExpenseService : IExpenseService
             var expenseResponse = await SupabaseClient!
                 .From<Expense>()
                 .Where(e => e.DenId == denId)
-                .Filter("settled_at", Supabase.Postgrest.Constants.Operator.Is, "null")
+                .Filter<DateTime?>("settled_at", Supabase.Postgrest.Constants.Operator.Is, null)
                 .Get();
 
             var unsettledExpenses = expenseResponse.Models;
@@ -366,7 +366,7 @@ public class SupabaseExpenseService : IExpenseService
             var unsettled = await SupabaseClient!
                 .From<Expense>()
                 .Where(e => e.DenId == denId)
-                .Filter("settled_at", Supabase.Postgrest.Constants.Operator.Is, "null")
+                .Filter<DateTime?>("settled_at", Supabase.Postgrest.Constants.Operator.Is, null)
                 .Get();
 
             var settledAt = DateTime.UtcNow;

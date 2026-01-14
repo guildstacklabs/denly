@@ -58,12 +58,11 @@
         </button>
     </div>
 
-    <button class="back-link" @onclick="GoBack" disabled="@_isLoading">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
-        Back
-    </button>
+    <div class="logout-section">
+        <button class="btn-link" @onclick="HandleLogout" disabled="@_isLoading">
+            Log out and use a different account
+        </button>
+    </div>
 </div>
 
 <!-- Confirmation Modal -->
@@ -196,8 +195,21 @@
         Navigation.NavigateTo("/create-den");
     }
 
-    private void GoBack()
+    private async Task HandleLogout()
     {
-        Navigation.NavigateTo("/login");
+        _isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            await Auth.SignOutAsync();
+            Navigation.NavigateTo("/login", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[JoinDen] Error logging out: {ex.Message}");
+            _isLoading = false;
+            StateHasChanged();
+        }
     }
 }
