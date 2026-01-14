@@ -1,4 +1,4 @@
-﻿using Android.App;
+﻿﻿using Android.App;
 using Android.Content.PM;
 using Android.OS;
 using Android.Views;
@@ -39,7 +39,7 @@ public class MainActivity : MauiAppCompatActivity
         public WindowInsetsCompat OnApplyWindowInsets(Android.Views.View? v, WindowInsetsCompat? insets)
         {
             if (insets == null || v == null)
-                return insets ?? new WindowInsetsCompat.Builder().Build();
+                return insets ?? new WindowInsetsCompat.Builder().Build(); // Ensure non-null return
 
             var systemBars = insets.GetInsets(WindowInsetsCompat.Type.SystemBars());
             var displayCutout = insets.GetInsets(WindowInsetsCompat.Type.DisplayCutout());

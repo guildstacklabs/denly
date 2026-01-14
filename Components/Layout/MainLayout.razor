@@ -4,7 +4,6 @@
 @inject Denly.Services.ISafeAreaService SafeArea
 @inject Denly.Services.IAuthService Auth
 @inject Denly.Services.IDenService DenService
-@inject Denly.Services.IToastService Toast
 @inject NavigationManager Navigation
 
 @if (_isLoading)
@@ -47,41 +46,6 @@ else if (_isAuthenticated)
         </main>
 
         <NavMenu />
-
-        <!-- Toast Container -->
-        @if (_toasts.Any())
-        {
-            <div class="toast-container">
-                @foreach (var toast in _toasts)
-                {
-                    <div class="toast toast-@toast.Type.ToString().ToLowerInvariant()">
-                        @if (toast.Type == Denly.Services.ToastType.Success)
-                        {
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                        }
-                        else if (toast.Type == Denly.Services.ToastType.Error)
-                        {
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="15" y1="9" x2="9" y2="15"></line>
-                                <line x1="9" y1="9" x2="15" y2="15"></line>
-                            </svg>
-                        }
-                        else
-                        {
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="12" y1="16" x2="12" y2="12"></line>
-                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                            </svg>
-                        }
-                        <span>@toast.Message</span>
-                    </div>
-                }
-            </div>
-        }
     </div>
 }
 
@@ -90,7 +54,6 @@ else if (_isAuthenticated)
     private bool _isAuthenticated;
     private string? _currentDenId;
     private List<Denly.Models.Den> _userDens = new();
-    private List<ToastItem> _toasts = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -109,9 +72,6 @@ else if (_isAuthenticated)
         // Load user's dens
         _userDens = await DenService.GetUserDensAsync();
         _currentDenId = DenService.GetCurrentDenId();
-
-        // Subscribe to toast events
-        Toast.OnShow += HandleToast;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -120,20 +80,6 @@ else if (_isAuthenticated)
         {
             await JS.InvokeVoidAsync("setSafeAreaInsets", SafeArea.Top, SafeArea.Bottom, SafeArea.Left, SafeArea.Right);
         }
-    }
-
-    private void HandleToast(object? sender, Denly.Services.ToastEventArgs e)
-    {
-        var toast = new ToastItem { Message = e.Message, Type = e.Type };
-        _toasts.Add(toast);
-        InvokeAsync(StateHasChanged);
-
-        // Auto-dismiss after duration
-        _ = Task.Delay(e.DurationMs).ContinueWith(_ =>
-        {
-            _toasts.Remove(toast);
-            InvokeAsync(StateHasChanged);
-        });
     }
 
     private async Task OnDenChanged(ChangeEventArgs e)
@@ -154,12 +100,5 @@ else if (_isAuthenticated)
 
     public void Dispose()
     {
-        Toast.OnShow -= HandleToast;
-    }
-
-    private class ToastItem
-    {
-        public string Message { get; set; } = string.Empty;
-        public Denly.Services.ToastType Type { get; set; }
     }
 }

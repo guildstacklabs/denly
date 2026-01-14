@@ -3,7 +3,6 @@
 @using Denly.Services
 @inject IDenService DenService
 @inject IAuthService Auth
-@inject IToastService Toast
 @inject NavigationManager Navigation
 
 <div class="settings-page">
@@ -280,11 +279,11 @@
         try
         {
             await Clipboard.Default.SetTextAsync(_activeInvite.Code);
-            Toast.Success("Code copied!");
+            Console.WriteLine("Code copied!");
         }
         catch
         {
-            Toast.Error("Could not copy code");
+            Console.WriteLine("Could not copy code");
         }
     }
 
@@ -331,14 +330,14 @@
         try
         {
             await DenService.RemoveMemberAsync(_currentDen.Id, _memberToRemove.UserId);
-            Toast.Success("Member removed");
+            Console.WriteLine("Member removed");
             _showRemoveModal = false;
             _memberToRemove = null;
             await LoadData();
         }
         catch (Exception ex)
         {
-            Toast.Error(ex.Message);
+            Console.WriteLine($"Error removing member: {ex.Message}");
         }
     }
 
