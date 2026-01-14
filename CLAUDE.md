@@ -31,11 +31,23 @@ Fair-priced, community-driven alternative to expensive co-parenting apps like Ou
 
 6 months to App Store launch
 
-## Future Enhancements
+## Roadmap & Priorities
 
-### Shared Costs - Timeline View
+### 1. Foundation & Polish (Current Priority)
+*Goal: Ensure the MVP is stable, fluid, and bug-free before adding complexity.*
 
-- Restyle expense list as a visual timeline
-- Show settlements as distinct "milestone" markers in the timeline
-- Add filtering: by date range, category, settled/unsettled status
-- Goal: make it easy to see the full history at a glance while quickly finding specific expenses
+-   **UI/UX Polish**: Add loading states, improve error feedback, and smooth out navigation.
+-   **Code Quality**: Refactor services for better error handling and separation of concerns.
+-   **Security Check**: Audit all data access points for proper RLS and auth checks.
+
+### 2. Feature Enhancements (Post-Stabilization)
+
+#### Shared Costs - Timeline View
+-   Restyle expense list as a visual timeline.
+-   Show settlements as distinct "milestone" markers.
+-   Add filtering: by date range, category, settled/unsettled status.
+
+### 3. Future Architecture
+-   **Offline Capabilities**: Caching strategy for offline access.
+-   **CI/CD**: Automated builds for iOS/Android.
+-   **Testing**: Unit and integration tests (xUnit/bUnit).
