@@ -1,39 +1,18 @@
 using Denly.Models;
-using Supabase;
-
 namespace Denly.Services;
 
-public class SupabaseScheduleService : IScheduleService
+public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 {
-    private readonly IDenService _denService;
-    private readonly IAuthService _authService;
-    private bool _isInitialized;
-
-    // Use the authenticated client from AuthService
-    private Supabase.Client? SupabaseClient => _authService.GetSupabaseClient();
-
     public SupabaseScheduleService(IDenService denService, IAuthService authService)
+        : base(denService, authService)
     {
-        _denService = denService;
-        _authService = authService;
-    }
-
-    private async Task EnsureInitializedAsync()
-    {
-        if (_isInitialized) return;
-
-        // Ensure auth service is initialized (which creates the authenticated client)
-        await _authService.InitializeAsync();
-        // Ensure den service is initialized (to restore current den from storage)
-        await _denService.InitializeAsync();
-        _isInitialized = true;
     }
 
     public async Task<List<Event>> GetEventsByMonthAsync(int year, int month)
     {
         await EnsureInitializedAsync();
 
-        var denId = _denService.GetCurrentDenId();
+        var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return new List<Event>();
 
         try
@@ -69,7 +48,7 @@ public class SupabaseScheduleService : IScheduleService
     {
         await EnsureInitializedAsync();
 
-        var denId = _denService.GetCurrentDenId();
+        var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return new List<Event>();
 
         try
@@ -136,7 +115,7 @@ public class SupabaseScheduleService : IScheduleService
     {
         await EnsureInitializedAsync();
 
-        var denId = _denService.GetCurrentDenId();
+        var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return new List<Event>();
 
         try
@@ -190,7 +169,7 @@ public class SupabaseScheduleService : IScheduleService
 
         await EnsureInitializedAsync();
 
-        var denId = _denService.GetCurrentDenId();
+        var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId))
         {
             Console.WriteLine("[ScheduleService] Error: No den selected");
