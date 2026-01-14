@@ -313,17 +313,23 @@
         if (string.IsNullOrWhiteSpace(EditingEvent.Title))
             return;
 
+        Console.WriteLine($"[Calendar] SaveEvent - TimeZone: {TimeZoneInfo.Local.DisplayName}, Offset: {TimeZoneInfo.Local.BaseUtcOffset}");
+        Console.WriteLine($"[Calendar] Inputs - Date: {EditingEventDate:yyyy-MM-dd} (Kind: {EditingEventDate.Kind}), Time: {EditingEventTime}");
+
         // Set StartsAt based on date and optional time
         // Convert local time to UTC for storage
         // Must explicitly specify Kind=Local since input bindings return Unspecified
         if (EditingEventTime.HasValue)
         {
-            var localDateTime = DateTime.SpecifyKind(
-                EditingEventDate.Date.Add(EditingEventTime.Value.ToTimeSpan()),
-                DateTimeKind.Local
-            );
+            var dt = EditingEventDate.Date.Add(EditingEventTime.Value.ToTimeSpan());
+            var localDateTime = DateTime.SpecifyKind(dt, DateTimeKind.Local);
+
+            Console.WriteLine($"[Calendar] Combined Local: {localDateTime:O} (Kind: {localDateTime.Kind})");
+
             EditingEvent.StartsAt = localDateTime.ToUniversalTime();
             EditingEvent.AllDay = false;
+
+            Console.WriteLine($"[Calendar] Converted UTC: {EditingEvent.StartsAt:O} (Kind: {EditingEvent.StartsAt.Kind})");
         }
         else
         {
@@ -331,6 +337,7 @@
             var localDate = DateTime.SpecifyKind(EditingEventDate.Date, DateTimeKind.Local);
             EditingEvent.StartsAt = localDate.ToUniversalTime();
             EditingEvent.AllDay = true;
+            Console.WriteLine($"[Calendar] AllDay UTC: {EditingEvent.StartsAt:O} (Kind: {EditingEvent.StartsAt.Kind})");
         }
 
         await ScheduleService.SaveEventAsync(EditingEvent);

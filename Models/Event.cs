@@ -77,14 +77,17 @@ public class Event : BaseModel
 
     // Helper properties for UI compatibility
     // Convert from UTC (stored) to local time for display
-    // Supabase returns DateTime with Kind=Unspecified, so we must specify UTC explicitly
+    // Note: Supabase/Newtonsoft might return Local time depending on configuration.
+    // We check the Kind to ensure we don't double-convert or misinterpret already Local times.
     [Newtonsoft.Json.JsonIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
-    public DateTime Date => DateTime.SpecifyKind(StartsAt, DateTimeKind.Utc).ToLocalTime().Date;
+    public DateTime Date => StartsAt.Kind == DateTimeKind.Utc
+        ? StartsAt.ToLocalTime().Date
+        : StartsAt.Date;
 
     [Newtonsoft.Json.JsonIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
-    public TimeSpan? Time => AllDay ? null : DateTime.SpecifyKind(StartsAt, DateTimeKind.Utc).ToLocalTime().TimeOfDay;
+    public TimeSpan? Time => AllDay ? null : (StartsAt.Kind == DateTimeKind.Utc ? StartsAt.ToLocalTime() : StartsAt).TimeOfDay;
 }
 
 public static class EventTypeExtensions
