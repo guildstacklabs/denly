@@ -8,6 +8,8 @@ performance, and security without destabilizing the app.
 **Problem:** Every service maintains its own initialization pattern and error-handling flow,
 which leads to inconsistent retries, logging, and state checks.
 
+**Status:** ✅ Implemented with `SupabaseServiceBase` and adoption in schedule/expense services.
+
 **Recommendation:**
 - Create a shared `SupabaseServiceBase` that encapsulates:
   - `EnsureInitializedAsync()` (auth + den restore)
@@ -25,8 +27,6 @@ which leads to inconsistent retries, logging, and state checks.
 **Problem:** Services currently log sensitive IDs and access tokens directly to the console,
 which is a security and privacy risk.
 
-**Status:** 🔄 In progress. Migrated schedule and expense services to `ILogger<T>` with PII-safe messages.
-
 **Recommendation:**
 - Replace `Console.WriteLine` with `ILogger<T>`.
 - Add a logging policy:
@@ -40,8 +40,6 @@ which is a security and privacy risk.
 
 ## 3) Centralize Supabase Configuration
 **Problem:** Supabase URL and anonymous key are hard-coded in the auth service.
-
-**Status:** ✅ Implemented via `DenlyOptions` and `appsettings.json` configuration binding.
 
 **Recommendation:**
 - Move Supabase config into app configuration (e.g., `appsettings.json` + secrets)

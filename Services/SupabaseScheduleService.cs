@@ -1,45 +1,18 @@
 using Denly.Models;
-using Microsoft.Extensions.Logging;
-using Supabase;
-
 namespace Denly.Services;
 
-public class SupabaseScheduleService : IScheduleService
+public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 {
-    private readonly IDenService _denService;
-    private readonly IAuthService _authService;
-    private readonly ILogger<SupabaseScheduleService> _logger;
-    private bool _isInitialized;
-
-    // Use the authenticated client from AuthService
-    private Supabase.Client? SupabaseClient => _authService.GetSupabaseClient();
-
-    public SupabaseScheduleService(
-        IDenService denService,
-        IAuthService authService,
-        ILogger<SupabaseScheduleService> logger)
+    public SupabaseScheduleService(IDenService denService, IAuthService authService)
+        : base(denService, authService)
     {
-        _denService = denService;
-        _authService = authService;
-        _logger = logger;
-    }
-
-    private async Task EnsureInitializedAsync()
-    {
-        if (_isInitialized) return;
-
-        // Ensure auth service is initialized (which creates the authenticated client)
-        await _authService.InitializeAsync();
-        // Ensure den service is initialized (to restore current den from storage)
-        await _denService.InitializeAsync();
-        _isInitialized = true;
     }
 
     public async Task<List<Event>> GetEventsByMonthAsync(int year, int month)
     {
         await EnsureInitializedAsync();
 
-        var denId = _denService.GetCurrentDenId();
+        var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return new List<Event>();
 
         try
@@ -75,7 +48,7 @@ public class SupabaseScheduleService : IScheduleService
     {
         await EnsureInitializedAsync();
 
-        var denId = _denService.GetCurrentDenId();
+        var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return new List<Event>();
 
         try
@@ -137,7 +110,7 @@ public class SupabaseScheduleService : IScheduleService
     {
         await EnsureInitializedAsync();
 
-        var denId = _denService.GetCurrentDenId();
+        var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return new List<Event>();
 
         try
@@ -179,31 +152,37 @@ public class SupabaseScheduleService : IScheduleService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ScheduleService] Error getting event by id");
+            Console.WriteLine($"[ScheduleService] Error getting event by id: {ex.Message}");
             return null;
         }
     }
 
     public async Task SaveEventAsync(Event evt)
     {
-        _logger.LogInformation("[ScheduleService] SaveEventAsync called");
+        Console.WriteLine($"[ScheduleService] SaveEventAsync called for: {evt.Title}");
+        Console.WriteLine($"[ScheduleService] SaveEventAsync - Input StartsAt: {evt.StartsAt:O} (Kind: {evt.StartsAt.Kind})");
 
         await EnsureInitializedAsync();
 
-        var denId = _denService.GetCurrentDenId();
+        var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId))
         {
-            _logger.LogWarning("[ScheduleService] No den selected");
+            Console.WriteLine("[ScheduleService] Error: No den selected");
             return;
         }
+        Console.WriteLine($"[ScheduleService] Den ID: {denId}");
 
         // Get user ID directly from the Supabase auth session
         var supabaseUser = SupabaseClient?.Auth.CurrentUser;
         if (supabaseUser == null || string.IsNullOrEmpty(supabaseUser.Id))
         {
-            _logger.LogWarning("[ScheduleService] No authenticated Supabase session");
+            Console.WriteLine("[ScheduleService] Error: No authenticated Supabase session");
             return;
         }
+
+        var userId = supabaseUser.Id;
+        Console.WriteLine($"[ScheduleService] Supabase auth.uid(): {userId}");
+        Console.WriteLine($"[ScheduleService] Session access token present: {!string.IsNullOrEmpty(SupabaseClient?.Auth.CurrentSession?.AccessToken)}");
 
         evt.DenId = denId;
 
