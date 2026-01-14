@@ -35,7 +35,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ExpenseService] Error getting all expenses: {ex.Message}");
+            _logger.LogError(ex, "[ExpenseService] Error getting all expenses");
             return new List<Expense>();
         }
     }
@@ -64,7 +64,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ExpenseService] Error populating expense names: {ex.Message}");
+            _logger.LogError(ex, "[ExpenseService] Error populating expense names");
         }
     }
 
@@ -131,40 +131,36 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
                     .Set(e => e.ChildId!, expense.ChildId)
                     .Set(e => e.SettledAt!, expense.SettledAt)
                     .Update();
-                Console.WriteLine($"[ExpenseService] Expense updated successfully");
+                _logger.LogInformation("[ExpenseService] Expense updated successfully");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ExpenseService] Error updating expense: {ex.Message}");
-                Console.WriteLine($"[ExpenseService] Stack trace: {ex.StackTrace}");
+                _logger.LogError(ex, "[ExpenseService] Error updating expense");
             }
         }
         else
         {
-            Console.WriteLine($"[ExpenseService] Inserting new expense: {expense.Id}");
-            expense.CreatedBy = userId;
+            _logger.LogInformation("[ExpenseService] Inserting new expense");
+            expense.CreatedBy = supabaseUser.Id;
             expense.CreatedAt = DateTime.UtcNow;
-
-            Console.WriteLine($"[ExpenseService] Expense object - Id: {expense.Id}, DenId: {expense.DenId}, CreatedBy: {expense.CreatedBy}, Amount: {expense.Amount}, PaidBy: {expense.PaidBy}");
 
             try
             {
                 var response = await SupabaseClient!
                     .From<Expense>()
                     .Insert(expense);
-                Console.WriteLine($"[ExpenseService] Expense insert response: {response?.Models?.Count ?? 0} models returned");
+                _logger.LogInformation("[ExpenseService] Expense insert response: {Count} models returned", response?.Models?.Count ?? 0);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ExpenseService] Error inserting expense: {ex.Message}");
-                Console.WriteLine($"[ExpenseService] Stack trace: {ex.StackTrace}");
+                _logger.LogError(ex, "[ExpenseService] Error inserting expense");
             }
         }
     }
 
     public async Task DeleteExpenseAsync(string id)
     {
-        Console.WriteLine($"[ExpenseService] DeleteExpenseAsync called for: {id}");
+        _logger.LogInformation("[ExpenseService] DeleteExpenseAsync called");
         await EnsureInitializedAsync();
 
         try
@@ -180,12 +176,11 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
                 .From<Expense>()
                 .Where(e => e.Id == id)
                 .Delete();
-            Console.WriteLine($"[ExpenseService] Expense deleted successfully");
+            _logger.LogInformation("[ExpenseService] Expense deleted successfully");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ExpenseService] Error deleting expense: {ex.Message}");
-            Console.WriteLine($"[ExpenseService] Stack trace: {ex.StackTrace}");
+            _logger.LogError(ex, "[ExpenseService] Error deleting expense");
         }
     }
 
@@ -231,7 +226,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ExpenseService] Error getting balances: {ex.Message}");
+            _logger.LogError(ex, "[ExpenseService] Error getting balances");
             return balances;
         }
     }
@@ -258,7 +253,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ExpenseService] Error getting settlements: {ex.Message}");
+            _logger.LogError(ex, "[ExpenseService] Error getting settlements");
             return new List<Settlement>();
         }
     }
@@ -357,12 +352,11 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
                     .Set(e => e.SettledAt!, settledAt)
                     .Update();
             }
-            Console.WriteLine($"[ExpenseService] Marked {unsettled.Models.Count} expenses as settled");
+            _logger.LogInformation("[ExpenseService] Marked {Count} expenses as settled", unsettled.Models.Count);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ExpenseService] Error creating settlement: {ex.Message}");
-            Console.WriteLine($"[ExpenseService] Stack trace: {ex.StackTrace}");
+            _logger.LogError(ex, "[ExpenseService] Error creating settlement");
             throw;
         }
 
@@ -371,14 +365,14 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
 
     public async Task<string> SaveReceiptAsync(Stream imageStream, string fileName)
     {
-        Console.WriteLine($"[ExpenseService] SaveReceiptAsync called for: {fileName}");
+        _logger.LogInformation("[ExpenseService] SaveReceiptAsync called");
 
         await EnsureInitializedAsync();
 
         var denId = _denService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId))
         {
-            Console.WriteLine("[ExpenseService] Error: No den selected");
+            _logger.LogWarning("[ExpenseService] No den selected");
             throw new InvalidOperationException("No den selected");
         }
 
@@ -391,7 +385,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
             await imageStream.CopyToAsync(memoryStream);
             var bytes = memoryStream.ToArray();
 
-            Console.WriteLine($"[ExpenseService] Uploading receipt to: {uniqueName}");
+            _logger.LogInformation("[ExpenseService] Uploading receipt");
             await SupabaseClient!.Storage
                 .From(ReceiptsBucket)
                 .Upload(bytes, uniqueName);
@@ -401,13 +395,12 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
                 .From(ReceiptsBucket)
                 .GetPublicUrl(uniqueName);
 
-            Console.WriteLine($"[ExpenseService] Receipt uploaded successfully: {url}");
+            _logger.LogInformation("[ExpenseService] Receipt uploaded successfully");
             return url;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ExpenseService] Error uploading receipt: {ex.Message}");
-            Console.WriteLine($"[ExpenseService] Stack trace: {ex.StackTrace}");
+            _logger.LogError(ex, "[ExpenseService] Error uploading receipt");
             throw;
         }
     }
@@ -424,15 +417,15 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
             var uri = new Uri(receiptUrl);
             var path = uri.AbsolutePath.Replace($"/storage/v1/object/public/{ReceiptsBucket}/", "");
 
-            Console.WriteLine($"[ExpenseService] Deleting receipt: {path}");
+            _logger.LogInformation("[ExpenseService] Deleting receipt");
             await SupabaseClient!.Storage
                 .From(ReceiptsBucket)
                 .Remove(new List<string> { path });
-            Console.WriteLine($"[ExpenseService] Receipt deleted successfully");
+            _logger.LogInformation("[ExpenseService] Receipt deleted successfully");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ExpenseService] Error deleting receipt: {ex.Message}");
+            _logger.LogError(ex, "[ExpenseService] Error deleting receipt");
         }
     }
 }
