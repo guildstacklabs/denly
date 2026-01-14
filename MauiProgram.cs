@@ -1,5 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Denly.Models;
 using Denly.Services;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Denly;
 
@@ -8,6 +10,7 @@ public static class MauiProgram
 	public static MauiApp CreateMauiApp()
 	{
 		var builder = MauiApp.CreateBuilder();
+		builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: false);
 		builder
 			.UseMauiApp<App>()
 			.ConfigureFonts(fonts =>
@@ -16,6 +19,8 @@ public static class MauiProgram
 			});
 
 		builder.Services.AddMauiBlazorWebView();
+
+		builder.Services.Configure<DenlyOptions>(builder.Configuration.GetSection(DenlyOptions.SectionName));
 
 		// Core services
 		builder.Services.AddSingleton<IAuthService, SupabaseAuthService>();
