@@ -55,4 +55,20 @@ public class DenMember : BaseModel
     [Newtonsoft.Json.JsonIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     public bool IsObserver => Role == "observer";
+
+    public DenMember Clone()
+    {
+        return new DenMember
+        {
+            Id = Id,
+            DenId = DenId,
+            UserId = UserId,
+            Role = Role,
+            InvitedBy = InvitedBy,
+            JoinedAt = JoinedAt,
+            Email = Email,
+            DisplayName = DisplayName,
+            AvatarUrl = AvatarUrl
+        };
+    }
 }

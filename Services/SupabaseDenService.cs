@@ -13,10 +13,16 @@ public class SupabaseDenService : IDenService
     private const int InviteExpirationDays = 3;
     private const int MaxFailedAttempts = 5;
     private const int RateLimitMinutes = 15;
+    private static readonly TimeSpan MemberCacheTtl = TimeSpan.FromMinutes(5);
 
     private readonly IAuthService _authService;
     private string? _currentDenId;
     private bool _isInitialized;
+    private List<DenMember>? _cachedMembers;
+    private string? _cachedMembersDenId;
+    private DateTime _memberCacheUpdatedAtUtc;
+    private Dictionary<string, Profile> _profileCache = new();
+    private DateTime _profileCacheUpdatedAtUtc;
 
     public event EventHandler<DenChangedEventArgs>? DenChanged;
 
@@ -84,6 +90,7 @@ public class SupabaseDenService : IDenService
         Console.WriteLine("[DenService] ResetAsync - clearing state");
         _isInitialized = false;
         _currentDenId = null;
+        ClearCaches();
         SecureStorage.Remove(CurrentDenStorageKey);
         return Task.CompletedTask;
     }
@@ -210,6 +217,7 @@ public class SupabaseDenService : IDenService
     {
         Console.WriteLine($"[DenService] SetCurrentDenAsync called with denId: {denId}");
         _currentDenId = denId;
+        ClearCaches();
 
         try
         {
@@ -335,6 +343,13 @@ public class SupabaseDenService : IDenService
 
         try
         {
+            if (IsMemberCacheValid(targetDenId))
+            {
+                return _cachedMembers!
+                    .Select(member => member.Clone())
+                    .ToList();
+            }
+
             // Fetch den members
             var response = await SupabaseClient!
                 .From<DenMember>()
@@ -351,12 +366,7 @@ public class SupabaseDenService : IDenService
             var userIds = members.Select(m => m.UserId).Distinct().ToList();
             Console.WriteLine($"[DenService] GetDenMembersAsync - fetching profiles for {userIds.Count} user IDs");
 
-            var profilesResponse = await SupabaseClient!
-                .From<Profile>()
-                .Filter("id", Supabase.Postgrest.Constants.Operator.In, userIds)
-                .Get();
-
-            var profiles = profilesResponse.Models.ToDictionary(p => p.Id);
+            var profiles = await GetProfilesAsync(userIds);
             Console.WriteLine($"[DenService] GetDenMembersAsync - fetched {profiles.Count} profiles");
 
             // Populate display properties on members
@@ -375,6 +385,7 @@ public class SupabaseDenService : IDenService
                 }
             }
 
+            StoreMemberCache(targetDenId, members);
             return members;
         }
         catch (Exception ex)
@@ -382,6 +393,58 @@ public class SupabaseDenService : IDenService
             Console.WriteLine($"[DenService] GetDenMembersAsync - error: {ex.Message}");
             return new List<DenMember>();
         }
+    }
+
+    private bool IsMemberCacheValid(string denId)
+    {
+        if (_cachedMembers == null) return false;
+        if (_cachedMembersDenId != denId) return false;
+        return DateTime.UtcNow - _memberCacheUpdatedAtUtc <= MemberCacheTtl;
+    }
+
+    private void StoreMemberCache(string denId, List<DenMember> members)
+    {
+        _cachedMembersDenId = denId;
+        _memberCacheUpdatedAtUtc = DateTime.UtcNow;
+        _cachedMembers = members.Select(member => member.Clone()).ToList();
+    }
+
+    private void ClearCaches()
+    {
+        _cachedMembers = null;
+        _cachedMembersDenId = null;
+        _profileCache.Clear();
+        _memberCacheUpdatedAtUtc = default;
+        _profileCacheUpdatedAtUtc = default;
+    }
+
+    private async Task<Dictionary<string, Profile>> GetProfilesAsync(List<string> userIds)
+    {
+        if (userIds.Count == 0) return new Dictionary<string, Profile>();
+
+        if (DateTime.UtcNow - _profileCacheUpdatedAtUtc > MemberCacheTtl)
+        {
+            _profileCache.Clear();
+            _profileCacheUpdatedAtUtc = DateTime.UtcNow;
+        }
+
+        var missingIds = userIds.Where(id => !_profileCache.ContainsKey(id)).ToList();
+        if (missingIds.Count > 0)
+        {
+            var profilesResponse = await SupabaseClient!
+                .From<Profile>()
+                .Filter("id", Supabase.Postgrest.Constants.Operator.In, missingIds)
+                .Get();
+
+            foreach (var profile in profilesResponse.Models)
+            {
+                _profileCache[profile.Id] = profile;
+            }
+        }
+
+        return _profileCache
+            .Where(entry => userIds.Contains(entry.Key))
+            .ToDictionary(entry => entry.Key, entry => entry.Value);
     }
 
     public async Task RemoveMemberAsync(string denId, string userId)
