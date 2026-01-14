@@ -3,26 +3,27 @@ using Denly.Models;
 using Supabase;
 using Supabase.Gotrue;
 using Supabase.Gotrue.Interfaces;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Denly.Services;
 
 public class SupabaseAuthService : IAuthService
 {
-    private const string SupabaseUrl = "https://fzzrciqjdboiqxamhfzp.supabase.co";
-    private const string SupabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6enJjaXFqZGJvaXF4YW1oZnpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4MDM0NjcsImV4cCI6MjA4MzM3OTQ2N30.k72rZhuj2fUaSGrd8MeMR8Ugz2EkFShlrNV8W8nfvO8";
     private const string CallbackUrl = "com.companyname.denly://login-callback";
     private const string SessionStorageKey = "supabase_session";
 
     private readonly IServiceProvider _serviceProvider;
+    private readonly DenlyOptions _options;
     private Supabase.Client? _supabase;
     private bool _isInitialized;
 
     public event EventHandler<AuthStateChangedEventArgs>? AuthStateChanged;
 
-    public SupabaseAuthService(IServiceProvider serviceProvider)
+    public SupabaseAuthService(IServiceProvider serviceProvider, IOptions<DenlyOptions> options)
     {
         _serviceProvider = serviceProvider;
+        _options = options.Value;
     }
 
     public async Task InitializeAsync()
@@ -35,7 +36,10 @@ public class SupabaseAuthService : IAuthService
             AutoConnectRealtime = false
         };
 
-        _supabase = new Supabase.Client(SupabaseUrl, SupabaseAnonKey, options);
+        if (string.IsNullOrWhiteSpace(_options.SupabaseUrl) || string.IsNullOrWhiteSpace(_options.SupabaseAnonKey))
+            throw new InvalidOperationException("Supabase configuration is missing.");
+
+        _supabase = new Supabase.Client(_options.SupabaseUrl, _options.SupabaseAnonKey, options);
         await _supabase.InitializeAsync();
 
         // Try to restore session from secure storage

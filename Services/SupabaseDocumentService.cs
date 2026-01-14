@@ -1,23 +1,24 @@
 using Denly.Models;
+using Microsoft.Extensions.Options;
 using Supabase;
 
 namespace Denly.Services;
 
 public class SupabaseDocumentService : IDocumentService
 {
-    private const string SupabaseUrl = "https://fzzrciqjdboiqxamhfzp.supabase.co";
-    private const string SupabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6enJjaXFqZGJvaXF4YW1oZnpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4MDM0NjcsImV4cCI6MjA4MzM3OTQ2N30.k72rZhuj2fUaSGrd8MeMR8Ugz2EkFShlrNV8W8nfvO8";
     private const string DocumentsBucket = "documents";
 
     private readonly IDenService _denService;
     private readonly IAuthService _authService;
+    private readonly DenlyOptions _options;
     private Supabase.Client? _supabase;
     private bool _isInitialized;
 
-    public SupabaseDocumentService(IDenService denService, IAuthService authService)
+    public SupabaseDocumentService(IDenService denService, IAuthService authService, IOptions<DenlyOptions> options)
     {
         _denService = denService;
         _authService = authService;
+        _options = options.Value;
     }
 
     private async Task EnsureInitializedAsync()
@@ -30,7 +31,10 @@ public class SupabaseDocumentService : IDocumentService
             AutoConnectRealtime = false
         };
 
-        _supabase = new Supabase.Client(SupabaseUrl, SupabaseAnonKey, options);
+        if (string.IsNullOrWhiteSpace(_options.SupabaseUrl) || string.IsNullOrWhiteSpace(_options.SupabaseAnonKey))
+            throw new InvalidOperationException("Supabase configuration is missing.");
+
+        _supabase = new Supabase.Client(_options.SupabaseUrl, _options.SupabaseAnonKey, options);
         await _supabase.InitializeAsync();
         _isInitialized = true;
     }
