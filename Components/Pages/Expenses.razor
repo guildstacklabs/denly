@@ -9,7 +9,7 @@
     <!-- Header with Balance -->
     <div class="page-header">
         <h1>Shared Costs</h1>
-        <button class="add-btn" @onclick="OpenAddExpenseModal">
+        <button class="add-btn" @onclick="OpenAddExpenseModal" disabled="@_isLoading">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -18,6 +18,12 @@
         </button>
     </div>
 
+    @if (_isLoading)
+    {
+        <LoadingSpinner Message="Loading expenses..." Size="LoadingSize.Large" />
+    }
+    else
+    {
     <!-- Balance Card -->
     <div class="balance-card">
         <div class="balance-label">Current Balance</div>
@@ -119,6 +125,7 @@
             </div>
         }
     </div>
+    } @* end else !_isLoading *@
 </div>
 
 <!-- Expense Modal -->
@@ -292,6 +299,8 @@
     private string? _owesToName;
     private string? _currentUserId;
 
+    private bool _isLoading = true;
+
     private bool ShowExpenseModal;
     private bool ShowSettleUpModal;
     private bool ShowDeleteModal;
@@ -305,9 +314,16 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var user = await AuthService.GetCurrentUserAsync();
-        _currentUserId = user?.Id;
-        await LoadData();
+        try
+        {
+            var user = await AuthService.GetCurrentUserAsync();
+            _currentUserId = user?.Id;
+            await LoadData();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 
     private async Task LoadData()

@@ -1,56 +1,31 @@
 using Denly.Models;
-using Microsoft.Extensions.Options;
-using Supabase;
 
 namespace Denly.Services;
 
-public class SupabaseDocumentService : IDocumentService
+public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
 {
     private const string DocumentsBucket = "documents";
 
-    private readonly IDenService _denService;
-    private readonly IAuthService _authService;
-    private readonly DenlyOptions _options;
     private readonly IClock _clock;
-    private Supabase.Client? _supabase;
-    private bool _isInitialized;
+    private readonly IStorageService _storageService;
 
-    public SupabaseDocumentService(IDenService denService, IAuthService authService, IOptions<DenlyOptions> options, IClock clock)
+    public SupabaseDocumentService(IDenService denService, IAuthService authService, IClock clock, IStorageService storageService)
+        : base(denService, authService)
     {
-        _denService = denService;
-        _authService = authService;
-        _options = options.Value;
         _clock = clock;
-    }
-
-    private async Task EnsureInitializedAsync()
-    {
-        if (_isInitialized) return;
-
-        var options = new SupabaseOptions
-        {
-            AutoRefreshToken = true,
-            AutoConnectRealtime = false
-        };
-
-        if (string.IsNullOrWhiteSpace(_options.SupabaseUrl) || string.IsNullOrWhiteSpace(_options.SupabaseAnonKey))
-            throw new InvalidOperationException("Supabase configuration is missing.");
-
-        _supabase = new Supabase.Client(_options.SupabaseUrl, _options.SupabaseAnonKey, options);
-        await _supabase.InitializeAsync();
-        _isInitialized = true;
+        _storageService = storageService;
     }
 
     public async Task<List<Document>> GetAllDocumentsAsync()
     {
-        var denId = _denService.GetCurrentDenId();
+        var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return new List<Document>();
 
         await EnsureInitializedAsync();
 
         try
         {
-            var response = await _supabase!
+            var response = await SupabaseClient!
                 .From<Document>()
                 .Where(d => d.DenId == denId)
                 .Get();
@@ -68,7 +43,7 @@ public class SupabaseDocumentService : IDocumentService
 
     public async Task<List<Document>> GetDocumentsByFolderAsync(DocumentFolder folder)
     {
-        var denId = _denService.GetCurrentDenId();
+        var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return new List<Document>();
 
         await EnsureInitializedAsync();
@@ -76,7 +51,7 @@ public class SupabaseDocumentService : IDocumentService
         try
         {
             var folderStr = folder.ToString().ToLowerInvariant();
-            var response = await _supabase!
+            var response = await SupabaseClient!
                 .From<Document>()
                 .Where(d => d.DenId == denId)
                 .Filter("category", Supabase.Postgrest.Constants.Operator.Equals, folderStr)
@@ -92,14 +67,14 @@ public class SupabaseDocumentService : IDocumentService
 
     public async Task<List<Document>> SearchDocumentsAsync(string searchTerm)
     {
-        var denId = _denService.GetCurrentDenId();
+        var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return new List<Document>();
 
         await EnsureInitializedAsync();
 
         try
         {
-            var response = await _supabase!
+            var response = await SupabaseClient!
                 .From<Document>()
                 .Where(d => d.DenId == denId)
                 .Get();
@@ -125,14 +100,14 @@ public class SupabaseDocumentService : IDocumentService
 
     public async Task<List<Document>> GetRecentDocumentsAsync(int count = 3)
     {
-        var denId = _denService.GetCurrentDenId();
+        var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return new List<Document>();
 
         await EnsureInitializedAsync();
 
         try
         {
-            var response = await _supabase!
+            var response = await SupabaseClient!
                 .From<Document>()
                 .Where(d => d.DenId == denId)
                 .Order("created_at", Supabase.Postgrest.Constants.Ordering.Descending)
@@ -153,7 +128,7 @@ public class SupabaseDocumentService : IDocumentService
 
         try
         {
-            return await _supabase!
+            return await SupabaseClient!
                 .From<Document>()
                 .Where(d => d.Id == id)
                 .Single();
@@ -166,10 +141,10 @@ public class SupabaseDocumentService : IDocumentService
 
     public async Task SaveDocumentAsync(Document document)
     {
-        var denId = _denService.GetCurrentDenId();
+        var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return;
 
-        var user = await _authService.GetCurrentUserAsync();
+        var user = await AuthService.GetCurrentUserAsync();
         if (user == null) return;
 
         await EnsureInitializedAsync();
@@ -180,7 +155,7 @@ public class SupabaseDocumentService : IDocumentService
 
         if (existing != null)
         {
-            await _supabase!
+            await SupabaseClient!
                 .From<Document>()
                 .Where(d => d.Id == document.Id)
                 .Set(d => d.Title, document.Title)
@@ -194,7 +169,7 @@ public class SupabaseDocumentService : IDocumentService
             document.UploadedBy = user.Id;
             document.CreatedAt = _clock.UtcNow;
 
-            await _supabase!
+            await SupabaseClient!
                 .From<Document>()
                 .Insert(document);
         }
@@ -208,23 +183,10 @@ public class SupabaseDocumentService : IDocumentService
         var document = await GetDocumentByIdAsync(id);
         if (document?.FileUrl != null)
         {
-            try
-            {
-                // Extract path from URL
-                var uri = new Uri(document.FileUrl);
-                var path = uri.AbsolutePath.Replace($"/storage/v1/object/public/{DocumentsBucket}/", "");
-
-                await _supabase!.Storage
-                    .From(DocumentsBucket)
-                    .Remove(new List<string> { path });
-            }
-            catch
-            {
-                // Best effort deletion
-            }
+            await _storageService.DeleteAsync(DocumentsBucket, document.FileUrl);
         }
 
-        await _supabase!
+        await SupabaseClient!
             .From<Document>()
             .Where(d => d.Id == id)
             .Delete();
@@ -232,7 +194,7 @@ public class SupabaseDocumentService : IDocumentService
 
     public async Task<Dictionary<DocumentFolder, int>> GetFolderCountsAsync()
     {
-        var denId = _denService.GetCurrentDenId();
+        var denId = DenService.GetCurrentDenId();
         var counts = new Dictionary<DocumentFolder, int>();
 
         foreach (DocumentFolder folder in Enum.GetValues<DocumentFolder>())
@@ -246,7 +208,7 @@ public class SupabaseDocumentService : IDocumentService
 
         try
         {
-            var response = await _supabase!
+            var response = await SupabaseClient!
                 .From<Document>()
                 .Where(d => d.DenId == denId)
                 .Get();

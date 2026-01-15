@@ -20,6 +20,9 @@ public interface IDenService
     Task RemoveMemberAsync(string denId, string userId);
     Task<bool> IsOwnerAsync(string? denId = null);
 
+    // Profile lookup (cached)
+    Task<Dictionary<string, Profile>> GetProfilesAsync(List<string> userIds);
+
     // Invites
     Task<DenInvite> CreateInviteAsync(string? denId = null, string role = "co-parent");
     Task<DenInvite?> GetActiveInviteAsync(string? denId = null);

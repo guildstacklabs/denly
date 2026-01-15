@@ -27,6 +27,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<IAuthService, SupabaseAuthService>();
 		builder.Services.AddSingleton<IDenService, SupabaseDenService>();
 		builder.Services.AddSingleton<IToastService, ToastService>();
+		builder.Services.AddSingleton<IStorageService, SupabaseStorageService>();
 
 		// Data services (Supabase)
 		builder.Services.AddSingleton<IScheduleService, SupabaseScheduleService>();

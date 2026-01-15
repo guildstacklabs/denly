@@ -62,6 +62,12 @@
     </div>
 
     <!-- Documents List -->
+    @if (_isLoading)
+    {
+        <LoadingSpinner Message="Loading documents..." Size="LoadingSize.Large" />
+    }
+    else
+    {
     <div class="documents-section">
         @if (_filteredDocuments.Any())
         {
@@ -164,6 +170,7 @@
             </div>
         }
     </div>
+    } @* end else !_isLoading *@
 </div>
 
 <!-- View/Edit Document Modal -->
@@ -385,6 +392,8 @@
     private List<Document> _filteredDocuments = new();
     private Dictionary<DocumentFolder, int> _folderCounts = new();
 
+    private bool _isLoading = true;
+
     private string SearchTerm = string.Empty;
     private DocumentFolder? SelectedFolder;
 
@@ -404,7 +413,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadData();
+        try
+        {
+            await LoadData();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 
     private async Task LoadData()

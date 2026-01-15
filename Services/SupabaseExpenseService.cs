@@ -4,10 +4,12 @@ namespace Denly.Services;
 public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
 {
     private const string ReceiptsBucket = "receipts";
+    private readonly IStorageService _storageService;
 
-    public SupabaseExpenseService(IDenService denService, IAuthService authService)
+    public SupabaseExpenseService(IDenService denService, IAuthService authService, IStorageService storageService)
         : base(denService, authService)
     {
+        _storageService = storageService;
     }
 
     public async Task<List<Expense>> GetAllExpensesAsync()
@@ -47,18 +49,14 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
 
         try
         {
-            var profiles = await SupabaseClient!
-                .From<Profile>()
-                .Filter("id", Supabase.Postgrest.Constants.Operator.In, userIds)
-                .Get();
-
-            var profileDict = profiles.Models.ToDictionary(p => p.Id, p => p.DisplayName);
+            // Use cached profile lookup from DenService
+            var profiles = await DenService.GetProfilesAsync(userIds);
 
             foreach (var expense in expenses)
             {
-                if (profileDict.TryGetValue(expense.PaidBy, out var name))
+                if (profiles.TryGetValue(expense.PaidBy, out var profile))
                 {
-                    expense.PaidByName = name;
+                    expense.PaidByName = profile.DisplayName;
                 }
             }
         }
@@ -269,22 +267,18 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
 
         try
         {
-            var profiles = await SupabaseClient!
-                .From<Profile>()
-                .Filter("id", Supabase.Postgrest.Constants.Operator.In, userIds)
-                .Get();
-
-            var profileDict = profiles.Models.ToDictionary(p => p.Id, p => p.DisplayName);
+            // Use cached profile lookup from DenService
+            var profiles = await DenService.GetProfilesAsync(userIds);
 
             foreach (var settlement in settlements)
             {
-                if (profileDict.TryGetValue(settlement.FromUserId, out var fromName))
+                if (profiles.TryGetValue(settlement.FromUserId, out var fromProfile))
                 {
-                    settlement.FromUserName = fromName;
+                    settlement.FromUserName = fromProfile.DisplayName;
                 }
-                if (profileDict.TryGetValue(settlement.ToUserId, out var toName))
+                if (profiles.TryGetValue(settlement.ToUserId, out var toProfile))
                 {
-                    settlement.ToUserName = toName;
+                    settlement.ToUserName = toProfile.DisplayName;
                 }
             }
         }
@@ -367,8 +361,6 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
     {
         Console.WriteLine("[ExpenseService] SaveReceiptAsync called");
 
-        await EnsureInitializedAsync();
-
         var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId))
         {
@@ -376,25 +368,9 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
             throw new InvalidOperationException("No den selected");
         }
 
-        var extension = Path.GetExtension(fileName);
-        var uniqueName = $"{denId}/{Guid.NewGuid()}{extension}";
-
         try
         {
-            using var memoryStream = new MemoryStream();
-            await imageStream.CopyToAsync(memoryStream);
-            var bytes = memoryStream.ToArray();
-
-            Console.WriteLine("[ExpenseService] Uploading receipt");
-            await SupabaseClient!.Storage
-                .From(ReceiptsBucket)
-                .Upload(bytes, uniqueName);
-
-            // Return the public URL
-            var url = SupabaseClient!.Storage
-                .From(ReceiptsBucket)
-                .GetPublicUrl(uniqueName);
-
+            var url = await _storageService.UploadAsync(ReceiptsBucket, imageStream, fileName, denId);
             Console.WriteLine("[ExpenseService] Receipt uploaded successfully");
             return url;
         }
@@ -409,23 +385,8 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
     {
         if (string.IsNullOrEmpty(receiptUrl)) return;
 
-        await EnsureInitializedAsync();
-
-        try
-        {
-            // Extract path from URL
-            var uri = new Uri(receiptUrl);
-            var path = uri.AbsolutePath.Replace($"/storage/v1/object/public/{ReceiptsBucket}/", "");
-
-            Console.WriteLine("[ExpenseService] Deleting receipt");
-            await SupabaseClient!.Storage
-                .From(ReceiptsBucket)
-                .Remove(new List<string> { path });
-            Console.WriteLine("[ExpenseService] Receipt deleted successfully");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[ExpenseService] Error deleting receipt: {ex.Message}");
-        }
+        Console.WriteLine("[ExpenseService] Deleting receipt");
+        await _storageService.DeleteAsync(ReceiptsBucket, receiptUrl);
+        Console.WriteLine("[ExpenseService] Receipt deleted successfully");
     }
 }

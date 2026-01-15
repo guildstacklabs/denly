@@ -420,7 +420,7 @@ public class SupabaseDenService : IDenService
         _profileCacheUpdatedAtUtc = default;
     }
 
-    private async Task<Dictionary<string, Profile>> GetProfilesAsync(List<string> userIds)
+    public async Task<Dictionary<string, Profile>> GetProfilesAsync(List<string> userIds)
     {
         if (userIds.Count == 0) return new Dictionary<string, Profile>();
 

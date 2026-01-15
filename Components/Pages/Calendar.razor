@@ -6,21 +6,27 @@
 <div class="schedule-page">
     <!-- Month Navigation -->
     <div class="month-nav">
-        <button class="nav-btn" @onclick="PreviousMonth">
+        <button class="nav-btn" @onclick="PreviousMonth" disabled="@_isLoadingMonth">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="15 18 9 12 15 6"></polyline>
             </svg>
         </button>
         <h2 class="month-title">@CurrentDate.ToString("MMMM yyyy")</h2>
-        <button class="nav-btn" @onclick="NextMonth">
+        <button class="nav-btn" @onclick="NextMonth" disabled="@_isLoadingMonth">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="9 18 15 12 9 6"></polyline>
             </svg>
         </button>
     </div>
 
+    @if (_isLoading)
+    {
+        <LoadingSpinner Message="Loading calendar..." Size="LoadingSize.Large" />
+    }
+    else
+    {
     <!-- Calendar Grid -->
-    <div class="calendar-container">
+    <div class="calendar-container @(_isLoadingMonth ? "loading-overlay" : "")">
         <div class="calendar-header">
             @foreach (var day in DayNames)
             {
@@ -95,6 +101,7 @@
             }
         </div>
     }
+    } @* end else !_isLoading *@
 </div>
 
 <!-- Event Modal -->
@@ -216,6 +223,9 @@
     private List<Event> MonthEvents = new();
     private List<Event> SelectedDayEvents = new();
 
+    private bool _isLoading = true;
+    private bool _isLoadingMonth;
+
     private bool ShowEventModal;
     private bool ShowDeleteModal;
     private bool ShowTimeError;
@@ -231,7 +241,14 @@
     protected override async Task OnInitializedAsync()
     {
         SelectedDate = DateTime.Today;
-        await LoadMonthData();
+        try
+        {
+            await LoadMonthData();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 
     private async Task LoadMonthData()
@@ -292,14 +309,30 @@
 
     private async Task PreviousMonth()
     {
-        CurrentDate = CurrentDate.AddMonths(-1);
-        await LoadMonthData();
+        _isLoadingMonth = true;
+        try
+        {
+            CurrentDate = CurrentDate.AddMonths(-1);
+            await LoadMonthData();
+        }
+        finally
+        {
+            _isLoadingMonth = false;
+        }
     }
 
     private async Task NextMonth()
     {
-        CurrentDate = CurrentDate.AddMonths(1);
-        await LoadMonthData();
+        _isLoadingMonth = true;
+        try
+        {
+            CurrentDate = CurrentDate.AddMonths(1);
+            await LoadMonthData();
+        }
+        finally
+        {
+            _isLoadingMonth = false;
+        }
     }
 
     private void OpenAddEventModal()

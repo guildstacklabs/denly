@@ -1,0 +1,31 @@
+@* Shared loading spinner component for consistent loading states *@
+
+<div class="loading-container @SizeClass">
+    <div class="spinner"></div>
+    @if (!string.IsNullOrEmpty(Message))
+    {
+        <p class="loading-message">@Message</p>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string? Message { get; set; }
+
+    [Parameter]
+    public LoadingSize Size { get; set; } = LoadingSize.Medium;
+
+    private string SizeClass => Size switch
+    {
+        LoadingSize.Small => "loading-small",
+        LoadingSize.Large => "loading-large",
+        _ => "loading-medium"
+    };
+
+    public enum LoadingSize
+    {
+        Small,
+        Medium,
+        Large
+    }
+}
