@@ -30,6 +30,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
             var response = await SupabaseClient!
                 .From<Event>()
+                .Select("id, den_id, child_id, title, event_type, starts_at, ends_at, all_day, location, notes, created_by, created_at")
                 .Where(e => e.DenId == denId)
                 .Filter("starts_at", Supabase.Postgrest.Constants.Operator.GreaterThanOrEqual, utcStart.ToString("O"))
                 .Filter("starts_at", Supabase.Postgrest.Constants.Operator.LessThan, utcEnd.ToString("O"))
@@ -83,6 +84,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
             var response = await SupabaseClient!
                 .From<Event>()
+                .Select("id, den_id, child_id, title, event_type, starts_at, ends_at, all_day, location, notes, created_by, created_at")
                 .Where(e => e.DenId == denId)
                 .Filter("starts_at", Supabase.Postgrest.Constants.Operator.GreaterThanOrEqual, lookbackBuffer.ToString("O"))
                 .Filter("starts_at", Supabase.Postgrest.Constants.Operator.LessThanOrEqual, utcEndBuffer.ToString("O"))
@@ -136,6 +138,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
             var response = await SupabaseClient!
                 .From<Event>()
+                .Select("id, den_id, child_id, title, event_type, starts_at, ends_at, all_day, location, notes, created_by, created_at")
                 .Where(e => e.DenId == denId)
                 .Filter("starts_at", Supabase.Postgrest.Constants.Operator.GreaterThanOrEqual, now.ToString("yyyy-MM-ddTHH:mm:ss"))
                 .Order("starts_at", Supabase.Postgrest.Constants.Ordering.Ascending)
@@ -166,6 +169,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         {
             var evt = await SupabaseClient!
                 .From<Event>()
+                .Select("id, den_id, child_id, title, event_type, starts_at, ends_at, all_day, location, notes, created_by, created_at")
                 .Where(e => e.Id == id)
                 .Single();
 

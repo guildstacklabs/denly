@@ -113,6 +113,7 @@ public class SupabaseDenService : IDenService
 
             var memberships = await SupabaseClient!
                 .From<DenMember>()
+                .Select("id, den_id, user_id, role, invited_by, joined_at")
                 .Where(m => m.UserId == supabaseUser.Id)
                 .Get();
 
@@ -146,6 +147,7 @@ public class SupabaseDenService : IDenService
 
             var membership = await SupabaseClient!
                 .From<DenMember>()
+                .Select("id, den_id, user_id, role, invited_by, joined_at")
                 .Where(m => m.UserId == supabaseUser.Id && m.DenId == denId)
                 .Get();
 
@@ -174,6 +176,7 @@ public class SupabaseDenService : IDenService
         {
             var response = await SupabaseClient!
                 .From<Den>()
+                .Select("id, name, created_by, created_at")
                 .Where(d => d.Id == _currentDenId)
                 .Single();
 
@@ -200,6 +203,7 @@ public class SupabaseDenService : IDenService
             // Get all dens where user is a member
             var memberships = await SupabaseClient!
                 .From<DenMember>()
+                .Select("id, den_id, user_id, role, invited_by, joined_at")
                 .Where(m => m.UserId == user.Id)
                 .Get();
 
@@ -210,6 +214,7 @@ public class SupabaseDenService : IDenService
 
             var dens = await SupabaseClient!
                 .From<Den>()
+                .Select("id, name, created_by, created_at")
                 .Filter("id", Supabase.Postgrest.Constants.Operator.In, denIds)
                 .Get();
 
@@ -361,6 +366,7 @@ public class SupabaseDenService : IDenService
             // Fetch den members
             var response = await SupabaseClient!
                 .From<DenMember>()
+                .Select("id, den_id, user_id, role, invited_by, joined_at")
                 .Where(m => m.DenId == targetDenId)
                 .Get();
 
@@ -456,6 +462,7 @@ public class SupabaseDenService : IDenService
         {
             var profilesResponse = await SupabaseClient!
                 .From<Profile>()
+                .Select("id, email, name, avatar_url, created_at")
                 .Filter("id", Supabase.Postgrest.Constants.Operator.In, missingIds)
                 .Get();
 
@@ -482,6 +489,7 @@ public class SupabaseDenService : IDenService
         // Cannot remove owner - check member role
         var memberToRemove = await SupabaseClient!
             .From<DenMember>()
+            .Select("id, den_id, user_id, role, invited_by, joined_at")
             .Where(m => m.DenId == denId && m.UserId == userId)
             .Single();
 
@@ -509,6 +517,7 @@ public class SupabaseDenService : IDenService
             // Check if user has owner role in den_members
             var membership = await SupabaseClient!
                 .From<DenMember>()
+                .Select("id, den_id, user_id, role, invited_by, joined_at")
                 .Where(m => m.DenId == targetDenId && m.UserId == user.Id)
                 .Single();
 
@@ -570,6 +579,7 @@ public class SupabaseDenService : IDenService
             {
                 var existing = await SupabaseClient!
                     .From<DenInvite>()
+                    .Select("id, den_id, code, role, created_by, created_at, expires_at, used_by, used_at")
                     .Where(i => i.Code == code)
                     .Get();
 
@@ -593,6 +603,7 @@ public class SupabaseDenService : IDenService
         {
             var response = await SupabaseClient!
                 .From<DenInvite>()
+                .Select("id, den_id, code, role, created_by, created_at, expires_at, used_by, used_at")
                 .Where(i => i.DenId == targetDenId)
                 .Order("created_at", Supabase.Postgrest.Constants.Ordering.Descending)
                 .Get();
@@ -622,6 +633,7 @@ public class SupabaseDenService : IDenService
         {
             var response = await SupabaseClient!
                 .From<DenInvite>()
+                .Select("id, den_id, code, role, created_by, created_at, expires_at, used_by, used_at")
                 .Where(i => i.Code == normalizedCode)
                 .Single();
 
@@ -631,6 +643,7 @@ public class SupabaseDenService : IDenService
             // Get den name for display
             var den = await SupabaseClient!
                 .From<Den>()
+                .Select("id, name, created_by, created_at")
                 .Where(d => d.Id == response.DenId)
                 .Single();
 
@@ -684,6 +697,7 @@ public class SupabaseDenService : IDenService
             // Check if already a member
             var existingMember = await SupabaseClient!
                 .From<DenMember>()
+                .Select("id, den_id, user_id, role, invited_by, joined_at")
                 .Where(m => m.DenId == invite.DenId && m.UserId == user.Id)
                 .Get();
 
@@ -754,6 +768,7 @@ public class SupabaseDenService : IDenService
 
             var response = await SupabaseClient!
                 .From<InviteAttempt>()
+                .Select("id, user_id, attempted_at, success")
                 .Where(a => a.UserId == user.Id && !a.Success)
                 .Filter("attempted_at", Supabase.Postgrest.Constants.Operator.GreaterThanOrEqual, cutoff.ToString("o"))
                 .Get();

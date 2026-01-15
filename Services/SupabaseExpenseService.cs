@@ -42,6 +42,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         {
             var response = await SupabaseClient!
                 .From<Expense>()
+                .Select("id, den_id, child_id, description, amount, paid_by, receipt_url, created_by, created_at, settled_at")
                 .Where(e => e.DenId == denId)
                 .Order("created_at", Supabase.Postgrest.Constants.Ordering.Descending)
                 .Get();
@@ -98,6 +99,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         {
             return await SupabaseClient!
                 .From<Expense>()
+                .Select("id, den_id, child_id, description, amount, paid_by, receipt_url, created_by, created_at, settled_at")
                 .Where(e => e.Id == id)
                 .Single();
         }
@@ -251,6 +253,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
             // Get unsettled expenses (where settled_at is null)
             var expenseResponse = await SupabaseClient!
                 .From<Expense>()
+                .Select("id, den_id, child_id, description, amount, paid_by, receipt_url, created_by, created_at, settled_at")
                 .Where(e => e.DenId == denId)
                 .Filter<DateTime?>("settled_at", Supabase.Postgrest.Constants.Operator.Is, null)
                 .Get();
@@ -305,6 +308,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         {
             var response = await SupabaseClient!
                 .From<Settlement>()
+                .Select("id, den_id, from_user_id, to_user_id, amount, note, created_by, created_at")
                 .Where(s => s.DenId == denId)
                 .Order("created_at", Supabase.Postgrest.Constants.Ordering.Descending)
                 .Get();
@@ -405,6 +409,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
             // Mark all unsettled expenses as settled
             var unsettled = await SupabaseClient!
                 .From<Expense>()
+                .Select("id, den_id, child_id, description, amount, paid_by, receipt_url, created_by, created_at, settled_at")
                 .Where(e => e.DenId == denId)
                 .Filter<DateTime?>("settled_at", Supabase.Postgrest.Constants.Operator.Is, null)
                 .Get();

@@ -376,62 +376,8 @@ public async Task<List<DenMember>> GetDenMembersAsync()
 
 ---
 
-### 11. Select Specific Columns in Queries
-**Source:** Gemini #4B | **Effort:** Low | **Risk:** Low
-
-> **Delegate:** Codex | **Status:** Ready
-
-**Problem:** Queries may use `SELECT *` which fetches unnecessary data.
-
-**Solution:**
-Audit all Supabase queries. Use `.Select("id, name, amount")` explicitly.
-
-**Targets:**
-- All `Services/Supabase*.cs` files
-
-#### Delegation Prompt (Codex)
-```
-## Task: Audit and Optimize Supabase SELECT Queries
-
-### Goal
-Find all Supabase queries that don't specify columns and add explicit `.Select()` calls.
-
-### Requirements
-1. Search all files in `Services/Supabase*.cs`
-2. Find `.From<T>()` calls that don't have `.Select()`
-3. Add `.Select("col1, col2, col3")` with only the columns needed
-
-### Rules
-- Look at what properties the Model class has
-- Only select columns that are actually used
-- If unsure, select all columns from the model (still better than *)
-
-### Example
-Before:
-```csharp
-var result = await _client.From<Expense>().Filter(...).Get();
-```
-
-After:
-```csharp
-var result = await _client.From<Expense>()
-    .Select("id, den_id, description, amount, paid_by, created_at, settled_at")
-    .Filter(...).Get();
-```
-
-### Do Not Touch
-- Any logic or control flow
-- Just add .Select() clauses
-```
-
-#### Review Checklist
-- [ ] All `From<T>()` calls now have `.Select()`
-- [ ] Selected columns match model properties
-- [ ] No missing columns that would cause null errors
-- [ ] `dotnet build` passes
-
-#### Completion Report
-<!-- Agent fills this in when done -->
+### 11. ~~Select Specific Columns in Queries~~ ✅ COMPLETE
+*Completed by Codex, verified by Claude. Commit: pending*
 
 ---
 
@@ -515,62 +461,8 @@ Replace client-side document filtering with server-side search using Postgres `i
 
 ---
 
-### 13. Storage Upload Memory Guard
-**Source:** Codex #6 | **Effort:** Low | **Risk:** Low
-
-> **Delegate:** Codex | **Status:** Ready
-
-**Problem:** File uploads copy entire stream to memory. Large files can crash mobile app.
-
-**Solution:**
-- Add size guard (e.g., 10MB max)
-- Show user-friendly error for oversized uploads
-- If SDK supports streaming, switch to streaming upload
-
-**Targets:**
-- `Services/SupabaseStorageService.cs`
-
-#### Delegation Prompt (Codex)
-```
-## Task: Add File Size Guard to Upload
-
-### Goal
-Prevent large file uploads from crashing the app by adding a size check before upload.
-
-### Requirements
-1. Find the upload method in `Services/SupabaseStorageService.cs`
-2. Add a size check at the start of the method:
-   ```csharp
-   private const long MaxFileSizeBytes = 10 * 1024 * 1024; // 10MB
-
-   public async Task<string?> UploadAsync(Stream fileStream, string fileName, ...)
-   {
-       if (fileStream.Length > MaxFileSizeBytes)
-       {
-           Console.WriteLine($"[Storage] File too large: {fileStream.Length} bytes (max {MaxFileSizeBytes})");
-           return null; // Or throw an exception with a friendly message
-       }
-
-       // ... rest of existing upload logic
-   }
-   ```
-
-3. If the method signature doesn't have stream length available, check after reading but before uploading
-
-### Constraints
-- 10MB limit
-- Return null or throw descriptive exception on failure
-- Do NOT change the upload logic itself
-```
-
-#### Review Checklist
-- [ ] `MaxFileSizeBytes` constant added (10MB)
-- [ ] Size check added before upload begins
-- [ ] Returns null or throws with clear message if too large
-- [ ] `dotnet build` passes
-
-#### Completion Report
-<!-- Agent fills this in when done -->
+### 13. ~~Storage Upload Memory Guard~~ ✅ COMPLETE
+*Completed by Codex, verified by Claude. Commit: pending*
 
 ---
 
@@ -748,9 +640,9 @@ Replace spinners with skeleton loaders (gray bars mimicking text/cards).
 | 8 | Settlement batch | Claude | - |
 | 9 | ~~Dashboard optimization~~ | ~~Gemini~~ | ✅ Done |
 | 10 | ~~Aggressive caching~~ | ~~Gemini~~ | ✅ Done |
-| 11 | Select columns | **Codex** | Quick |
+| 11 | ~~Select columns~~ | ~~Codex~~ | ✅ Done |
 | 12 | ~~Server-side search~~ | ~~Gemini~~ | ✅ Done |
-| 13 | Upload size guard | **Codex** | Quick |
+| 13 | ~~Upload size guard~~ | ~~Codex~~ | ✅ Done |
 | 14 | ~~Image compression~~ | ~~Gemini~~ | ✅ Done |
 | 15 | Role-based UI | **Gemini** | Post-MVP |
 | 16 | Skeleton loading | **Codex** | Post-MVP |

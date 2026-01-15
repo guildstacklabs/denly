@@ -11,6 +11,7 @@ public class SupabaseStorageService : IStorageService
     private readonly IAuthService _authService;
     private const int MaxImageDimension = 1024;
     private const int JpegQuality = 80;
+    private const long MaxFileSizeBytes = 10 * 1024 * 1024;
 
     public SupabaseStorageService(IAuthService authService)
     {
@@ -72,6 +73,11 @@ public class SupabaseStorageService : IStorageService
 
         cancellationToken.ThrowIfCancellationRequested();
 
+        if (stream.CanSeek && stream.Length > MaxFileSizeBytes)
+        {
+            throw new InvalidOperationException($"File exceeds {MaxFileSizeBytes / (1024 * 1024)}MB limit.");
+        }
+
         // Compress the stream if it's an image
         using var compressedStream = CompressImageIfNeeded(stream, fileName);
 
@@ -89,6 +95,10 @@ public class SupabaseStorageService : IStorageService
         // Read stream to byte array
         using var memoryStream = new MemoryStream();
         await compressedStream.CopyToAsync(memoryStream, cancellationToken);
+        if (memoryStream.Length > MaxFileSizeBytes)
+        {
+            throw new InvalidOperationException($"File exceeds {MaxFileSizeBytes / (1024 * 1024)}MB limit.");
+        }
         var bytes = memoryStream.ToArray();
 
         cancellationToken.ThrowIfCancellationRequested();

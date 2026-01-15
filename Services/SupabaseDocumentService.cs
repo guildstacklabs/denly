@@ -28,6 +28,7 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
         {
             var response = await SupabaseClient!
                 .From<Document>()
+                .Select("id, den_id, child_id, title, category, file_url, uploaded_by, created_at")
                 .Where(d => d.DenId == denId)
                 .Get();
 
@@ -59,6 +60,7 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
             var folderStr = folder.ToString().ToLowerInvariant();
             var response = await SupabaseClient!
                 .From<Document>()
+                .Select("id, den_id, child_id, title, category, file_url, uploaded_by, created_at")
                 .Where(d => d.DenId == denId)
                 .Filter("category", Supabase.Postgrest.Constants.Operator.Equals, folderStr)
                 .Get();
@@ -121,6 +123,7 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
         {
             var response = await SupabaseClient!
                 .From<Document>()
+                .Select("id, den_id, child_id, title, category, file_url, uploaded_by, created_at")
                 .Where(d => d.DenId == denId)
                 .Order("created_at", Supabase.Postgrest.Constants.Ordering.Descending)
                 .Limit(count)
@@ -147,6 +150,7 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
         {
             return await SupabaseClient!
                 .From<Document>()
+                .Select("id, den_id, child_id, title, category, file_url, uploaded_by, created_at")
                 .Where(d => d.Id == id)
                 .Single();
         }
@@ -238,6 +242,7 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
         {
             var response = await SupabaseClient!
                 .From<Document>()
+                .Select("id, den_id, child_id, title, category, file_url, uploaded_by, created_at")
                 .Where(d => d.DenId == denId)
                 .Get();
 
