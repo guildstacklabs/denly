@@ -152,62 +152,8 @@ Implementation: Use `CommunityToolkit.Maui` Toast or Snackbar.
 
 ---
 
-### 6. Den Switching "Zombie" State
-**Source:** Gemini #3C | **Effort:** Low | **Risk:** Low
-
-> **Delegate:** Codex | **Status:** Ready
-
-**Problem:** User A views Den 1. User B deletes Den 1. User A refreshes → undefined behavior.
-
-**Solution:**
-- Handle Postgrest 404/406 errors specifically
-- If current den not found: fallback to next available den or "Create Den" screen
-- Clear "Last Used Den" from local storage on validation failure
-
-**Targets:**
-- `Services/SupabaseDenService.cs`
-
-#### Delegation Prompt (Codex)
-```
-## Task: Handle Deleted Den Edge Case
-
-### Goal
-In `Services/SupabaseDenService.cs`, add error handling for when the current den no longer exists (deleted by another user).
-
-### Requirements
-1. Find methods that fetch den data (e.g., `GetCurrentDenAsync`, `InitializeAsync`, or similar)
-2. Wrap Supabase calls in try/catch
-3. Catch Postgrest exceptions with status 404 or 406
-4. When caught:
-   - Clear the stored "last used den" preference (check how it's stored - likely `Preferences` or `SecureStorage`)
-   - Set `CurrentDen` to null
-   - Return null or empty result (don't throw)
-
-### Pattern
-```csharp
-catch (PostgrestException ex) when (ex.StatusCode == 404 || ex.StatusCode == 406)
-{
-    // Den was deleted
-    Preferences.Remove("last_den_id");
-    _currentDen = null;
-    return null;
-}
-```
-
-### Do Not Touch
-- Other service files
-- UI components
-```
-
-#### Review Checklist
-- [ ] Postgrest 404/406 handling added to den fetch methods
-- [ ] Last den preference cleared on error
-- [ ] CurrentDen set to null gracefully
-- [ ] `dotnet build` passes
-- [ ] No exceptions thrown to caller
-
-#### Completion Report
-<!-- Agent fills this in when done -->
+### 6. ~~Den Switching "Zombie" State~~ ✅ COMPLETE
+*Completed by Codex, verified by Claude. Commit: pending*
 
 ---
 
@@ -797,7 +743,7 @@ Replace spinners with skeleton loaders (gray bars mimicking text/cards).
 | 3 | Auth/Den guards | Claude | - |
 | 4 | User feedback service | Claude | - |
 | 5 | ~~Network connectivity~~ | ~~Gemini~~ | ✅ Done |
-| 6 | Zombie den state | **Codex** | Quick |
+| 6 | ~~Zombie den state~~ | ~~Codex~~ | ✅ Done |
 | 7 | App lifecycle refresh | Claude | - |
 | 8 | Settlement batch | Claude | - |
 | 9 | ~~Dashboard optimization~~ | ~~Gemini~~ | ✅ Done |

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Denly.Models;
 using Supabase;
+using Supabase.Postgrest.Exceptions;
 using Supabase.Postgrest.Responses;
 
 namespace Denly.Services;
@@ -177,6 +178,11 @@ public class SupabaseDenService : IDenService
                 .Single();
 
             return response;
+        }
+        catch (PostgrestException ex) when (ex.StatusCode == 404 || ex.StatusCode == 406)
+        {
+            await HandleMissingCurrentDenAsync();
+            return null;
         }
         catch
         {
@@ -425,6 +431,14 @@ public class SupabaseDenService : IDenService
     private void ClearCaches()
     {
         InvalidateMembersCache();
+    }
+
+    private async Task HandleMissingCurrentDenAsync()
+    {
+        _currentDenId = null;
+        ClearCaches();
+        SecureStorage.Remove(CurrentDenStorageKey);
+        await TryLoadUserDenAsync();
     }
 
     public async Task<Dictionary<string, Profile>> GetProfilesAsync(List<string> userIds)
