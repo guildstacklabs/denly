@@ -8,6 +8,7 @@ public class SupabaseScheduleService : IScheduleService
 {
     private readonly IDenService _denService;
     private readonly IAuthService _authService;
+    private readonly IClock _clock;
     private readonly ILogger<SupabaseScheduleService> _logger;
     private bool _isInitialized;
 
@@ -17,10 +18,12 @@ public class SupabaseScheduleService : IScheduleService
     public SupabaseScheduleService(
         IDenService denService,
         IAuthService authService,
+        IClock clock,
         ILogger<SupabaseScheduleService> logger)
     {
         _denService = denService;
         _authService = authService;
+        _clock = clock;
         _logger = logger;
     }
 
@@ -142,7 +145,7 @@ public class SupabaseScheduleService : IScheduleService
 
         try
         {
-            var now = DateTime.UtcNow;
+            var now = _clock.UtcNow;
 
             var response = await SupabaseClient!
                 .From<Event>()
@@ -251,7 +254,7 @@ public class SupabaseScheduleService : IScheduleService
         {
             _logger.LogInformation("[ScheduleService] Inserting new event");
             evt.CreatedBy = supabaseUser.Id;
-            evt.CreatedAt = DateTime.UtcNow;
+            evt.CreatedAt = _clock.UtcNow;
 
             // Temporarily set UTC times on the object for insertion
             var originalStart = evt.StartsAt;

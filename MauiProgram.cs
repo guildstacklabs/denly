@@ -23,6 +23,7 @@ public static class MauiProgram
 		builder.Services.Configure<DenlyOptions>(builder.Configuration.GetSection(DenlyOptions.SectionName));
 
 		// Core services
+		builder.Services.AddSingleton<IClock, SystemClock>();
 		builder.Services.AddSingleton<IAuthService, SupabaseAuthService>();
 		builder.Services.AddSingleton<IDenService, SupabaseDenService>();
 		builder.Services.AddSingleton<IToastService, ToastService>();

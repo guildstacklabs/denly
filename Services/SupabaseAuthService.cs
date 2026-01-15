@@ -12,11 +12,13 @@ public class SupabaseAuthService : IAuthService
 {
     private const string CallbackUrl = "com.companyname.denly://login-callback";
     private const string SessionStorageKey = "supabase_session";
+    private const string MissingConfigMessage = "Supabase configuration is missing. Please set Denly:SupabaseUrl and Denly:SupabaseAnonKey.";
 
     private readonly IServiceProvider _serviceProvider;
     private readonly DenlyOptions _options;
     private Supabase.Client? _supabase;
     private bool _isInitialized;
+    private string? _initializationError;
 
     public event EventHandler<AuthStateChangedEventArgs>? AuthStateChanged;
 
@@ -37,23 +39,36 @@ public class SupabaseAuthService : IAuthService
         };
 
         if (string.IsNullOrWhiteSpace(_options.SupabaseUrl) || string.IsNullOrWhiteSpace(_options.SupabaseAnonKey))
-            throw new InvalidOperationException("Supabase configuration is missing.");
-
-        _supabase = new Supabase.Client(_options.SupabaseUrl, _options.SupabaseAnonKey, options);
-        await _supabase.InitializeAsync();
-
-        // Try to restore session from secure storage
-        await RestoreSessionAsync();
-
-        // Listen for auth state changes
-        _supabase.Auth.AddStateChangedListener((sender, state) =>
         {
-            var isAuth = state == Constants.AuthState.SignedIn;
-            var user = isAuth ? MapToAppUser(_supabase.Auth.CurrentUser) : null;
-            AuthStateChanged?.Invoke(this, new AuthStateChangedEventArgs(isAuth, user));
-        });
+            _initializationError = MissingConfigMessage;
+            Console.WriteLine("[AuthService] InitializeAsync - Supabase configuration is missing.");
+            return;
+        }
 
-        _isInitialized = true;
+        try
+        {
+            _supabase = new Supabase.Client(_options.SupabaseUrl, _options.SupabaseAnonKey, options);
+            await _supabase.InitializeAsync();
+
+            // Try to restore session from secure storage
+            await RestoreSessionAsync();
+
+            // Listen for auth state changes
+            _supabase.Auth.AddStateChangedListener((sender, state) =>
+            {
+                var isAuth = state == Constants.AuthState.SignedIn;
+                var user = isAuth ? MapToAppUser(_supabase.Auth.CurrentUser) : null;
+                AuthStateChanged?.Invoke(this, new AuthStateChangedEventArgs(isAuth, user));
+            });
+
+            _initializationError = null;
+            _isInitialized = true;
+        }
+        catch (Exception ex)
+        {
+            _initializationError = "Failed to initialize Supabase client.";
+            Console.WriteLine($"[AuthService] InitializeAsync - error: {ex.Message}");
+        }
     }
 
     private async Task RestoreSessionAsync()
@@ -95,11 +110,23 @@ public class SupabaseAuthService : IAuthService
 
     public Task<bool> IsAuthenticatedAsync()
     {
+        if (!string.IsNullOrEmpty(_initializationError))
+        {
+            Console.WriteLine($"[AuthService] IsAuthenticatedAsync - initialization error: {_initializationError}");
+            return Task.FromResult(false);
+        }
+
         return Task.FromResult(_supabase?.Auth.CurrentUser != null);
     }
 
     public Task<AppUser?> GetCurrentUserAsync()
     {
+        if (!string.IsNullOrEmpty(_initializationError))
+        {
+            Console.WriteLine($"[AuthService] GetCurrentUserAsync - initialization error: {_initializationError}");
+            return Task.FromResult<AppUser?>(null);
+        }
+
         var user = _supabase?.Auth.CurrentUser;
         return Task.FromResult(user != null ? MapToAppUser(user) : null);
     }
@@ -108,6 +135,8 @@ public class SupabaseAuthService : IAuthService
     {
         try
         {
+            if (!string.IsNullOrEmpty(_initializationError))
+                return new AuthResult(false, _initializationError);
             if (_supabase == null)
                 return new AuthResult(false, "Service not initialized");
 
@@ -172,6 +201,8 @@ public class SupabaseAuthService : IAuthService
     {
         try
         {
+            if (!string.IsNullOrEmpty(_initializationError))
+                return new AuthResult(false, _initializationError);
             if (_supabase == null)
                 return new AuthResult(false, "Service not initialized");
 
@@ -196,6 +227,8 @@ public class SupabaseAuthService : IAuthService
     {
         try
         {
+            if (!string.IsNullOrEmpty(_initializationError))
+                return new AuthResult(false, _initializationError);
             if (_supabase == null)
                 return new AuthResult(false, "Service not initialized");
 
@@ -259,6 +292,12 @@ public class SupabaseAuthService : IAuthService
 
     public async Task<bool> HasDenAsync()
     {
+        if (!string.IsNullOrEmpty(_initializationError))
+        {
+            Console.WriteLine($"[AuthService] HasDenAsync - initialization error: {_initializationError}");
+            return false;
+        }
+
         Console.WriteLine("[AuthService] HasDenAsync called");
         var denService = _serviceProvider.GetRequiredService<IDenService>();
         await denService.InitializeAsync();
@@ -270,6 +309,12 @@ public class SupabaseAuthService : IAuthService
 
     public async Task<Den?> GetCurrentDenAsync()
     {
+        if (!string.IsNullOrEmpty(_initializationError))
+        {
+            Console.WriteLine($"[AuthService] GetCurrentDenAsync - initialization error: {_initializationError}");
+            return null;
+        }
+
         var denService = _serviceProvider.GetRequiredService<IDenService>();
         await denService.InitializeAsync();
         return await denService.GetCurrentDenAsync();
@@ -277,6 +322,12 @@ public class SupabaseAuthService : IAuthService
 
     public async Task CreateDenAsync(string denName)
     {
+        if (!string.IsNullOrEmpty(_initializationError))
+        {
+            Console.WriteLine($"[AuthService] CreateDenAsync - initialization error: {_initializationError}");
+            return;
+        }
+
         // Delegate to DenService for actual Supabase operations
         var denService = _serviceProvider.GetRequiredService<IDenService>();
         await denService.InitializeAsync();

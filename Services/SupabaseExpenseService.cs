@@ -10,6 +10,7 @@ public class SupabaseExpenseService : IExpenseService
 
     private readonly IDenService _denService;
     private readonly IAuthService _authService;
+    private readonly IClock _clock;
     private readonly ILogger<SupabaseExpenseService> _logger;
     private bool _isInitialized;
 
@@ -19,10 +20,12 @@ public class SupabaseExpenseService : IExpenseService
     public SupabaseExpenseService(
         IDenService denService,
         IAuthService authService,
+        IClock clock,
         ILogger<SupabaseExpenseService> logger)
     {
         _denService = denService;
         _authService = authService;
+        _clock = clock;
         _logger = logger;
     }
 
@@ -164,7 +167,7 @@ public class SupabaseExpenseService : IExpenseService
         {
             _logger.LogInformation("[ExpenseService] Inserting new expense");
             expense.CreatedBy = supabaseUser.Id;
-            expense.CreatedAt = DateTime.UtcNow;
+            expense.CreatedAt = _clock.UtcNow;
 
             try
             {
@@ -344,7 +347,7 @@ public class SupabaseExpenseService : IExpenseService
             ToUserId = toUserId,
             Note = note,
             CreatedBy = supabaseUser.Id,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = _clock.UtcNow
         };
 
         try
@@ -362,7 +365,7 @@ public class SupabaseExpenseService : IExpenseService
                 .Filter<DateTime?>("settled_at", Supabase.Postgrest.Constants.Operator.Is, null)
                 .Get();
 
-            var settledAt = DateTime.UtcNow;
+            var settledAt = _clock.UtcNow;
             foreach (var expense in unsettled.Models)
             {
                 await SupabaseClient!
