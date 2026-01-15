@@ -12,13 +12,11 @@ public class SupabaseAuthService : IAuthService
 {
     private const string CallbackUrl = "com.companyname.denly://login-callback";
     private const string SessionStorageKey = "supabase_session";
-    private const string MissingConfigMessage = "Supabase configuration is missing. Please set Denly:SupabaseUrl and Denly:SupabaseAnonKey.";
 
     private readonly IServiceProvider _serviceProvider;
     private readonly DenlyOptions _options;
     private Supabase.Client? _supabase;
     private bool _isInitialized;
-    private string? _initializationError;
 
     public event EventHandler<AuthStateChangedEventArgs>? AuthStateChanged;
 
@@ -39,8 +37,25 @@ public class SupabaseAuthService : IAuthService
         };
 
         if (string.IsNullOrWhiteSpace(_options.SupabaseUrl) || string.IsNullOrWhiteSpace(_options.SupabaseAnonKey))
+            throw new InvalidOperationException("Supabase configuration is missing.");
+
+        _supabase = new Supabase.Client(_options.SupabaseUrl, _options.SupabaseAnonKey, options);
+        await _supabase.InitializeAsync();
+
+        // Try to restore session from secure storage
+        await RestoreSessionAsync();
+
+        // Listen for auth state changes
+        _supabase.Auth.AddStateChangedListener((sender, state) =>
+        {
+            AutoRefreshToken = true,
+            AutoConnectRealtime = false
+        };
+
+        if (string.IsNullOrWhiteSpace(_options.SupabaseUrl) || string.IsNullOrWhiteSpace(_options.SupabaseAnonKey))
         {
             _initializationError = MissingConfigMessage;
+            _isInitialized = true;
             Console.WriteLine("[AuthService] InitializeAsync - Supabase configuration is missing.");
             return;
         }
