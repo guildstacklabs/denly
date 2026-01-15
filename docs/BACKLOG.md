@@ -147,80 +147,8 @@ Implementation: Use `CommunityToolkit.Maui` Toast or Snackbar.
 
 ---
 
-### 5. Network Connectivity Guardrails
-**Source:** Gemini #3A | **Effort:** Medium | **Risk:** Low
-
-> **Delegate:** Gemini | **Status:** Awaiting Review
-
-**Problem:** User tries to save while offline → app hangs or fails silently.
-
-**Solution:**
-- Inject `IConnectivity` (MAUI Essentials)
-- Strategy: "Read-Only Offline" for MVP
-- If offline: disable save buttons, show "Offline Mode" banner
-- Intercept write attempts with friendly toast
-
-**Targets:**
-- `Components/Shared/` (create `OfflineBanner.razor`)
-- `Components/Pages/Expenses.razor`
-- `Components/Pages/Calendar.razor`
-- `Components/Pages/Documents.razor`
-
-#### Delegation Prompt (Gemini)
-```
-## Task: Implement Network Connectivity Guardrails
-
-### Goal
-Add offline detection to prevent users from attempting writes when offline. Show a banner and disable save actions.
-
-### Requirements
-1. Create `Components/Shared/OfflineBanner.razor`:
-   - Inject `IConnectivity` from Microsoft.Maui.Networking
-   - Subscribe to `Connectivity.ConnectivityChanged` event
-   - Show a non-intrusive banner when `NetworkAccess != NetworkAccess.Internet`
-   - Banner text: "You're offline. Changes can't be saved."
-   - Style: yellow/orange background, dismissible but reappears on navigation
-
-2. Update these pages to disable "Add" buttons when offline:
-   - `Components/Pages/Expenses.razor`
-   - `Components/Pages/Calendar.razor`
-   - `Components/Pages/Documents.razor`
-
-3. Pattern to follow for button disabling:
-   ```razor
-   <button disabled="@(!_isOnline || _isLoading)">Add Expense</button>
-   ```
-
-### Constraints
-- Do NOT implement offline data sync or caching
-- Do NOT modify any Service files
-- Use existing CSS patterns from the codebase
-
-### Do Not Touch
-- `Services/*` - no changes to services
-- `Components/Pages/Home.razor` - dashboard is read-only, no changes needed
-```
-
-#### Review Checklist
-- [ ] `OfflineBanner.razor` created with `IConnectivity` injection
-- [ ] Banner subscribes to `ConnectivityChanged` and disposes properly
-- [ ] Add/Save buttons disabled when offline on Expenses, Calendar, Documents pages
-- [ ] `dotnet build` passes
-- [ ] Manual test: Enable airplane mode → banner appears, buttons disabled
-
-#### Completion Report
-- **Status:** Awaiting Review
-- **Agent:** Gemini
-- **Files Modified:**
-  - `Components/Shared/OfflineBanner.razor`
-  - `Components/Shared/OfflineBanner.razor.css`
-  - `Components/Layout/MainLayout.razor`
-  - `Components/Pages/Expenses.razor`
-  - `Components/Pages/Calendar.razor`
-  - `Components/Pages/FamilyVault.razor`
-- **Summary:** Created a global `OfflineBanner` component to show connectivity status. Injected `IConnectivity` into `Expenses`, `Calendar`, and `FamilyVault` pages to disable all write-action buttons (Add, Save, Delete, etc.) when the device is offline.
-- **Build:** ✅ Pass (Conceptual pass, `dotnet build` command not available)
-- **Notes:** The task referred to `Documents.razor`, which does not exist. The changes were applied to `FamilyVault.razor` as it manages documents.
+### 5. ~~Network Connectivity Guardrails~~ ✅ COMPLETE
+*Completed by Gemini, verified by Claude. Commit: 7b6a6f8*
 
 ---
 
@@ -840,7 +768,7 @@ Replace spinners with skeleton loaders (gray bars mimicking text/cards).
 | 2 | Invite code audit | Claude | - |
 | 3 | Auth/Den guards | Claude | - |
 | 4 | User feedback service | Claude | - |
-| 5 | Network connectivity | **Gemini** | Standard |
+| 5 | ~~Network connectivity~~ | ~~Gemini~~ | ✅ Done |
 | 6 | Zombie den state | **Codex** | Quick |
 | 7 | App lifecycle refresh | Claude | - |
 | 8 | Settlement batch | Claude | - |
