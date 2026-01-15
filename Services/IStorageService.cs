@@ -13,15 +13,17 @@ public interface IStorageService
     /// <param name="stream">The file content stream</param>
     /// <param name="fileName">The original file name</param>
     /// <param name="pathPrefix">Optional path prefix within the bucket (e.g., den ID)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The public URL of the uploaded file</returns>
-    Task<string> UploadAsync(string bucket, Stream stream, string fileName, string? pathPrefix = null);
+    Task<string> UploadAsync(string bucket, Stream stream, string fileName, string? pathPrefix = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes a file from storage.
     /// </summary>
     /// <param name="bucket">The storage bucket name</param>
     /// <param name="fileUrl">The public URL of the file to delete</param>
-    Task DeleteAsync(string bucket, string fileUrl);
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task DeleteAsync(string bucket, string fileUrl, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the public URL for a file in storage.

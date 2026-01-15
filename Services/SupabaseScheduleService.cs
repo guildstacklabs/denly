@@ -8,9 +8,10 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
     {
     }
 
-    public async Task<List<Event>> GetEventsByMonthAsync(int year, int month)
+    public async Task<List<Event>> GetEventsByMonthAsync(int year, int month, CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync();
+        cancellationToken.ThrowIfCancellationRequested();
 
         var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return new List<Event>();
@@ -21,9 +22,11 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
             // We want everything from 00:00:00 on the 1st to 00:00:00 on the 1st of next month (Local Time)
             var localStart = new DateTime(year, month, 1);
             var localEnd = localStart.AddMonths(1);
-            
+
             var utcStart = DateTime.SpecifyKind(localStart, DateTimeKind.Local).ToUniversalTime();
             var utcEnd = DateTime.SpecifyKind(localEnd, DateTimeKind.Local).ToUniversalTime();
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             var response = await SupabaseClient!
                 .From<Event>()
@@ -37,6 +40,10 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
             foreach (var evt in events) ConvertToLocal(evt);
             return events;
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             Console.WriteLine($"[ScheduleService] Error getting events by month: {ex.Message}");
@@ -44,9 +51,10 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         }
     }
 
-    public async Task<List<Event>> GetEventsByDateAsync(DateTime date)
+    public async Task<List<Event>> GetEventsByDateAsync(DateTime date, CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync();
+        cancellationToken.ThrowIfCancellationRequested();
 
         var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return new List<Event>();
@@ -71,6 +79,8 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
             // Assuming max event duration is 30 days, we can filter starts_at >= (utcStart - 30 days).
             var lookbackBuffer = utcStart.AddDays(-30);
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             var response = await SupabaseClient!
                 .From<Event>()
                 .Where(e => e.DenId == denId)
@@ -87,7 +97,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
             {
                 // Check for single day match OR multi-day overlap
                 // Note: EndsAt is already Local thanks to ConvertToLocal above
-                var isMatch = evt.Date == date.Date || 
+                var isMatch = evt.Date == date.Date ||
                              (evt.EndsAt.HasValue && evt.EndsAt.Value.Date >= date.Date && evt.Date <= date.Date);
 
                 if (isMatch) filteredEvents.Add(evt);
@@ -99,6 +109,10 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
             return filteredEvents;
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             Console.WriteLine($"[ScheduleService] Error getting events by date: {ex.Message}");
@@ -106,9 +120,10 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         }
     }
 
-    public async Task<List<Event>> GetUpcomingEventsAsync(int count)
+    public async Task<List<Event>> GetUpcomingEventsAsync(int count, CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync();
+        cancellationToken.ThrowIfCancellationRequested();
 
         var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return new List<Event>();
@@ -116,6 +131,8 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         try
         {
             var now = DateTime.UtcNow;
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             var response = await SupabaseClient!
                 .From<Event>()
@@ -129,6 +146,10 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
             foreach (var evt in events) ConvertToLocal(evt);
             return events;
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             Console.WriteLine($"[ScheduleService] Error getting upcoming events: {ex.Message}");
@@ -136,9 +157,10 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         }
     }
 
-    public async Task<Event?> GetEventByIdAsync(string id)
+    public async Task<Event?> GetEventByIdAsync(string id, CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync();
+        cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
@@ -146,9 +168,13 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
                 .From<Event>()
                 .Where(e => e.Id == id)
                 .Single();
-            
+
             if (evt != null) ConvertToLocal(evt);
             return evt;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -157,12 +183,13 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         }
     }
 
-    public async Task SaveEventAsync(Event evt)
+    public async Task SaveEventAsync(Event evt, CancellationToken cancellationToken = default)
     {
         Console.WriteLine($"[ScheduleService] SaveEventAsync called for: {evt.Title}");
         Console.WriteLine($"[ScheduleService] SaveEventAsync - Input StartsAt: {evt.StartsAt:O} (Kind: {evt.StartsAt.Kind})");
 
         await EnsureInitializedAsync();
+        cancellationToken.ThrowIfCancellationRequested();
 
         var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId))
@@ -187,7 +214,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         evt.DenId = denId;
 
         // Check if this is an update or insert
-        var existing = await GetEventByIdAsync(evt.Id);
+        var existing = await GetEventByIdAsync(evt.Id, cancellationToken);
 
         // Prepare UTC times for storage
         // Handle Kind correctly: Utc stays Utc, Local/Unspecified converts to Utc
@@ -201,6 +228,8 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
                 ? evt.EndsAt.Value
                 : DateTime.SpecifyKind(evt.EndsAt.Value, DateTimeKind.Local).ToUniversalTime())
             : (DateTime?)null;
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (existing != null)
         {
@@ -220,6 +249,10 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
                     .Set(e => e.ChildId!, evt.ChildId)
                     .Update();
                 Console.WriteLine("[ScheduleService] Event updated successfully");
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -246,6 +279,10 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
                     .Insert(evt);
                 Console.WriteLine($"[ScheduleService] Event insert response: {response?.Models?.Count ?? 0} models returned");
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ScheduleService] Error inserting event: {ex.Message}");
@@ -259,10 +296,11 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         }
     }
 
-    public async Task DeleteEventAsync(string id)
+    public async Task DeleteEventAsync(string id, CancellationToken cancellationToken = default)
     {
         Console.WriteLine("[ScheduleService] DeleteEventAsync called");
         await EnsureInitializedAsync();
+        cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
@@ -271,6 +309,10 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
                 .Where(e => e.Id == id)
                 .Delete();
             Console.WriteLine("[ScheduleService] Event deleted successfully");
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

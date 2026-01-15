@@ -12,9 +12,10 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
         _storageService = storageService;
     }
 
-    public async Task<List<Expense>> GetAllExpensesAsync()
+    public async Task<List<Expense>> GetAllExpensesAsync(CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync();
+        cancellationToken.ThrowIfCancellationRequested();
 
         var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return new List<Expense>();
@@ -34,6 +35,10 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
             return expenses
                 .OrderByDescending(e => e.CreatedAt)
                 .ToList();
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -66,9 +71,10 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
         }
     }
 
-    public async Task<Expense?> GetExpenseByIdAsync(string id)
+    public async Task<Expense?> GetExpenseByIdAsync(string id, CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync();
+        cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
@@ -77,6 +83,10 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
                 .Where(e => e.Id == id)
                 .Single();
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             Console.WriteLine($"[ExpenseService] Error getting expense by id: {ex.Message}");
@@ -84,11 +94,12 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
         }
     }
 
-    public async Task SaveExpenseAsync(Expense expense)
+    public async Task SaveExpenseAsync(Expense expense, CancellationToken cancellationToken = default)
     {
         Console.WriteLine($"[ExpenseService] SaveExpenseAsync called for: {expense.Description}");
 
         await EnsureInitializedAsync();
+        cancellationToken.ThrowIfCancellationRequested();
 
         var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId))
@@ -112,7 +123,9 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
 
         expense.DenId = denId;
 
-        var existing = await GetExpenseByIdAsync(expense.Id);
+        var existing = await GetExpenseByIdAsync(expense.Id, cancellationToken);
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (existing != null)
         {
@@ -130,6 +143,10 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
                     .Set(e => e.SettledAt!, expense.SettledAt)
                     .Update();
                 Console.WriteLine("[ExpenseService] Expense updated successfully");
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -149,6 +166,10 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
                     .Insert(expense);
                 Console.WriteLine($"[ExpenseService] Expense insert response: {response?.Models?.Count ?? 0} models returned");
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ExpenseService] Error inserting expense: {ex.Message}");
@@ -156,19 +177,22 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
         }
     }
 
-    public async Task DeleteExpenseAsync(string id)
+    public async Task DeleteExpenseAsync(string id, CancellationToken cancellationToken = default)
     {
         Console.WriteLine("[ExpenseService] DeleteExpenseAsync called");
         await EnsureInitializedAsync();
+        cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
             // Get expense to delete receipt if exists
-            var expense = await GetExpenseByIdAsync(id);
+            var expense = await GetExpenseByIdAsync(id, cancellationToken);
             if (expense?.ReceiptUrl != null)
             {
-                await DeleteReceiptAsync(expense.ReceiptUrl);
+                await DeleteReceiptAsync(expense.ReceiptUrl, cancellationToken);
             }
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             await SupabaseClient!
                 .From<Expense>()
@@ -176,15 +200,20 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
                 .Delete();
             Console.WriteLine("[ExpenseService] Expense deleted successfully");
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             Console.WriteLine($"[ExpenseService] Error deleting expense: {ex.Message}");
         }
     }
 
-    public async Task<Dictionary<string, decimal>> GetBalancesAsync()
+    public async Task<Dictionary<string, decimal>> GetBalancesAsync(CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync();
+        cancellationToken.ThrowIfCancellationRequested();
 
         var denId = DenService.GetCurrentDenId();
         var balances = new Dictionary<string, decimal>();
@@ -222,6 +251,10 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
 
             return balances;
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             Console.WriteLine($"[ExpenseService] Error getting balances: {ex.Message}");
@@ -229,9 +262,10 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
         }
     }
 
-    public async Task<List<Settlement>> GetAllSettlementsAsync()
+    public async Task<List<Settlement>> GetAllSettlementsAsync(CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync();
+        cancellationToken.ThrowIfCancellationRequested();
 
         var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return new List<Settlement>();
@@ -248,6 +282,10 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
             await PopulateSettlementNamesAsync(settlements);
 
             return settlements;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -288,11 +326,12 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
         }
     }
 
-    public async Task<Settlement> CreateSettlementAsync(decimal amount, string fromUserId, string toUserId, string? note = null)
+    public async Task<Settlement> CreateSettlementAsync(decimal amount, string fromUserId, string toUserId, string? note = null, CancellationToken cancellationToken = default)
     {
         Console.WriteLine($"[ExpenseService] CreateSettlementAsync called - Amount: {amount}, From: {fromUserId}, To: {toUserId}");
 
         await EnsureInitializedAsync();
+        cancellationToken.ThrowIfCancellationRequested();
 
         var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId))
@@ -325,6 +364,8 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
         try
         {
             Console.WriteLine($"[ExpenseService] Inserting settlement...");
+            cancellationToken.ThrowIfCancellationRequested();
+
             await SupabaseClient!
                 .From<Settlement>()
                 .Insert(settlement);
@@ -340,6 +381,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
             var settledAt = DateTime.UtcNow;
             foreach (var expense in unsettled.Models)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 await SupabaseClient!
                     .From<Expense>()
                     .Where(e => e.Id == expense.Id)
@@ -347,6 +389,10 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
                     .Update();
             }
             Console.WriteLine($"[ExpenseService] Marked {unsettled.Models.Count} expenses as settled");
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -357,7 +403,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
         return settlement;
     }
 
-    public async Task<string> SaveReceiptAsync(Stream imageStream, string fileName)
+    public async Task<string> SaveReceiptAsync(Stream imageStream, string fileName, CancellationToken cancellationToken = default)
     {
         Console.WriteLine("[ExpenseService] SaveReceiptAsync called");
 
@@ -370,9 +416,13 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
 
         try
         {
-            var url = await _storageService.UploadAsync(ReceiptsBucket, imageStream, fileName, denId);
+            var url = await _storageService.UploadAsync(ReceiptsBucket, imageStream, fileName, denId, cancellationToken);
             Console.WriteLine("[ExpenseService] Receipt uploaded successfully");
             return url;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -381,12 +431,12 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
         }
     }
 
-    public async Task DeleteReceiptAsync(string receiptUrl)
+    public async Task DeleteReceiptAsync(string receiptUrl, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(receiptUrl)) return;
 
         Console.WriteLine("[ExpenseService] Deleting receipt");
-        await _storageService.DeleteAsync(ReceiptsBucket, receiptUrl);
+        await _storageService.DeleteAsync(ReceiptsBucket, receiptUrl, cancellationToken);
         Console.WriteLine("[ExpenseService] Receipt deleted successfully");
     }
 }

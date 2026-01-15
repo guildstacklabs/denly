@@ -12,13 +12,15 @@ public class SupabaseStorageService : IStorageService
         _authService = authService;
     }
 
-    public async Task<string> UploadAsync(string bucket, Stream stream, string fileName, string? pathPrefix = null)
+    public async Task<string> UploadAsync(string bucket, Stream stream, string fileName, string? pathPrefix = null, CancellationToken cancellationToken = default)
     {
         var client = _authService.GetSupabaseClient();
         if (client == null)
         {
             throw new InvalidOperationException("Supabase client not initialized");
         }
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         // Generate unique file name
         var extension = Path.GetExtension(fileName);
@@ -31,8 +33,10 @@ public class SupabaseStorageService : IStorageService
 
         // Read stream to byte array
         using var memoryStream = new MemoryStream();
-        await stream.CopyToAsync(memoryStream);
+        await stream.CopyToAsync(memoryStream, cancellationToken);
         var bytes = memoryStream.ToArray();
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         // Upload to storage
         await client.Storage
@@ -45,7 +49,7 @@ public class SupabaseStorageService : IStorageService
             .GetPublicUrl(uniqueName);
     }
 
-    public async Task DeleteAsync(string bucket, string fileUrl)
+    public async Task DeleteAsync(string bucket, string fileUrl, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(fileUrl)) return;
 
@@ -54,6 +58,8 @@ public class SupabaseStorageService : IStorageService
         {
             throw new InvalidOperationException("Supabase client not initialized");
         }
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
@@ -64,6 +70,10 @@ public class SupabaseStorageService : IStorageService
             await client.Storage
                 .From(bucket)
                 .Remove(new List<string> { path });
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

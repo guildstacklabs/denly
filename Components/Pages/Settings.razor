@@ -15,7 +15,11 @@
         <h1>Settings</h1>
     </div>
 
-    @if (_currentDen != null)
+    @if (_isLoading)
+    {
+        <LoadingSpinner Message="Loading settings..." />
+    }
+    else if (_currentDen != null)
     {
         <!-- Den Section -->
         <div class="settings-section">
@@ -86,26 +90,47 @@
                 }
             </div>
         </div>
-    }
 
-    <!-- Account Section -->
-    <div class="settings-section">
-        <h2 class="section-title">Account</h2>
-        <div class="account-info">
-            @if (_currentUser != null)
-            {
-                <div class="account-email">@_currentUser.Email</div>
-            }
+        <!-- Account Section -->
+        <div class="settings-section">
+            <h2 class="section-title">Account</h2>
+            <div class="account-info">
+                @if (_currentUser != null)
+                {
+                    <div class="account-email">@_currentUser.Email</div>
+                }
+            </div>
+            <button class="signout-btn" @onclick="SignOut">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                Sign Out
+            </button>
         </div>
-        <button class="signout-btn" @onclick="SignOut">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                <polyline points="16 17 21 12 16 7"></polyline>
-                <line x1="21" y1="12" x2="9" y2="12"></line>
-            </svg>
-            Sign Out
-        </button>
-    </div>
+    }
+    else if (!_isLoading)
+    {
+        <!-- No den - show account section only -->
+        <div class="settings-section">
+            <h2 class="section-title">Account</h2>
+            <div class="account-info">
+                @if (_currentUser != null)
+                {
+                    <div class="account-email">@_currentUser.Email</div>
+                }
+            </div>
+            <button class="signout-btn" @onclick="SignOut">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                Sign Out
+            </button>
+        </div>
+    }
 </div>
 
 <!-- Invite Modal -->
@@ -204,6 +229,7 @@
     private AppUser? _currentUser;
     private List<DenMember> _members = new();
     private bool _isOwner;
+    private bool _isLoading = true;
     private bool _showInviteModal;
     private bool _showRemoveModal;
     private bool _isLoadingInvite;
@@ -217,14 +243,30 @@
 
     private async Task LoadData()
     {
-        _currentUser = await Auth.GetCurrentUserAsync();
-        _currentDen = await DenService.GetCurrentDenAsync();
+        _isLoading = true;
+
+        // Load user and den in parallel
+        var userTask = Auth.GetCurrentUserAsync();
+        var denTask = DenService.GetCurrentDenAsync();
+
+        await Task.WhenAll(userTask, denTask);
+
+        _currentUser = await userTask;
+        _currentDen = await denTask;
 
         if (_currentDen != null)
         {
-            _members = await DenService.GetDenMembersAsync();
-            _isOwner = await DenService.IsOwnerAsync();
+            // Load members and owner status in parallel
+            var membersTask = DenService.GetDenMembersAsync();
+            var ownerTask = DenService.IsOwnerAsync();
+
+            await Task.WhenAll(membersTask, ownerTask);
+
+            _members = await membersTask;
+            _isOwner = await ownerTask;
         }
+
+        _isLoading = false;
     }
 
     private void GoBack()

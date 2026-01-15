@@ -4,7 +4,7 @@ This document captures architectural optimization opportunities identified durin
 It is intentionally scoped to **low-risk, high-leverage** changes that improve maintainability,
 performance, and security without destabilizing the app.
 
-## 1) Replace Console Logging with Structured Logging
+## 1) Replace Console Logging with Structured Logging (Remaining Item)
 **Problem:** Services currently log sensitive IDs and access tokens directly to the console,
 which is a security and privacy risk.
 
@@ -18,15 +18,4 @@ which is a security and privacy risk.
 **Why it helps:**
 - Prevents leaking PII in shared logs
 - Enables redaction and filtering with real logging pipelines
-
-## 2) Adopt Cancellation Tokens for I/O
-**Problem:** Long-running calls to Supabase and storage cannot be cancelled.
-
-**Recommendation:**
-- Add optional `CancellationToken` parameters to service methods
-- Pass tokens from UI interactions where user navigation can cancel the operation
-
-**Why it helps:**
-- Prevents abandoned tasks from continuing in the background
-- Improves app responsiveness
 

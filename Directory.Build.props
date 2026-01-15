@@ -1,0 +1,28 @@
+<Project>
+  <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
+    <!--
+      iOS Simulator Configuration
+
+      To use a specific simulator, set _DeviceName:
+        dotnet build -f net10.0-ios -p:_DeviceName=":v2:udid=426A9347-1B25-4B7B-9449-DD9AB7CE90D3"
+
+      Or use the default below (iPhone 17 Pro Max)
+    -->
+    <_DeviceName Condition="'$(_DeviceName)' == ''">:v2:udid=426A9347-1B25-4B7B-9449-DD9AB7CE90D3</_DeviceName>
+  </PropertyGroup>
+
+  <!--
+    Target to detect and use the currently booted iOS simulator.
+    Run with: dotnet build -f net10.0-ios -t:Run -p:UseBootedSimulator=true
+  -->
+  <Target Name="DetectBootedSimulator" BeforeTargets="Build" Condition="'$(UseBootedSimulator)' == 'true' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
+    <Exec Command="xcrun simctl list devices booted -j | grep -o '&quot;udid&quot; : &quot;[^&quot;]*&quot;' | head -1 | cut -d'&quot;' -f4" ConsoleToMSBuild="true" StandardOutputImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="BootedSimulatorUdid" />
+    </Exec>
+    <PropertyGroup Condition="'$(BootedSimulatorUdid)' != ''">
+      <_DeviceName>:v2:udid=$(BootedSimulatorUdid)</_DeviceName>
+    </PropertyGroup>
+    <Message Importance="high" Text="Using booted simulator: $(BootedSimulatorUdid)" Condition="'$(BootedSimulatorUdid)' != ''" />
+    <Warning Text="No booted simulator found. Using default: $(_DeviceName)" Condition="'$(BootedSimulatorUdid)' == ''" />
+  </Target>
+</Project>

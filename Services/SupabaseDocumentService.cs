@@ -16,12 +16,13 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
         _storageService = storageService;
     }
 
-    public async Task<List<Document>> GetAllDocumentsAsync()
+    public async Task<List<Document>> GetAllDocumentsAsync(CancellationToken cancellationToken = default)
     {
         var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return new List<Document>();
 
         await EnsureInitializedAsync();
+        cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
@@ -35,18 +36,23 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
                 .ThenBy(d => d.Title)
                 .ToList();
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch
         {
             return new List<Document>();
         }
     }
 
-    public async Task<List<Document>> GetDocumentsByFolderAsync(DocumentFolder folder)
+    public async Task<List<Document>> GetDocumentsByFolderAsync(DocumentFolder folder, CancellationToken cancellationToken = default)
     {
         var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return new List<Document>();
 
         await EnsureInitializedAsync();
+        cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
@@ -59,18 +65,23 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
 
             return response.Models.OrderBy(d => d.Title).ToList();
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch
         {
             return new List<Document>();
         }
     }
 
-    public async Task<List<Document>> SearchDocumentsAsync(string searchTerm)
+    public async Task<List<Document>> SearchDocumentsAsync(string searchTerm, CancellationToken cancellationToken = default)
     {
         var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return new List<Document>();
 
         await EnsureInitializedAsync();
+        cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
@@ -92,18 +103,23 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
                 .ThenBy(d => d.Title)
                 .ToList();
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch
         {
             return new List<Document>();
         }
     }
 
-    public async Task<List<Document>> GetRecentDocumentsAsync(int count = 3)
+    public async Task<List<Document>> GetRecentDocumentsAsync(int count = 3, CancellationToken cancellationToken = default)
     {
         var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return new List<Document>();
 
         await EnsureInitializedAsync();
+        cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
@@ -116,15 +132,20 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
 
             return response.Models;
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch
         {
             return new List<Document>();
         }
     }
 
-    public async Task<Document?> GetDocumentByIdAsync(string id)
+    public async Task<Document?> GetDocumentByIdAsync(string id, CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync();
+        cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
@@ -133,13 +154,17 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
                 .Where(d => d.Id == id)
                 .Single();
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch
         {
             return null;
         }
     }
 
-    public async Task SaveDocumentAsync(Document document)
+    public async Task SaveDocumentAsync(Document document, CancellationToken cancellationToken = default)
     {
         var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return;
@@ -148,10 +173,13 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
         if (user == null) return;
 
         await EnsureInitializedAsync();
+        cancellationToken.ThrowIfCancellationRequested();
 
         document.DenId = denId;
 
-        var existing = await GetDocumentByIdAsync(document.Id);
+        var existing = await GetDocumentByIdAsync(document.Id, cancellationToken);
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (existing != null)
         {
@@ -175,16 +203,19 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
         }
     }
 
-    public async Task DeleteDocumentAsync(string id)
+    public async Task DeleteDocumentAsync(string id, CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync();
+        cancellationToken.ThrowIfCancellationRequested();
 
         // Get document to delete file if exists
-        var document = await GetDocumentByIdAsync(id);
+        var document = await GetDocumentByIdAsync(id, cancellationToken);
         if (document?.FileUrl != null)
         {
-            await _storageService.DeleteAsync(DocumentsBucket, document.FileUrl);
+            await _storageService.DeleteAsync(DocumentsBucket, document.FileUrl, cancellationToken);
         }
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         await SupabaseClient!
             .From<Document>()
@@ -192,7 +223,7 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
             .Delete();
     }
 
-    public async Task<Dictionary<DocumentFolder, int>> GetFolderCountsAsync()
+    public async Task<Dictionary<DocumentFolder, int>> GetFolderCountsAsync(CancellationToken cancellationToken = default)
     {
         var denId = DenService.GetCurrentDenId();
         var counts = new Dictionary<DocumentFolder, int>();
@@ -205,6 +236,7 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
         if (string.IsNullOrEmpty(denId)) return counts;
 
         await EnsureInitializedAsync();
+        cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
@@ -217,6 +249,10 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
             {
                 counts[doc.Folder]++;
             }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch
         {
