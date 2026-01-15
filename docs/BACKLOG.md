@@ -377,7 +377,7 @@ public async Task<List<DenMember>> GetDenMembersAsync()
 ---
 
 ### 11. ~~Select Specific Columns in Queries~~ ✅ COMPLETE
-*Completed by Codex, verified by Claude. Commit: pending*
+*Completed by Codex, verified by Claude. Commit: 5d2e10b*
 
 ---
 
@@ -462,7 +462,7 @@ Replace client-side document filtering with server-side search using Postgres `i
 ---
 
 ### 13. ~~Storage Upload Memory Guard~~ ✅ COMPLETE
-*Completed by Codex, verified by Claude. Commit: pending*
+*Completed by Codex, verified by Claude. Commit: 5d2e10b*
 
 ---
 
