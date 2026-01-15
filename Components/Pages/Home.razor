@@ -205,6 +205,8 @@
     private List<Event> _upcomingEvents = new();
     private Dictionary<string, decimal> _balances = new();
     private bool _hasExpenses;
+    private bool _hasUpcomingEvents;
+    private bool _hasDocuments;
     private List<Document> _recentDocuments = new();
     private bool _isNewUser;
     private bool _isLoading = true;
@@ -219,28 +221,43 @@
     private async Task LoadDashboardData()
     {
         _isLoading = true;
+        StateHasChanged();
         Console.WriteLine("[Home] LoadDashboardData starting");
 
         try
         {
-            _upcomingEvents = await ScheduleService.GetUpcomingEventsAsync(3);
-            Console.WriteLine($"[Home] Upcoming events loaded: {_upcomingEvents.Count}");
+            // Perform lightweight "has data" checks in parallel first
+            var hasExpensesTask = ExpenseService.HasExpensesAsync();
+            var hasEventsTask = ScheduleService.HasUpcomingEventsAsync();
+            var hasDocumentsTask = DocumentService.HasDocumentsAsync();
 
-            _balances = await ExpenseService.GetBalancesAsync();
-            Console.WriteLine($"[Home] Balances loaded: {_balances.Count} entries");
+            await Task.WhenAll(hasExpensesTask, hasEventsTask, hasDocumentsTask);
 
-            _recentDocuments = await DocumentService.GetRecentDocumentsAsync(3);
-            Console.WriteLine($"[Home] Recent documents loaded: {_recentDocuments.Count}");
+            _hasExpenses = hasExpensesTask.Result;
+            _hasUpcomingEvents = hasEventsTask.Result;
+            _hasDocuments = hasDocumentsTask.Result;
 
-            // Check if there are any expenses
-            var allExpenses = await ExpenseService.GetAllExpensesAsync();
-            _hasExpenses = allExpenses.Any();
-            Console.WriteLine($"[Home] Has expenses: {_hasExpenses}");
-
-            // Determine if this is a new user (no data anywhere)
-            var allEvents = await ScheduleService.GetUpcomingEventsAsync(100);
-            _isNewUser = !allEvents.Any() && !_hasExpenses && !_recentDocuments.Any();
+            // Determine if this is a new user
+            _isNewUser = !_hasExpenses && !_hasUpcomingEvents && !_hasDocuments;
             Console.WriteLine($"[Home] Is new user: {_isNewUser}");
+
+            if (!_isNewUser)
+            {
+                // If the user has data, fetch the specifics needed for the dashboard in parallel
+                var upcomingEventsTask = _hasUpcomingEvents ? ScheduleService.GetUpcomingEventsAsync(3) : Task.FromResult(new List<Event>());
+                var balancesTask = _hasExpenses ? ExpenseService.GetBalancesAsync() : Task.FromResult(new Dictionary<string, decimal>());
+                var recentDocumentsTask = _hasDocuments ? DocumentService.GetRecentDocumentsAsync(3) : Task.FromResult(new List<Document>());
+                
+                await Task.WhenAll(upcomingEventsTask, balancesTask, recentDocumentsTask);
+
+                _upcomingEvents = upcomingEventsTask.Result;
+                _balances = balancesTask.Result;
+                _recentDocuments = recentDocumentsTask.Result;
+
+                Console.WriteLine($"[Home] Upcoming events loaded: {_upcomingEvents.Count}");
+                Console.WriteLine($"[Home] Balances loaded: {_balances.Count} entries");
+                Console.WriteLine($"[Home] Recent documents loaded: {_recentDocuments.Count}");
+            }
         }
         catch (Exception ex)
         {

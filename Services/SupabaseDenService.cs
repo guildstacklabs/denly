@@ -411,13 +411,20 @@ public class SupabaseDenService : IDenService
         _cachedMembers = members.Select(member => member.Clone()).ToList();
     }
 
-    private void ClearCaches()
+    public void InvalidateMembersCache()
     {
         _cachedMembers = null;
         _cachedMembersDenId = null;
-        _profileCache.Clear();
         _memberCacheUpdatedAtUtc = default;
+        // Also clear profile cache as it's related
+        _profileCache.Clear();
         _profileCacheUpdatedAtUtc = default;
+        Console.WriteLine("[DenService] Member and profile caches invalidated.");
+    }
+
+    private void ClearCaches()
+    {
+        InvalidateMembersCache();
     }
 
     public async Task<Dictionary<string, Profile>> GetProfilesAsync(List<string> userIds)
@@ -471,6 +478,8 @@ public class SupabaseDenService : IDenService
             .From<DenMember>()
             .Where(m => m.DenId == denId && m.UserId == userId)
             .Delete();
+        
+        InvalidateMembersCache();
     }
 
     public async Task<bool> IsOwnerAsync(string? denId = null)
@@ -689,6 +698,7 @@ public class SupabaseDenService : IDenService
                 .From<DenMember>()
                 .Insert(member);
             Console.WriteLine("[DenService] JoinDenAsync - member inserted successfully");
+            InvalidateMembersCache();
 
             // Mark invite as used
             Console.WriteLine("[DenService] JoinDenAsync - marking invite as used");

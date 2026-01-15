@@ -1,15 +1,33 @@
 using Denly.Models;
 namespace Denly.Services;
 
-public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
+public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDisposable
 {
     private const string ReceiptsBucket = "receipts";
     private readonly IStorageService _storageService;
+    private const int CacheTtlMinutes = 5;
+    private Dictionary<string, decimal>? _balancesCache;
+    private DateTime _balancesCacheTime;
+    private string? _balancesCacheDenId;
 
     public SupabaseExpenseService(IDenService denService, IAuthService authService, IStorageService storageService)
         : base(denService, authService)
     {
         _storageService = storageService;
+        DenService.DenChanged += OnDenChanged;
+    }
+
+    private void OnDenChanged(object? sender, DenChangedEventArgs e)
+    {
+        InvalidateBalanceCache();
+    }
+
+    public void InvalidateBalanceCache()
+    {
+        _balancesCache = null;
+        _balancesCacheTime = default;
+        _balancesCacheDenId = null;
+        Console.WriteLine("[ExpenseService] Balances cache invalidated.");
     }
 
     public async Task<List<Expense>> GetAllExpensesAsync(CancellationToken cancellationToken = default)
@@ -175,6 +193,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
                 Console.WriteLine($"[ExpenseService] Error inserting expense: {ex.Message}");
             }
         }
+        InvalidateBalanceCache();
     }
 
     public async Task DeleteExpenseAsync(string id, CancellationToken cancellationToken = default)
@@ -199,6 +218,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
                 .Where(e => e.Id == id)
                 .Delete();
             Console.WriteLine("[ExpenseService] Expense deleted successfully");
+            InvalidateBalanceCache();
         }
         catch (OperationCanceledException)
         {
@@ -216,9 +236,15 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
         cancellationToken.ThrowIfCancellationRequested();
 
         var denId = DenService.GetCurrentDenId();
-        var balances = new Dictionary<string, decimal>();
+        if (string.IsNullOrEmpty(denId)) return new Dictionary<string, decimal>();
 
-        if (string.IsNullOrEmpty(denId)) return balances;
+        if (_balancesCache != null && _balancesCacheDenId == denId && DateTime.UtcNow - _balancesCacheTime < TimeSpan.FromMinutes(CacheTtlMinutes))
+        {
+            Console.WriteLine("[ExpenseService] Returning cached balances.");
+            return _balancesCache;
+        }
+
+        var balances = new Dictionary<string, decimal>();
 
         try
         {
@@ -248,6 +274,11 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
                 // Positive balance = owed money, negative = owes money
                 balances[memberId] = paid - fairShare;
             }
+
+            _balancesCache = balances;
+            _balancesCacheDenId = denId;
+            _balancesCacheTime = DateTime.UtcNow;
+            Console.WriteLine("[ExpenseService] Balances fetched and cached.");
 
             return balances;
         }
@@ -389,6 +420,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
                     .Update();
             }
             Console.WriteLine($"[ExpenseService] Marked {unsettled.Models.Count} expenses as settled");
+            InvalidateBalanceCache();
         }
         catch (OperationCanceledException)
         {
@@ -438,5 +470,34 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService
         Console.WriteLine("[ExpenseService] Deleting receipt");
         await _storageService.DeleteAsync(ReceiptsBucket, receiptUrl, cancellationToken);
         Console.WriteLine("[ExpenseService] Receipt deleted successfully");
+    }
+
+    public async Task<bool> HasExpensesAsync()
+    {
+        await EnsureInitializedAsync();
+        var denId = DenService.GetCurrentDenId();
+        if (denId == null) return false;
+
+        try
+        {
+            var result = await SupabaseClient!
+                .From<Expense>()
+                .Select("id")
+                .Filter("den_id", Supabase.Postgrest.Constants.Operator.Equals, denId)
+                .Limit(1)
+                .Get();
+
+            return result.Models.Count > 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ExpenseService] Error checking for expenses: {ex.Message}");
+            return false;
+        }
+    }
+
+    public void Dispose()
+    {
+        DenService.DenChanged -= OnDenChanged;
     }
 }

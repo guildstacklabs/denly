@@ -13,4 +13,5 @@ public interface IExpenseService
     Task<Settlement> CreateSettlementAsync(decimal amount, string fromUserId, string toUserId, string? note = null, CancellationToken cancellationToken = default);
     Task<string> SaveReceiptAsync(Stream imageStream, string fileName, CancellationToken cancellationToken = default);
     Task DeleteReceiptAsync(string receiptPath, CancellationToken cancellationToken = default);
+    Task<bool> HasExpensesAsync();
 }

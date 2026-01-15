@@ -1,3 +1,6 @@
+using SkiaSharp;
+using System.IO;
+
 namespace Denly.Services;
 
 /// <summary>
@@ -6,11 +9,58 @@ namespace Denly.Services;
 public class SupabaseStorageService : IStorageService
 {
     private readonly IAuthService _authService;
+    private const int MaxImageDimension = 1024;
+    private const int JpegQuality = 80;
 
     public SupabaseStorageService(IAuthService authService)
     {
         _authService = authService;
     }
+
+    private Stream CompressImageIfNeeded(Stream input, string fileName)
+    {
+        var extension = Path.GetExtension(fileName)?.ToLowerInvariant();
+        if (extension != ".jpg" && extension != ".jpeg" && extension != ".png")
+        {
+            return input;
+        }
+
+        // We need a seekable stream for SkiaSharp to decode. If the input isn't, copy it.
+        var memoryStream = new MemoryStream();
+        input.CopyTo(memoryStream);
+        memoryStream.Position = 0;
+
+        using var original = SKBitmap.Decode(memoryStream);
+        if (original == null)
+        {
+            memoryStream.Position = 0;
+            return memoryStream; // Not a valid image, upload original
+        }
+
+        var maxDim = Math.Max(original.Width, original.Height);
+        if (maxDim <= MaxImageDimension)
+        {
+            memoryStream.Position = 0;
+            return memoryStream; // Already small enough
+        }
+
+        var scale = (float)MaxImageDimension / maxDim;
+        var newWidth = (int)(original.Width * scale);
+        var newHeight = (int)(original.Height * scale);
+
+        using var resized = original.Resize(new SKImageInfo(newWidth, newHeight), SKFilterQuality.Medium);
+        if (resized == null)
+        {
+            memoryStream.Position = 0;
+            return memoryStream; // Resize failed, upload original
+        }
+        using var image = SKImage.FromBitmap(resized);
+        
+        // Encode to JPEG for best compression, even for PNGs.
+        var data = image.Encode(SKEncodedImageFormat.Jpeg, JpegQuality);
+        return data.AsStream();
+    }
+
 
     public async Task<string> UploadAsync(string bucket, Stream stream, string fileName, string? pathPrefix = null, CancellationToken cancellationToken = default)
     {
@@ -22,9 +72,14 @@ public class SupabaseStorageService : IStorageService
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        // Generate unique file name
-        var extension = Path.GetExtension(fileName);
-        var uniqueName = $"{Guid.NewGuid()}{extension}";
+        // Compress the stream if it's an image
+        using var compressedStream = CompressImageIfNeeded(stream, fileName);
+
+        // Generate unique file name, preferring jpg for compressed images
+        var extension = Path.GetExtension(fileName)?.ToLowerInvariant();
+        var isCompressed = extension is ".jpg" or ".jpeg" or ".png";
+        var finalExtension = isCompressed ? ".jpg" : extension;
+        var uniqueName = $"{Guid.NewGuid()}{finalExtension}";
 
         if (!string.IsNullOrEmpty(pathPrefix))
         {
@@ -33,7 +88,7 @@ public class SupabaseStorageService : IStorageService
 
         // Read stream to byte array
         using var memoryStream = new MemoryStream();
-        await stream.CopyToAsync(memoryStream, cancellationToken);
+        await compressedStream.CopyToAsync(memoryStream, cancellationToken);
         var bytes = memoryStream.ToArray();
 
         cancellationToken.ThrowIfCancellationRequested();

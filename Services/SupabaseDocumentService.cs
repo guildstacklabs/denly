@@ -77,38 +77,34 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
 
     public async Task<List<Document>> SearchDocumentsAsync(string searchTerm, CancellationToken cancellationToken = default)
     {
+        await EnsureInitializedAsync();
         var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId)) return new List<Document>();
 
-        await EnsureInitializedAsync();
         cancellationToken.ThrowIfCancellationRequested();
+
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            return await GetAllDocumentsAsync(cancellationToken); // Return all if no query
 
         try
         {
-            var response = await SupabaseClient!
-                .From<Document>()
-                .Where(d => d.DenId == denId)
-                .Get();
+            var result = await SupabaseClient!
+               .From<Document>()
+               .Select("id, den_id, title, category, file_url, created_at, uploaded_by")
+               .Filter("den_id", Supabase.Postgrest.Constants.Operator.Equals, denId)
+               .Filter("title", Supabase.Postgrest.Constants.Operator.ILike, $"%{searchTerm}%")
+               .Order("created_at", Supabase.Postgrest.Constants.Ordering.Descending)
+               .Get();
 
-            var documents = response.Models;
-
-            if (string.IsNullOrWhiteSpace(searchTerm))
-                return documents.OrderBy(d => d.Folder).ThenBy(d => d.Title).ToList();
-
-            var term = searchTerm.ToLowerInvariant();
-            return documents
-                .Where(d => d.Title.ToLowerInvariant().Contains(term) ||
-                           (d.FileName?.ToLowerInvariant().Contains(term) ?? false))
-                .OrderBy(d => d.Folder)
-                .ThenBy(d => d.Title)
-                .ToList();
+            return result.Models;
         }
         catch (OperationCanceledException)
         {
             throw;
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"[DocumentService] Error searching documents: {ex.Message}");
             return new List<Document>();
         }
     }
@@ -260,5 +256,49 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
         }
 
         return counts;
+    }
+
+    public async Task<bool> HasDocumentsAsync()
+    {
+        await EnsureInitializedAsync();
+        var denId = DenService.GetCurrentDenId();
+        if (denId == null) return false;
+
+        try
+        {
+            var result = await SupabaseClient!
+                .From<Document>()
+                .Select("id")
+                .Filter("den_id", Supabase.Postgrest.Constants.Operator.Equals, denId)
+                .Limit(1)
+                .Get();
+
+            return result.Models.Count > 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DocumentService] Error checking for documents: {ex.Message}");
+            return false;
+        }
+    }
+
+    public async Task<string> UploadDocumentAsync(Stream stream, string fileName, CancellationToken cancellationToken = default)
+    {
+        var denId = DenService.GetCurrentDenId();
+        if (string.IsNullOrEmpty(denId))
+        {
+            throw new InvalidOperationException("No den selected for document upload.");
+        }
+
+        try
+        {
+            var url = await _storageService.UploadAsync(DocumentsBucket, stream, fileName, denId, cancellationToken);
+            return url;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DocumentService] Error uploading document: {ex.Message}");
+            throw;
+        }
     }
 }

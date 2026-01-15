@@ -335,4 +335,30 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
             evt.EndsAt = evt.EndsAt.Value.ToLocalTime();
         }
     }
+
+    public async Task<bool> HasUpcomingEventsAsync()
+    {
+        await EnsureInitializedAsync();
+        var denId = DenService.GetCurrentDenId();
+        if (denId == null) return false;
+
+        try
+        {
+            var now = DateTime.UtcNow;
+            var result = await SupabaseClient!
+                .From<Event>()
+                .Select("id")
+                .Filter("den_id", Supabase.Postgrest.Constants.Operator.Equals, denId)
+                .Filter("starts_at", Supabase.Postgrest.Constants.Operator.GreaterThanOrEqual, now.ToString("o"))
+                .Limit(1)
+                .Get();
+
+            return result.Models.Count > 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ScheduleService] Error checking for upcoming events: {ex.Message}");
+            return false;
+        }
+    }
 }

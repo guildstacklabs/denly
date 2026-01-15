@@ -12,4 +12,6 @@ public interface IDocumentService
     Task SaveDocumentAsync(Document document, CancellationToken cancellationToken = default);
     Task DeleteDocumentAsync(string id, CancellationToken cancellationToken = default);
     Task<Dictionary<DocumentFolder, int>> GetFolderCountsAsync(CancellationToken cancellationToken = default);
+    Task<bool> HasDocumentsAsync();
+    Task<string> UploadDocumentAsync(Stream stream, string fileName, CancellationToken cancellationToken = default);
 }

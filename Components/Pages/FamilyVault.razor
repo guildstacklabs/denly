@@ -29,7 +29,7 @@
                placeholder="Search documents..."
                @bind="SearchTerm"
                @bind:event="oninput"
-               @onkeyup="OnSearchChanged" />
+               @bind:after="OnSearchInput" />
         @if (!string.IsNullOrEmpty(SearchTerm))
         {
             <button class="clear-search" @onclick="ClearSearch">
@@ -46,7 +46,7 @@
         <button class="folder-tab @(SelectedFolder == null ? "active" : "")"
                 @onclick="() => SelectFolder(null)">
             All
-            <span class="tab-count">@_documents.Count</span>
+            <span class="tab-count">@_folderCounts.Values.Sum()</span>
         </button>
         @foreach (DocumentFolder folder in Enum.GetValues<DocumentFolder>())
         {
@@ -76,7 +76,7 @@
             @if (string.IsNullOrEmpty(SearchTerm) && SelectedFolder == null)
             {
                 <!-- Grouped by folder -->
-                @foreach (var group in _filteredDocuments.GroupBy(d => d.Folder))
+                @foreach (var group in _filteredDocuments.GroupBy(d => d.Folder).OrderBy(g => g.Key))
                 {
                     <div class="folder-group">
                         <div class="folder-header" style="--folder-color: @group.Key.GetColor()">
@@ -85,7 +85,7 @@
                             <span class="folder-count">@group.Count()</span>
                         </div>
                         <div class="documents-list">
-                            @foreach (var doc in group)
+                            @foreach (var doc in group.OrderByDescending(d => d.CreatedAt))
                             {
                                 <div class="document-card" @onclick="() => OpenViewDocumentModal(doc)">
                                     <div class="document-icon" style="background-color: @doc.Folder.GetColor()20; color: @doc.Folder.GetColor()">
@@ -114,7 +114,7 @@
             {
                 <!-- Flat list for search/filter results -->
                 <div class="documents-list">
-                    @foreach (var doc in _filteredDocuments)
+                    @foreach (var doc in _filteredDocuments.OrderByDescending(d => d.CreatedAt))
                     {
                         <div class="document-card" @onclick="() => OpenViewDocumentModal(doc)">
                             <div class="document-icon" style="background-color: @doc.Folder.GetColor()20; color: @doc.Folder.GetColor()">
@@ -407,6 +407,8 @@
     private bool IsEditing;
     private Document? ViewingDocument;
     private Document EditingDocument = new();
+    
+    private Timer? _searchDebouncer;
 
     // Temporary file info before upload
     private string? _pendingFilePath;
@@ -416,6 +418,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _searchDebouncer = new Timer(async _ => await TriggerSearch(), null, Timeout.Infinite, Timeout.Infinite);
         try
         {
             Connectivity.ConnectivityChanged += OnConnectivityChanged;
@@ -436,9 +439,39 @@
 
     private async Task LoadData()
     {
+        _isLoading = true;
         _documents = await DocumentService.GetAllDocumentsAsync();
         _folderCounts = await DocumentService.GetFolderCountsAsync();
         ApplyFilters();
+        _isLoading = false;
+    }
+
+    private void OnSearchInput()
+    {
+        // SearchTerm is already updated by @bind, just trigger debounce
+        _searchDebouncer?.Change(300, Timeout.Infinite);
+    }
+
+    private async Task TriggerSearch()
+    {
+        await InvokeAsync(async () =>
+        {
+            _isLoading = true;
+            StateHasChanged();
+
+            if (string.IsNullOrWhiteSpace(SearchTerm))
+            {
+                _documents = await DocumentService.GetAllDocumentsAsync();
+            }
+            else
+            {
+                _documents = await DocumentService.SearchDocumentsAsync(SearchTerm);
+            }
+            ApplyFilters();
+            
+            _isLoading = false;
+            StateHasChanged();
+        });
     }
 
     private void ApplyFilters()
@@ -449,15 +482,7 @@
         {
             filtered = filtered.Where(d => d.Folder == SelectedFolder);
         }
-
-        if (!string.IsNullOrWhiteSpace(SearchTerm))
-        {
-            var term = SearchTerm.ToLowerInvariant();
-            filtered = filtered.Where(d =>
-                d.Title.ToLowerInvariant().Contains(term) ||
-                (d.FileName?.ToLowerInvariant().Contains(term) ?? false));
-        }
-
+        
         _filteredDocuments = filtered.ToList();
     }
 
@@ -465,17 +490,13 @@
     {
         SelectedFolder = folder;
         ApplyFilters();
+        StateHasChanged();
     }
 
-    private void OnSearchChanged()
-    {
-        ApplyFilters();
-    }
-
-    private void ClearSearch()
+    private async Task ClearSearch()
     {
         SearchTerm = string.Empty;
-        ApplyFilters();
+        await TriggerSearch();
     }
 
     private void OpenAddDocumentModal()
@@ -547,18 +568,20 @@
         if (!IsValidDocument)
             return;
 
-        // If there's a pending file, we need to upload it
-        // For now, we'll set the FileUrl to the local path
-        // In production, this would upload to Supabase Storage
         if (!string.IsNullOrEmpty(_pendingFilePath))
         {
-            EditingDocument.FileUrl = _pendingFilePath;
+             using var stream = File.OpenRead(_pendingFilePath);
+             var url = await DocumentService.UploadDocumentAsync(stream, _pendingFileName!);
+             EditingDocument.FileUrl = url;
+             // FileName is computed from FileUrl, no need to set it
         }
 
         await DocumentService.SaveDocumentAsync(EditingDocument);
         CloseModal();
         await LoadData();
     }
+
+
 
     private void ShowDeleteConfirmation()
     {
@@ -661,5 +684,6 @@
     public void Dispose()
     {
         Connectivity.ConnectivityChanged -= OnConnectivityChanged;
+        _searchDebouncer?.Dispose();
     }
 }
