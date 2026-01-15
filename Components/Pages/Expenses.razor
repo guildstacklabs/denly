@@ -4,12 +4,14 @@
 @inject IExpenseService ExpenseService
 @inject IDenService DenService
 @inject IAuthService AuthService
+@inject IConnectivity Connectivity
+@implements IDisposable
 
 <div class="expenses-page">
     <!-- Header with Balance -->
     <div class="page-header">
         <h1>Shared Costs</h1>
-        <button class="add-btn" @onclick="OpenAddExpenseModal" disabled="@_isLoading">
+        <button class="add-btn" @onclick="OpenAddExpenseModal" disabled="@(!_isOnline || _isLoading)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -44,7 +46,7 @@
         <div class="balance-note">Based on equal split</div>
         @if (_totalOwed > 0 && !string.IsNullOrEmpty(_owesFromId) && !string.IsNullOrEmpty(_owesToId))
         {
-            <button class="settle-up-btn" @onclick="OpenSettleUpModal">Settle Up</button>
+            <button class="settle-up-btn" @onclick="OpenSettleUpModal" disabled="@(!_isOnline)">Settle Up</button>
         }
     </div>
 
@@ -121,7 +123,7 @@
             <div class="no-expenses">
                 <p>No shared expenses yet</p>
                 <span class="empty-hint">Start tracking costs together</span>
-                <button class="add-expense-link" @onclick="OpenAddExpenseModal">Add your first expense</button>
+                <button class="add-expense-link" @onclick="OpenAddExpenseModal" disabled="@(!_isOnline)">Add your first expense</button>
             </div>
         }
     </div>
@@ -177,7 +179,7 @@
                         {
                             <div class="receipt-preview">
                                 <img src="@EditingExpense.ReceiptUrl" alt="Receipt" />
-                                <button class="remove-receipt-btn" @onclick="RemoveReceipt" type="button">
+                                <button class="remove-receipt-btn" @onclick="RemoveReceipt" type="button" disabled="@(!_isOnline)">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <line x1="18" y1="6" x2="6" y2="18"></line>
                                         <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -188,14 +190,14 @@
                         else
                         {
                             <div class="receipt-buttons">
-                                <button class="receipt-btn" @onclick="TakePhoto" type="button">
+                                <button class="receipt-btn" @onclick="TakePhoto" type="button" disabled="@(!_isOnline)">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                                         <circle cx="12" cy="13" r="4"></circle>
                                     </svg>
                                     Camera
                                 </button>
-                                <button class="receipt-btn" @onclick="PickFromGallery" type="button">
+                                <button class="receipt-btn" @onclick="PickFromGallery" type="button" disabled="@(!_isOnline)">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                                         <circle cx="8.5" cy="8.5" r="1.5"></circle>
@@ -212,10 +214,10 @@
             <div class="modal-footer">
                 @if (IsEditing)
                 {
-                    <button class="delete-btn" @onclick="ShowDeleteConfirmation">Delete</button>
+                    <button class="delete-btn" @onclick="ShowDeleteConfirmation" disabled="@(!_isOnline)">Delete</button>
                 }
                 <button class="cancel-btn" @onclick="CloseModal">Cancel</button>
-                <button class="save-btn" @onclick="SaveExpense" disabled="@(!IsValidExpense)">
+                <button class="save-btn" @onclick="SaveExpense" disabled="@(!IsValidExpense || !_isOnline)">
                     @(IsEditing ? "Save" : "Add Expense")
                 </button>
             </div>
@@ -238,7 +240,7 @@
             <p class="confirm-text">This can't be undone.</p>
             <div class="confirm-actions">
                 <button class="cancel-btn" @onclick="CancelDelete">Cancel</button>
-                <button class="delete-confirm-btn" @onclick="ConfirmDelete">Delete</button>
+                <button class="delete-confirm-btn" @onclick="ConfirmDelete" disabled="@(!_isOnline)">Delete</button>
             </div>
         </div>
     </div>
@@ -280,7 +282,7 @@
 
             <div class="modal-footer">
                 <button class="cancel-btn" @onclick="CloseSettleUpModal">Cancel</button>
-                <button class="save-btn" @onclick="ConfirmSettlement">Confirm Settlement</button>
+                <button class="save-btn" @onclick="ConfirmSettlement" disabled="@(!_isOnline)">Confirm Settlement</button>
             </div>
         </div>
     </div>
@@ -300,6 +302,7 @@
     private string? _currentUserId;
 
     private bool _isLoading = true;
+    private bool _isOnline = true;
 
     private bool ShowExpenseModal;
     private bool ShowSettleUpModal;
@@ -316,6 +319,9 @@
     {
         try
         {
+            Connectivity.ConnectivityChanged += OnConnectivityChanged;
+            _isOnline = Connectivity.NetworkAccess == NetworkAccess.Internet;
+
             var user = await AuthService.GetCurrentUserAsync();
             _currentUserId = user?.Id;
             await LoadData();
@@ -324,6 +330,12 @@
         {
             _isLoading = false;
         }
+    }
+
+    private void OnConnectivityChanged(object? sender, ConnectivityChangedEventArgs e)
+    {
+        _isOnline = e.NetworkAccess == NetworkAccess.Internet;
+        InvokeAsync(StateHasChanged);
     }
 
     private async Task LoadData()
@@ -519,6 +531,11 @@
         await ExpenseService.CreateSettlementAsync(_totalOwed, _owesFromId, _owesToId);
         CloseSettleUpModal();
         await LoadData();
+    }
+
+    public void Dispose()
+    {
+        Connectivity.ConnectivityChanged -= OnConnectivityChanged;
     }
 
     private class HistoryEntry

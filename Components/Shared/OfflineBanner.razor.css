@@ -1,0 +1,29 @@
+.offline-banner {
+    background-color: #ffc107; /* A pleasant yellow/orange */
+    color: #333;
+    text-align: center;
+    padding: 0.5rem 1rem;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+}
+
+.offline-banner.hidden {
+    display: none;
+}
+
+.dismiss-button {
+    background: none;
+    border: none;
+    color: #333;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 0.5rem;
+}

@@ -2,6 +2,8 @@
 @using Denly.Models
 @using Denly.Services
 @inject IScheduleService ScheduleService
+@inject IConnectivity Connectivity
+@implements IDisposable
 
 <div class="schedule-page">
     <!-- Month Navigation -->
@@ -59,7 +61,7 @@
         <div class="day-events">
             <div class="day-events-header">
                 <h3>@SelectedDate.Value.ToString("dddd, MMM d")</h3>
-                <button class="add-btn" @onclick="OpenAddEventModal">
+                <button class="add-btn" @onclick="OpenAddEventModal" disabled="@(!_isOnline)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="12" y1="5" x2="12" y2="19"></line>
                         <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -184,10 +186,10 @@
             <div class="modal-footer">
                 @if (IsEditing)
                 {
-                    <button class="delete-btn" @onclick="ShowDeleteConfirmation">Delete</button>
+                    <button class="delete-btn" @onclick="ShowDeleteConfirmation" disabled="@(!_isOnline)">Delete</button>
                 }
                 <button class="cancel-btn" @onclick="CloseModal">Cancel</button>
-                <button class="save-btn" @onclick="SaveEvent" disabled="@string.IsNullOrWhiteSpace(EditingEvent.Title)">
+                <button class="save-btn" @onclick="SaveEvent" disabled="@(string.IsNullOrWhiteSpace(EditingEvent.Title) || !_isOnline)">
                     @(IsEditing ? "Save" : "Add Event")
                 </button>
             </div>
@@ -210,7 +212,7 @@
             <p class="confirm-text">This can't be undone.</p>
             <div class="confirm-actions">
                 <button class="cancel-btn" @onclick="CancelDelete">Cancel</button>
-                <button class="delete-confirm-btn" @onclick="ConfirmDelete">Delete</button>
+                <button class="delete-confirm-btn" @onclick="ConfirmDelete" disabled="@(!_isOnline)">Delete</button>
             </div>
         </div>
     </div>
@@ -225,6 +227,7 @@
 
     private bool _isLoading = true;
     private bool _isLoadingMonth;
+    private bool _isOnline = true;
 
     private bool ShowEventModal;
     private bool ShowDeleteModal;
@@ -243,12 +246,20 @@
         SelectedDate = DateTime.Today;
         try
         {
+            Connectivity.ConnectivityChanged += OnConnectivityChanged;
+            _isOnline = Connectivity.NetworkAccess == NetworkAccess.Internet;
             await LoadMonthData();
         }
         finally
         {
             _isLoading = false;
         }
+    }
+
+    private void OnConnectivityChanged(object? sender, ConnectivityChangedEventArgs e)
+    {
+        _isOnline = e.NetworkAccess == NetworkAccess.Internet;
+        InvokeAsync(StateHasChanged);
     }
 
     private async Task LoadMonthData()
@@ -481,6 +492,11 @@
     {
         var dt = DateTime.Today.Add(time);
         return dt.ToString("h:mm tt");
+    }
+
+    public void Dispose()
+    {
+        Connectivity.ConnectivityChanged -= OnConnectivityChanged;
     }
 
     private class CalendarDay

@@ -1,0 +1,55 @@
+@inject IConnectivity Connectivity
+@inject NavigationManager NavigationManager
+@implements IDisposable
+
+@if (!_isOnline)
+{
+    <div class="offline-banner @(_dismissed ? "hidden" : "")">
+        <span>You're offline. Changes can't be saved.</span>
+        <button @onclick="Dismiss" class="dismiss-button">×</button>
+    </div>
+}
+
+@code {
+    private bool _isOnline = true;
+    private bool _dismissed = false;
+
+    protected override void OnInitialized()
+    {
+        _isOnline = Connectivity.NetworkAccess == NetworkAccess.Internet;
+        Connectivity.ConnectivityChanged += OnConnectivityChanged;
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        // Re-show banner on navigation
+        if (_dismissed)
+        {
+            _dismissed = false;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void OnConnectivityChanged(object? sender, ConnectivityChangedEventArgs e)
+    {
+        var newIsOnline = e.NetworkAccess == NetworkAccess.Internet;
+        if (newIsOnline != _isOnline)
+        {
+            _isOnline = newIsOnline;
+            _dismissed = false; // Always show banner when connectivity state changes
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void Dismiss()
+    {
+        _dismissed = true;
+    }
+
+    public void Dispose()
+    {
+        Connectivity.ConnectivityChanged -= OnConnectivityChanged;
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+}

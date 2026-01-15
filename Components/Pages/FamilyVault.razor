@@ -2,12 +2,14 @@
 @using Denly.Models
 @using Denly.Services
 @inject IDocumentService DocumentService
+@inject IConnectivity Connectivity
+@implements IDisposable
 
 <div class="vault-page">
     <!-- Header -->
     <div class="page-header">
         <h1>Family Vault</h1>
-        <button class="add-btn" @onclick="OpenAddDocumentModal">
+        <button class="add-btn" @onclick="OpenAddDocumentModal" disabled="@(!_isOnline)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -166,7 +168,7 @@
                     <p>Your vault is empty</p>
                     <span class="empty-hint">Keep important family documents safe here</span>
                 }
-                <button class="add-document-link" @onclick="OpenAddDocumentModal">Add your first document</button>
+                <button class="add-document-link" @onclick="OpenAddDocumentModal" disabled="@(!_isOnline)">Add your first document</button>
             </div>
         }
     </div>
@@ -211,8 +213,8 @@
             </div>
 
             <div class="modal-footer">
-                <button class="delete-btn" @onclick="ShowDeleteConfirmation">Delete</button>
-                <button class="edit-btn" @onclick="OpenEditDocumentModal">Edit</button>
+                <button class="delete-btn" @onclick="ShowDeleteConfirmation" disabled="@(!_isOnline)">Delete</button>
+                <button class="edit-btn" @onclick="OpenEditDocumentModal" disabled="@(!_isOnline)">Edit</button>
             </div>
         </div>
     </div>
@@ -233,7 +235,7 @@
             <p class="confirm-text">This can't be undone.</p>
             <div class="confirm-actions">
                 <button class="cancel-btn" @onclick="CancelDelete">Cancel</button>
-                <button class="delete-confirm-btn" @onclick="ConfirmDelete">Delete</button>
+                <button class="delete-confirm-btn" @onclick="ConfirmDelete" disabled="@(!_isOnline)">Delete</button>
             </div>
         </div>
     </div>
@@ -256,7 +258,7 @@
 
             <div class="modal-body">
                 <div class="source-options">
-                    <button class="source-option" @onclick="TakePhoto">
+                    <button class="source-option" @onclick="TakePhoto" disabled="@(!_isOnline)">
                         <div class="source-icon camera">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
@@ -269,7 +271,7 @@
                         </div>
                     </button>
 
-                    <button class="source-option" @onclick="PickFromGallery">
+                    <button class="source-option" @onclick="PickFromGallery" disabled="@(!_isOnline)">
                         <div class="source-icon gallery">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -283,7 +285,7 @@
                         </div>
                     </button>
 
-                    <button class="source-option" @onclick="PickFromFiles">
+                    <button class="source-option" @onclick="PickFromFiles" disabled="@(!_isOnline)">
                         <div class="source-icon files">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -336,7 +338,7 @@
                                 <span>@(_pendingFileName ?? EditingDocument.FileName)</span>
                             </div>
                         }
-                        <button class="change-file-btn" @onclick="ChangeFile">Change</button>
+                        <button class="change-file-btn" @onclick="ChangeFile" disabled="@(!_isOnline)">Change</button>
                     </div>
                 }
 
@@ -364,7 +366,7 @@
                     <div class="form-group">
                         <label>File (optional)</label>
                         <div class="file-input-wrapper">
-                            <button class="file-select-btn" @onclick="OpenSourcePicker">
+                            <button class="file-select-btn" @onclick="OpenSourcePicker" disabled="@(!_isOnline)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                     <polyline points="17 8 12 3 7 8"></polyline>
@@ -379,7 +381,7 @@
 
             <div class="modal-footer">
                 <button class="cancel-btn" @onclick="CloseModal">Cancel</button>
-                <button class="save-btn" @onclick="SaveDocument" disabled="@(!IsValidDocument)">
+                <button class="save-btn" @onclick="SaveDocument" disabled="@(!IsValidDocument || !_isOnline)">
                     @(IsEditing ? "Save" : "Add Document")
                 </button>
             </div>
@@ -393,6 +395,7 @@
     private Dictionary<DocumentFolder, int> _folderCounts = new();
 
     private bool _isLoading = true;
+    private bool _isOnline = true;
 
     private string SearchTerm = string.Empty;
     private DocumentFolder? SelectedFolder;
@@ -415,12 +418,20 @@
     {
         try
         {
+            Connectivity.ConnectivityChanged += OnConnectivityChanged;
+            _isOnline = Connectivity.NetworkAccess == NetworkAccess.Internet;
             await LoadData();
         }
         finally
         {
             _isLoading = false;
         }
+    }
+
+    private void OnConnectivityChanged(object? sender, ConnectivityChangedEventArgs e)
+    {
+        _isOnline = e.NetworkAccess == NetworkAccess.Internet;
+        InvokeAsync(StateHasChanged);
     }
 
     private async Task LoadData()
@@ -645,5 +656,10 @@
 
         var extension = Path.GetExtension(fileName).ToLowerInvariant();
         return extension is ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" or ".webp" or ".heic";
+    }
+
+    public void Dispose()
+    {
+        Connectivity.ConnectivityChanged -= OnConnectivityChanged;
     }
 }
