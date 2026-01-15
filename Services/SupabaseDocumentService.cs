@@ -11,14 +11,16 @@ public class SupabaseDocumentService : IDocumentService
     private readonly IDenService _denService;
     private readonly IAuthService _authService;
     private readonly DenlyOptions _options;
+    private readonly IClock _clock;
     private Supabase.Client? _supabase;
     private bool _isInitialized;
 
-    public SupabaseDocumentService(IDenService denService, IAuthService authService, IOptions<DenlyOptions> options)
+    public SupabaseDocumentService(IDenService denService, IAuthService authService, IOptions<DenlyOptions> options, IClock clock)
     {
         _denService = denService;
         _authService = authService;
         _options = options.Value;
+        _clock = clock;
     }
 
     private async Task EnsureInitializedAsync()
@@ -190,7 +192,7 @@ public class SupabaseDocumentService : IDocumentService
         else
         {
             document.UploadedBy = user.Id;
-            document.CreatedAt = DateTime.UtcNow;
+            document.CreatedAt = _clock.UtcNow;
 
             await _supabase!
                 .From<Document>()

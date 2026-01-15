@@ -65,6 +65,8 @@ which is a security and privacy risk.
 ## 5) Introduce `IClock` for Time Handling
 **Problem:** Services directly call `DateTime.UtcNow`, which makes tests brittle.
 
+**Status:** ✅ Implemented with `IClock` injection and `SystemClock`.
+
 **Recommendation:**
 - Inject an `IClock` abstraction:
   ```csharp

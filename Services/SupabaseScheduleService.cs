@@ -115,7 +115,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
         try
         {
-            var now = DateTime.UtcNow;
+            var now = _clock.UtcNow;
 
             var response = await SupabaseClient!
                 .From<Event>()

@@ -125,11 +125,23 @@ public class SupabaseAuthService : IAuthService
 
     public Task<bool> IsAuthenticatedAsync()
     {
+        if (!string.IsNullOrEmpty(_initializationError))
+        {
+            Console.WriteLine($"[AuthService] IsAuthenticatedAsync - initialization error: {_initializationError}");
+            return Task.FromResult(false);
+        }
+
         return Task.FromResult(_supabase?.Auth.CurrentUser != null);
     }
 
     public Task<AppUser?> GetCurrentUserAsync()
     {
+        if (!string.IsNullOrEmpty(_initializationError))
+        {
+            Console.WriteLine($"[AuthService] GetCurrentUserAsync - initialization error: {_initializationError}");
+            return Task.FromResult<AppUser?>(null);
+        }
+
         var user = _supabase?.Auth.CurrentUser;
         return Task.FromResult(user != null ? MapToAppUser(user) : null);
     }

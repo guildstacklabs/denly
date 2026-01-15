@@ -16,6 +16,7 @@ public class SupabaseDenService : IDenService
     private static readonly TimeSpan MemberCacheTtl = TimeSpan.FromMinutes(5);
 
     private readonly IAuthService _authService;
+    private readonly IClock _clock;
     private string? _currentDenId;
     private bool _isInitialized;
     private List<DenMember>? _cachedMembers;
@@ -29,9 +30,10 @@ public class SupabaseDenService : IDenService
     // Use the authenticated client from AuthService
     private Supabase.Client? SupabaseClient => _authService.GetSupabaseClient();
 
-    public SupabaseDenService(IAuthService authService)
+    public SupabaseDenService(IAuthService authService, IClock clock)
     {
         _authService = authService;
+        _clock = clock;
     }
 
     public async Task InitializeAsync()
@@ -270,7 +272,7 @@ public class SupabaseDenService : IDenService
             Id = Guid.NewGuid().ToString(),
             Name = name,
             CreatedBy = userId,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = _clock.UtcNow
         };
         Console.WriteLine($"[SupabaseDenService] Created Den object - ID: {den.Id}, CreatedBy: {den.CreatedBy}");
 
@@ -297,7 +299,7 @@ public class SupabaseDenService : IDenService
             DenId = den.Id,
             UserId = userId,
             Role = "owner",
-            JoinedAt = DateTime.UtcNow
+            JoinedAt = _clock.UtcNow
         };
         Console.WriteLine($"[SupabaseDenService] Created DenMember object with ID: {member.Id}");
 
@@ -399,13 +401,13 @@ public class SupabaseDenService : IDenService
     {
         if (_cachedMembers == null) return false;
         if (_cachedMembersDenId != denId) return false;
-        return DateTime.UtcNow - _memberCacheUpdatedAtUtc <= MemberCacheTtl;
+        return _clock.UtcNow - _memberCacheUpdatedAtUtc <= MemberCacheTtl;
     }
 
     private void StoreMemberCache(string denId, List<DenMember> members)
     {
         _cachedMembersDenId = denId;
-        _memberCacheUpdatedAtUtc = DateTime.UtcNow;
+        _memberCacheUpdatedAtUtc = _clock.UtcNow;
         _cachedMembers = members.Select(member => member.Clone()).ToList();
     }
 
@@ -422,10 +424,10 @@ public class SupabaseDenService : IDenService
     {
         if (userIds.Count == 0) return new Dictionary<string, Profile>();
 
-        if (DateTime.UtcNow - _profileCacheUpdatedAtUtc > MemberCacheTtl)
+        if (_clock.UtcNow - _profileCacheUpdatedAtUtc > MemberCacheTtl)
         {
             _profileCache.Clear();
-            _profileCacheUpdatedAtUtc = DateTime.UtcNow;
+            _profileCacheUpdatedAtUtc = _clock.UtcNow;
         }
 
         var missingIds = userIds.Where(id => !_profileCache.ContainsKey(id)).ToList();
@@ -514,8 +516,8 @@ public class SupabaseDenService : IDenService
             Code = code,
             Role = role,
             CreatedBy = user.Id,
-            CreatedAt = DateTime.UtcNow,
-            ExpiresAt = DateTime.UtcNow.AddDays(InviteExpirationDays)
+            CreatedAt = _clock.UtcNow,
+            ExpiresAt = _clock.UtcNow.AddDays(InviteExpirationDays)
         };
 
         await SupabaseClient!
@@ -680,7 +682,7 @@ public class SupabaseDenService : IDenService
                 UserId = user.Id,
                 Role = invite.Role ?? "co-parent",
                 InvitedBy = invite.CreatedBy,
-                JoinedAt = DateTime.UtcNow
+                JoinedAt = _clock.UtcNow
             };
 
             await SupabaseClient!
@@ -690,7 +692,7 @@ public class SupabaseDenService : IDenService
 
             // Mark invite as used
             Console.WriteLine("[DenService] JoinDenAsync - marking invite as used");
-            invite.UsedAt = DateTime.UtcNow;
+            invite.UsedAt = _clock.UtcNow;
             invite.UsedBy = user.Id;
 
             await SupabaseClient!
@@ -724,7 +726,7 @@ public class SupabaseDenService : IDenService
 
         try
         {
-            var cutoff = DateTime.UtcNow.AddMinutes(-minutes);
+            var cutoff = _clock.UtcNow.AddMinutes(-minutes);
 
             var response = await SupabaseClient!
                 .From<InviteAttempt>()
@@ -749,7 +751,7 @@ public class SupabaseDenService : IDenService
                 Id = Guid.NewGuid().ToString(),
                 UserId = userId,
                 Success = success,
-                AttemptedAt = DateTime.UtcNow
+                AttemptedAt = _clock.UtcNow
             };
 
             await SupabaseClient!
