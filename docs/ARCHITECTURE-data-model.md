@@ -153,25 +153,24 @@ The app always operates in the context of one den at a time.
 
 ## Implementation Status
 
-**V1 (Current - Supabase):**
+**V1 (Complete):**
 - Full schema with Supabase auth (Google, Email/Password)
 - Den creation and management
 - Invite co-parent flow with 8-character codes
 - Rate limiting on invite attempts
 - All data stored in Supabase PostgreSQL
 - File storage in Supabase Storage (receipts, documents)
-
-**V1.5 (Planned):**
-- Multi-den support
-- Den switcher UI
-- Observer invites
-- Children management UI
+- Multi-den support with den switcher UI
+- Children management
 
 **V2 (Future):**
+- Observer invites
 - Ownership transfer
 - Member removal flow
 - Data export on departure
 - Notification preferences per den
+
+> **See [BACKLOG.md](./BACKLOG.md)** for the detailed task backlog and prioritized improvements.
 
 ---
 
