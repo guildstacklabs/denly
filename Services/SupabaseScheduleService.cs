@@ -39,7 +39,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ScheduleService] Error getting events by month");
+            Console.WriteLine($"[ScheduleService] Error getting events by month: {ex.Message}");
             return new List<Event>();
         }
     }
@@ -64,7 +64,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
             // We filter strictly in memory, so fetching a bit more data (e.g. next day's events) is safe.
             var utcEndBuffer = utcEnd.AddDays(1);
 
-            _logger.LogInformation("[ScheduleService] GetEventsByDateAsync query prepared");
+            Console.WriteLine("[ScheduleService] GetEventsByDateAsync query prepared");
 
             // Optimization: Only fetch events that started recently enough to possibly overlap today.
             // Fetching ALL history (starts_at <= utcEnd) is inefficient.
@@ -95,13 +95,13 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
             filteredEvents = filteredEvents.OrderBy(e => e.StartsAt).ToList();
 
-            _logger.LogInformation("[ScheduleService] GetEventsByDateAsync found {Count} events", filteredEvents.Count);
+            Console.WriteLine($"[ScheduleService] GetEventsByDateAsync found {filteredEvents.Count} events");
 
             return filteredEvents;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ScheduleService] Error getting events by date");
+            Console.WriteLine($"[ScheduleService] Error getting events by date: {ex.Message}");
             return new List<Event>();
         }
     }
@@ -115,7 +115,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
         try
         {
-            var now = _clock.UtcNow;
+            var now = DateTime.UtcNow;
 
             var response = await SupabaseClient!
                 .From<Event>()
@@ -131,7 +131,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ScheduleService] Error getting upcoming events");
+            Console.WriteLine($"[ScheduleService] Error getting upcoming events: {ex.Message}");
             return new List<Event>();
         }
     }
@@ -204,7 +204,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
         if (existing != null)
         {
-            _logger.LogInformation("[ScheduleService] Updating existing event");
+            Console.WriteLine("[ScheduleService] Updating existing event");
             try
             {
                 await SupabaseClient!
@@ -219,16 +219,16 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
                     .Set(e => e.Notes!, evt.Notes)
                     .Set(e => e.ChildId!, evt.ChildId)
                     .Update();
-                _logger.LogInformation("[ScheduleService] Event updated successfully");
+                Console.WriteLine("[ScheduleService] Event updated successfully");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[ScheduleService] Error updating event");
+                Console.WriteLine($"[ScheduleService] Error updating event: {ex.Message}");
             }
         }
         else
         {
-            _logger.LogInformation("[ScheduleService] Inserting new event");
+            Console.WriteLine("[ScheduleService] Inserting new event");
             evt.CreatedBy = supabaseUser.Id;
             evt.CreatedAt = DateTime.UtcNow;
 
@@ -244,11 +244,11 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
                 var response = await SupabaseClient!
                     .From<Event>()
                     .Insert(evt);
-                _logger.LogInformation("[ScheduleService] Event insert response: {Count} models returned", response?.Models?.Count ?? 0);
+                Console.WriteLine($"[ScheduleService] Event insert response: {response?.Models?.Count ?? 0} models returned");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[ScheduleService] Error inserting event");
+                Console.WriteLine($"[ScheduleService] Error inserting event: {ex.Message}");
             }
             finally
             {
@@ -261,7 +261,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
     public async Task DeleteEventAsync(string id)
     {
-        _logger.LogInformation("[ScheduleService] DeleteEventAsync called");
+        Console.WriteLine("[ScheduleService] DeleteEventAsync called");
         await EnsureInitializedAsync();
 
         try
@@ -270,11 +270,11 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
                 .From<Event>()
                 .Where(e => e.Id == id)
                 .Delete();
-            _logger.LogInformation("[ScheduleService] Event deleted successfully");
+            Console.WriteLine("[ScheduleService] Event deleted successfully");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ScheduleService] Error deleting event");
+            Console.WriteLine($"[ScheduleService] Error deleting event: {ex.Message}");
         }
     }
 
