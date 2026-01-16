@@ -1,8 +1,10 @@
 @page "/schedule"
 @using Denly.Models
 @using Denly.Services
+@using Microsoft.Extensions.Logging
 @inject IScheduleService ScheduleService
 @inject IConnectivity Connectivity
+@inject ILogger<Calendar> Logger
 @implements IDisposable
 
 <div class="schedule-page">
@@ -423,8 +425,7 @@
         if (string.IsNullOrWhiteSpace(EditingEvent.Title))
             return;
 
-        Console.WriteLine($"[Calendar] SaveEvent - TimeZone: {TimeZoneInfo.Local.DisplayName}, Offset: {TimeZoneInfo.Local.BaseUtcOffset}");
-        Console.WriteLine($"[Calendar] Inputs - Date: {EditingEventDate:yyyy-MM-dd} (Kind: {EditingEventDate.Kind}), Hour: {EditingHour}, Minute: {EditingMinute}, AmPm: {EditingAmPm}");
+        Logger.LogDebug("SaveEvent starting");
 
         // Set StartsAt based on date and optional time
         // Convert local time to UTC for storage
@@ -440,12 +441,10 @@
             var dt = EditingEventDate.Date.Add(timeSpan);
             var localDateTime = DateTime.SpecifyKind(dt, DateTimeKind.Local);
 
-            Console.WriteLine($"[Calendar] Combined Local: {localDateTime:O} (Kind: {localDateTime.Kind})");
-
             EditingEvent.StartsAt = localDateTime.ToUniversalTime();
             EditingEvent.AllDay = false;
 
-            Console.WriteLine($"[Calendar] Converted UTC: {EditingEvent.StartsAt:O} (Kind: {EditingEvent.StartsAt.Kind})");
+            Logger.LogDebug("Event time converted to UTC");
         }
         else
         {
@@ -453,7 +452,7 @@
             var localDate = DateTime.SpecifyKind(EditingEventDate.Date, DateTimeKind.Local);
             EditingEvent.StartsAt = localDate.ToUniversalTime();
             EditingEvent.AllDay = true;
-            Console.WriteLine($"[Calendar] AllDay UTC: {EditingEvent.StartsAt:O} (Kind: {EditingEvent.StartsAt.Kind})");
+            Logger.LogDebug("All-day event time set");
         }
 
         await ScheduleService.SaveEventAsync(EditingEvent);

@@ -1,9 +1,11 @@
 @page "/create-den"
 @layout LoginLayout
 @using Denly.Services
+@using Microsoft.Extensions.Logging
 @inject IAuthService Auth
 @inject IDenService DenService
 @inject NavigationManager Navigation
+@inject ILogger<CreateDen> Logger
 
 <div class="create-den-container">
     <div class="create-den-header">
@@ -94,13 +96,12 @@
         {
             await DenService.InitializeAsync();
             var den = await DenService.CreateDenAsync(_denName.Trim());
-            Console.WriteLine($"[CreateDen] Successfully created den: {den.Id} - {den.Name}");
+            Logger.LogInformation("Den created successfully");
             Navigation.NavigateTo("/", forceLoad: true);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[CreateDen] Error creating den: {ex.Message}");
-            Console.WriteLine($"[CreateDen] Stack trace: {ex.StackTrace}");
+            Logger.LogError(ex, "Failed to create den");
             _errorMessage = "Failed to create den. Please try again.";
             _isLoading = false;
             StateHasChanged();
@@ -124,7 +125,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[CreateDen] Error logging out: {ex.Message}");
+            Logger.LogError(ex, "Failed to sign out");
             _isLoading = false;
             StateHasChanged();
         }

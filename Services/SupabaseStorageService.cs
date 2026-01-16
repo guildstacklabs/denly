@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using SkiaSharp;
 using System.IO;
 
@@ -9,13 +10,15 @@ namespace Denly.Services;
 public class SupabaseStorageService : IStorageService
 {
     private readonly IAuthService _authService;
+    private readonly ILogger<SupabaseStorageService> _logger;
     private const int MaxImageDimension = 1024;
     private const int JpegQuality = 80;
     private const long MaxFileSizeBytes = 10 * 1024 * 1024;
 
-    public SupabaseStorageService(IAuthService authService)
+    public SupabaseStorageService(IAuthService authService, ILogger<SupabaseStorageService> logger)
     {
         _authService = authService;
+        _logger = logger;
     }
 
     private Stream CompressImageIfNeeded(Stream input, string fileName)
@@ -142,7 +145,7 @@ public class SupabaseStorageService : IStorageService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[StorageService] Error deleting file: {ex.Message}");
+            _logger.LogError(ex, "Failed to delete file from storage");
         }
     }
 

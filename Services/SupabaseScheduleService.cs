@@ -1,11 +1,16 @@
 using Denly.Models;
+using Microsoft.Extensions.Logging;
+
 namespace Denly.Services;
 
 public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 {
-    public SupabaseScheduleService(IDenService denService, IAuthService authService)
+    private readonly ILogger<SupabaseScheduleService> _logger;
+
+    public SupabaseScheduleService(IDenService denService, IAuthService authService, ILogger<SupabaseScheduleService> logger)
         : base(denService, authService)
     {
+        _logger = logger;
     }
 
     public async Task<List<Event>> GetEventsByMonthAsync(int year, int month, CancellationToken cancellationToken = default)
@@ -47,7 +52,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ScheduleService] Error getting events by month: {ex.Message}");
+            _logger.LogError(ex, "Failed to get events by month");
             return new List<Event>();
         }
     }
@@ -72,8 +77,6 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
             // Widen the upper bound of the DB query to ensure we catch events shifted by timezones.
             // We filter strictly in memory, so fetching a bit more data (e.g. next day's events) is safe.
             var utcEndBuffer = utcEnd.AddDays(1);
-
-            Console.WriteLine("[ScheduleService] GetEventsByDateAsync query prepared");
 
             // Optimization: Only fetch events that started recently enough to possibly overlap today.
             // Fetching ALL history (starts_at <= utcEnd) is inefficient.
@@ -107,7 +110,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
             filteredEvents = filteredEvents.OrderBy(e => e.StartsAt).ToList();
 
-            Console.WriteLine($"[ScheduleService] GetEventsByDateAsync found {filteredEvents.Count} events");
+            _logger.LogDebug("Found {Count} events for date", filteredEvents.Count);
 
             return filteredEvents;
         }
@@ -117,7 +120,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ScheduleService] Error getting events by date: {ex.Message}");
+            _logger.LogError(ex, "Failed to get events by date");
             return new List<Event>();
         }
     }
@@ -155,7 +158,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ScheduleService] Error getting upcoming events: {ex.Message}");
+            _logger.LogError(ex, "Failed to get upcoming events");
             return new List<Event>();
         }
     }
@@ -182,15 +185,14 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ScheduleService] Error getting event by id: {ex.Message}");
+            _logger.LogError(ex, "Failed to get event by ID");
             return null;
         }
     }
 
     public async Task SaveEventAsync(Event evt, CancellationToken cancellationToken = default)
     {
-        Console.WriteLine($"[ScheduleService] SaveEventAsync called for: {evt.Title}");
-        Console.WriteLine($"[ScheduleService] SaveEventAsync - Input StartsAt: {evt.StartsAt:O} (Kind: {evt.StartsAt.Kind})");
+        _logger.LogDebug("SaveEventAsync called");
 
         await EnsureInitializedAsync();
         cancellationToken.ThrowIfCancellationRequested();
@@ -198,22 +200,19 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId))
         {
-            Console.WriteLine("[ScheduleService] Error: No den selected");
+            _logger.LogWarning("Cannot save event - no den selected");
             return;
         }
-        Console.WriteLine($"[ScheduleService] Den ID: {denId}");
 
         // Get user ID directly from the Supabase auth session
         var supabaseUser = SupabaseClient?.Auth.CurrentUser;
         if (supabaseUser == null || string.IsNullOrEmpty(supabaseUser.Id))
         {
-            Console.WriteLine("[ScheduleService] Error: No authenticated Supabase session");
+            _logger.LogWarning("Cannot save event - no authenticated session");
             return;
         }
 
         var userId = supabaseUser.Id;
-        Console.WriteLine($"[ScheduleService] Supabase auth.uid(): {userId}");
-        Console.WriteLine($"[ScheduleService] Session access token present: {!string.IsNullOrEmpty(SupabaseClient?.Auth.CurrentSession?.AccessToken)}");
 
         evt.DenId = denId;
 
@@ -237,7 +236,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
         if (existing != null)
         {
-            Console.WriteLine("[ScheduleService] Updating existing event");
+            _logger.LogDebug("Updating existing event");
             try
             {
                 await SupabaseClient!
@@ -252,7 +251,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
                     .Set(e => e.Notes!, evt.Notes)
                     .Set(e => e.ChildId!, evt.ChildId)
                     .Update();
-                Console.WriteLine("[ScheduleService] Event updated successfully");
+                _logger.LogDebug("Event updated successfully");
             }
             catch (OperationCanceledException)
             {
@@ -260,12 +259,12 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ScheduleService] Error updating event: {ex.Message}");
+                _logger.LogError(ex, "Failed to update event");
             }
         }
         else
         {
-            Console.WriteLine("[ScheduleService] Inserting new event");
+            _logger.LogDebug("Inserting new event");
             evt.CreatedBy = supabaseUser.Id;
             evt.CreatedAt = DateTime.UtcNow;
 
@@ -278,10 +277,10 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
             try
             {
-                var response = await SupabaseClient!
+                await SupabaseClient!
                     .From<Event>()
                     .Insert(evt);
-                Console.WriteLine($"[ScheduleService] Event insert response: {response?.Models?.Count ?? 0} models returned");
+                _logger.LogDebug("Event inserted successfully");
             }
             catch (OperationCanceledException)
             {
@@ -289,7 +288,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ScheduleService] Error inserting event: {ex.Message}");
+                _logger.LogError(ex, "Failed to insert event");
             }
             finally
             {
@@ -302,7 +301,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
     public async Task DeleteEventAsync(string id, CancellationToken cancellationToken = default)
     {
-        Console.WriteLine("[ScheduleService] DeleteEventAsync called");
+        _logger.LogDebug("DeleteEventAsync called");
         await EnsureInitializedAsync();
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -312,7 +311,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
                 .From<Event>()
                 .Where(e => e.Id == id)
                 .Delete();
-            Console.WriteLine("[ScheduleService] Event deleted successfully");
+            _logger.LogDebug("Event deleted successfully");
         }
         catch (OperationCanceledException)
         {
@@ -320,7 +319,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ScheduleService] Error deleting event: {ex.Message}");
+            _logger.LogError(ex, "Failed to delete event");
         }
     }
 
@@ -361,7 +360,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ScheduleService] Error checking for upcoming events: {ex.Message}");
+            _logger.LogError(ex, "Failed to check for upcoming events");
             return false;
         }
     }

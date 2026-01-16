@@ -1,19 +1,23 @@
 using Denly.Models;
+using Microsoft.Extensions.Logging;
+
 namespace Denly.Services;
 
 public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDisposable
 {
     private const string ReceiptsBucket = "receipts";
     private readonly IStorageService _storageService;
+    private readonly ILogger<SupabaseExpenseService> _logger;
     private const int CacheTtlMinutes = 5;
     private Dictionary<string, decimal>? _balancesCache;
     private DateTime _balancesCacheTime;
     private string? _balancesCacheDenId;
 
-    public SupabaseExpenseService(IDenService denService, IAuthService authService, IStorageService storageService)
+    public SupabaseExpenseService(IDenService denService, IAuthService authService, IStorageService storageService, ILogger<SupabaseExpenseService> logger)
         : base(denService, authService)
     {
         _storageService = storageService;
+        _logger = logger;
         DenService.DenChanged += OnDenChanged;
     }
 
@@ -27,7 +31,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         _balancesCache = null;
         _balancesCacheTime = default;
         _balancesCacheDenId = null;
-        Console.WriteLine("[ExpenseService] Balances cache invalidated.");
+        _logger.LogDebug("Balances cache invalidated");
     }
 
     public async Task<List<Expense>> GetAllExpensesAsync(CancellationToken cancellationToken = default)
@@ -61,7 +65,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ExpenseService] Error getting all expenses: {ex.Message}");
+            _logger.LogError(ex, "Failed to get all expenses");
             return new List<Expense>();
         }
     }
@@ -86,7 +90,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ExpenseService] Error populating expense names: {ex.Message}");
+            _logger.LogError(ex, "Failed to populate expense names");
         }
     }
 
@@ -109,14 +113,14 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ExpenseService] Error getting expense by id: {ex.Message}");
+            _logger.LogError(ex, "Failed to get expense by ID");
             return null;
         }
     }
 
     public async Task SaveExpenseAsync(Expense expense, CancellationToken cancellationToken = default)
     {
-        Console.WriteLine($"[ExpenseService] SaveExpenseAsync called for: {expense.Description}");
+        _logger.LogDebug("SaveExpenseAsync called");
 
         await EnsureInitializedAsync();
         cancellationToken.ThrowIfCancellationRequested();
@@ -124,22 +128,19 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId))
         {
-            Console.WriteLine("[ExpenseService] Error: No den selected");
+            _logger.LogWarning("Cannot save expense - no den selected");
             return;
         }
-        Console.WriteLine($"[ExpenseService] Den ID: {denId}");
 
         // Get user ID directly from the Supabase auth session
         var supabaseUser = SupabaseClient?.Auth.CurrentUser;
         if (supabaseUser == null || string.IsNullOrEmpty(supabaseUser.Id))
         {
-            Console.WriteLine("[ExpenseService] Error: No authenticated Supabase session");
+            _logger.LogWarning("Cannot save expense - no authenticated session");
             return;
         }
 
         var userId = supabaseUser.Id;
-        Console.WriteLine($"[ExpenseService] Supabase auth.uid(): {userId}");
-        Console.WriteLine($"[ExpenseService] Session access token present: {!string.IsNullOrEmpty(SupabaseClient?.Auth.CurrentSession?.AccessToken)}");
 
         expense.DenId = denId;
 
@@ -149,7 +150,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
 
         if (existing != null)
         {
-            Console.WriteLine($"[ExpenseService] Updating existing expense: {expense.Id}");
+            _logger.LogDebug("Updating existing expense");
             try
             {
                 await SupabaseClient!
@@ -162,7 +163,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
                     .Set(e => e.ChildId!, expense.ChildId)
                     .Set(e => e.SettledAt!, expense.SettledAt)
                     .Update();
-                Console.WriteLine("[ExpenseService] Expense updated successfully");
+                _logger.LogDebug("Expense updated successfully");
             }
             catch (OperationCanceledException)
             {
@@ -170,21 +171,21 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ExpenseService] Error updating expense: {ex.Message}");
+                _logger.LogError(ex, "Failed to update expense");
             }
         }
         else
         {
-            Console.WriteLine("[ExpenseService] Inserting new expense");
+            _logger.LogDebug("Inserting new expense");
             expense.CreatedBy = supabaseUser.Id;
             expense.CreatedAt = DateTime.UtcNow;
 
             try
             {
-                var response = await SupabaseClient!
+                await SupabaseClient!
                     .From<Expense>()
                     .Insert(expense);
-                Console.WriteLine($"[ExpenseService] Expense insert response: {response?.Models?.Count ?? 0} models returned");
+                _logger.LogDebug("Expense inserted successfully");
             }
             catch (OperationCanceledException)
             {
@@ -192,7 +193,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ExpenseService] Error inserting expense: {ex.Message}");
+                _logger.LogError(ex, "Failed to insert expense");
             }
         }
         InvalidateBalanceCache();
@@ -200,7 +201,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
 
     public async Task DeleteExpenseAsync(string id, CancellationToken cancellationToken = default)
     {
-        Console.WriteLine("[ExpenseService] DeleteExpenseAsync called");
+        _logger.LogDebug("DeleteExpenseAsync called");
         await EnsureInitializedAsync();
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -219,7 +220,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
                 .From<Expense>()
                 .Where(e => e.Id == id)
                 .Delete();
-            Console.WriteLine("[ExpenseService] Expense deleted successfully");
+            _logger.LogDebug("Expense deleted successfully");
             InvalidateBalanceCache();
         }
         catch (OperationCanceledException)
@@ -228,7 +229,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ExpenseService] Error deleting expense: {ex.Message}");
+            _logger.LogError(ex, "Failed to delete expense");
         }
     }
 
@@ -242,7 +243,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
 
         if (_balancesCache != null && _balancesCacheDenId == denId && DateTime.UtcNow - _balancesCacheTime < TimeSpan.FromMinutes(CacheTtlMinutes))
         {
-            Console.WriteLine("[ExpenseService] Returning cached balances.");
+            _logger.LogDebug("Returning cached balances");
             return _balancesCache;
         }
 
@@ -281,7 +282,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
             _balancesCache = balances;
             _balancesCacheDenId = denId;
             _balancesCacheTime = DateTime.UtcNow;
-            Console.WriteLine("[ExpenseService] Balances fetched and cached.");
+            _logger.LogDebug("Balances fetched and cached");
 
             return balances;
         }
@@ -291,7 +292,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ExpenseService] Error getting balances: {ex.Message}");
+            _logger.LogError(ex, "Failed to get balances");
             return balances;
         }
     }
@@ -324,7 +325,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ExpenseService] Error getting settlements: {ex.Message}");
+            _logger.LogError(ex, "Failed to get settlements");
             return new List<Settlement>();
         }
     }
@@ -357,13 +358,13 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ExpenseService] Error populating settlement names: {ex.Message}");
+            _logger.LogError(ex, "Failed to populate settlement names");
         }
     }
 
     public async Task<Settlement> CreateSettlementAsync(decimal amount, string fromUserId, string toUserId, string? note = null, CancellationToken cancellationToken = default)
     {
-        Console.WriteLine($"[ExpenseService] CreateSettlementAsync called - Amount: {amount}, From: {fromUserId}, To: {toUserId}");
+        _logger.LogDebug("CreateSettlementAsync called - Amount: {Amount}", amount);
 
         await EnsureInitializedAsync();
         cancellationToken.ThrowIfCancellationRequested();
@@ -371,19 +372,18 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId))
         {
-            Console.WriteLine("[ExpenseService] Error: No den selected");
+            _logger.LogWarning("Cannot create settlement - no den selected");
             throw new InvalidOperationException("No den selected");
         }
 
         var supabaseUser = SupabaseClient?.Auth.CurrentUser;
         if (supabaseUser == null || string.IsNullOrEmpty(supabaseUser.Id))
         {
-            Console.WriteLine("[ExpenseService] Error: No authenticated Supabase session");
+            _logger.LogWarning("Cannot create settlement - no authenticated session");
             throw new InvalidOperationException("User not authenticated");
         }
 
         var userId = supabaseUser.Id;
-        Console.WriteLine($"[ExpenseService] Supabase auth.uid(): {userId}");
 
         var settlement = new Settlement
         {
@@ -398,13 +398,13 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
 
         try
         {
-            Console.WriteLine($"[ExpenseService] Inserting settlement...");
+            _logger.LogDebug("Inserting settlement");
             cancellationToken.ThrowIfCancellationRequested();
 
             await SupabaseClient!
                 .From<Settlement>()
                 .Insert(settlement);
-            Console.WriteLine($"[ExpenseService] Settlement inserted successfully");
+            _logger.LogDebug("Settlement inserted successfully");
 
             // Mark all unsettled expenses as settled
             var unsettled = await SupabaseClient!
@@ -424,7 +424,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
                     .Set(e => e.SettledAt!, settledAt)
                     .Update();
             }
-            Console.WriteLine($"[ExpenseService] Marked {unsettled.Models.Count} expenses as settled");
+            _logger.LogDebug("Marked {Count} expenses as settled", unsettled.Models.Count);
             InvalidateBalanceCache();
         }
         catch (OperationCanceledException)
@@ -433,7 +433,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ExpenseService] Error creating settlement: {ex.Message}");
+            _logger.LogError(ex, "Failed to create settlement");
             throw;
         }
 
@@ -442,19 +442,19 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
 
     public async Task<string> SaveReceiptAsync(Stream imageStream, string fileName, CancellationToken cancellationToken = default)
     {
-        Console.WriteLine("[ExpenseService] SaveReceiptAsync called");
+        _logger.LogDebug("SaveReceiptAsync called");
 
         var denId = DenService.GetCurrentDenId();
         if (string.IsNullOrEmpty(denId))
         {
-            Console.WriteLine("[ExpenseService] Warning: No den selected");
+            _logger.LogWarning("Cannot save receipt - no den selected");
             throw new InvalidOperationException("No den selected");
         }
 
         try
         {
             var url = await _storageService.UploadAsync(ReceiptsBucket, imageStream, fileName, denId, cancellationToken);
-            Console.WriteLine("[ExpenseService] Receipt uploaded successfully");
+            _logger.LogDebug("Receipt uploaded successfully");
             return url;
         }
         catch (OperationCanceledException)
@@ -463,7 +463,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ExpenseService] Error uploading receipt: {ex.Message}");
+            _logger.LogError(ex, "Failed to upload receipt");
             throw;
         }
     }
@@ -472,9 +472,9 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
     {
         if (string.IsNullOrEmpty(receiptUrl)) return;
 
-        Console.WriteLine("[ExpenseService] Deleting receipt");
+        _logger.LogDebug("Deleting receipt");
         await _storageService.DeleteAsync(ReceiptsBucket, receiptUrl, cancellationToken);
-        Console.WriteLine("[ExpenseService] Receipt deleted successfully");
+        _logger.LogDebug("Receipt deleted successfully");
     }
 
     public async Task<bool> HasExpensesAsync()
@@ -496,7 +496,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ExpenseService] Error checking for expenses: {ex.Message}");
+            _logger.LogError(ex, "Failed to check for expenses");
             return false;
         }
     }

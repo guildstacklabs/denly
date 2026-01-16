@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Denly.Models;
+using Microsoft.Extensions.Logging;
 using Supabase;
 using Supabase.Postgrest.Exceptions;
 using Supabase.Postgrest.Responses;
@@ -18,6 +19,7 @@ public class SupabaseDenService : IDenService
 
     private readonly IAuthService _authService;
     private readonly IClock _clock;
+    private readonly ILogger<SupabaseDenService> _logger;
     private string? _currentDenId;
     private bool _isInitialized;
     private List<DenMember>? _cachedMembers;
@@ -31,21 +33,22 @@ public class SupabaseDenService : IDenService
     // Use the authenticated client from AuthService
     private Supabase.Client? SupabaseClient => _authService.GetSupabaseClient();
 
-    public SupabaseDenService(IAuthService authService, IClock clock)
+    public SupabaseDenService(IAuthService authService, IClock clock, ILogger<SupabaseDenService> logger)
     {
         _authService = authService;
         _clock = clock;
+        _logger = logger;
     }
 
     public async Task InitializeAsync()
     {
         if (_isInitialized)
         {
-            Console.WriteLine($"[DenService] InitializeAsync - already initialized, currentDenId: {_currentDenId ?? "null"}");
+            _logger.LogDebug("InitializeAsync - already initialized");
             return;
         }
 
-        Console.WriteLine("[DenService] InitializeAsync - starting initialization");
+        _logger.LogDebug("InitializeAsync starting");
 
         // Ensure auth service is initialized (which creates the authenticated client)
         await _authService.InitializeAsync();
@@ -53,25 +56,21 @@ public class SupabaseDenService : IDenService
         // Restore current den from secure storage
         try
         {
-            Console.WriteLine($"[DenService] InitializeAsync - reading from SecureStorage key: '{CurrentDenStorageKey}'");
             var storedValue = await SecureStorage.GetAsync(CurrentDenStorageKey);
-            Console.WriteLine($"[DenService] InitializeAsync - SecureStorage returned: '{storedValue ?? "null"}' (length: {storedValue?.Length ?? 0})");
             _currentDenId = storedValue;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DenService] InitializeAsync - error restoring from storage: {ex.Message}");
-            Console.WriteLine($"[DenService] InitializeAsync - exception type: {ex.GetType().Name}");
+            _logger.LogError(ex, "Error restoring den from storage");
         }
 
         // Validate stored den belongs to current user, or find user's actual den
         if (!string.IsNullOrEmpty(_currentDenId))
         {
-            Console.WriteLine("[DenService] InitializeAsync - validating stored den belongs to current user...");
             var isValid = await ValidateUserDenMembershipAsync(_currentDenId);
             if (!isValid)
             {
-                Console.WriteLine("[DenService] InitializeAsync - stored den does not belong to current user, clearing...");
+                _logger.LogDebug("Stored den does not belong to current user, clearing");
                 _currentDenId = null;
                 SecureStorage.Remove(CurrentDenStorageKey);
             }
@@ -80,17 +79,16 @@ public class SupabaseDenService : IDenService
         // If no valid den, check if user has any dens in database
         if (string.IsNullOrEmpty(_currentDenId))
         {
-            Console.WriteLine("[DenService] InitializeAsync - no valid den, checking database for user's dens...");
             await TryLoadUserDenAsync();
         }
 
         _isInitialized = true;
-        Console.WriteLine($"[DenService] InitializeAsync - complete, currentDenId: {_currentDenId ?? "null"}");
+        _logger.LogDebug("InitializeAsync complete");
     }
 
     public Task ResetAsync()
     {
-        Console.WriteLine("[DenService] ResetAsync - clearing state");
+        _logger.LogDebug("ResetAsync - clearing state");
         _isInitialized = false;
         _currentDenId = null;
         ClearCaches();
@@ -105,11 +103,9 @@ public class SupabaseDenService : IDenService
             var supabaseUser = SupabaseClient?.Auth.CurrentUser;
             if (supabaseUser == null || string.IsNullOrEmpty(supabaseUser.Id))
             {
-                Console.WriteLine("[DenService] TryLoadUserDenAsync - no authenticated user, skipping");
+                _logger.LogDebug("TryLoadUserDenAsync - no authenticated user, skipping");
                 return;
             }
-
-            Console.WriteLine($"[DenService] TryLoadUserDenAsync - checking dens for user: {supabaseUser.Id}");
 
             var memberships = await SupabaseClient!
                 .From<DenMember>()
@@ -117,18 +113,17 @@ public class SupabaseDenService : IDenService
                 .Where(m => m.UserId == supabaseUser.Id)
                 .Get();
 
-            Console.WriteLine($"[DenService] TryLoadUserDenAsync - found {memberships.Models.Count} den memberships");
+            _logger.LogDebug("Found {Count} den memberships", memberships.Models.Count);
 
             if (memberships.Models.Count > 0)
             {
                 var firstDenId = memberships.Models.First().DenId;
-                Console.WriteLine($"[DenService] TryLoadUserDenAsync - setting current den to: {firstDenId}");
                 await SetCurrentDenAsync(firstDenId);
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DenService] TryLoadUserDenAsync - error: {ex.Message}");
+            _logger.LogError(ex, "Error loading user dens");
         }
     }
 
@@ -139,11 +134,9 @@ public class SupabaseDenService : IDenService
             var supabaseUser = SupabaseClient?.Auth.CurrentUser;
             if (supabaseUser == null || string.IsNullOrEmpty(supabaseUser.Id))
             {
-                Console.WriteLine("[DenService] ValidateUserDenMembershipAsync - no authenticated user");
+                _logger.LogDebug("ValidateUserDenMembershipAsync - no authenticated user");
                 return false;
             }
-
-            Console.WriteLine($"[DenService] ValidateUserDenMembershipAsync - checking if user {supabaseUser.Id} is member of den {denId}");
 
             var membership = await SupabaseClient!
                 .From<DenMember>()
@@ -152,19 +145,18 @@ public class SupabaseDenService : IDenService
                 .Get();
 
             var isMember = membership.Models.Count > 0;
-            Console.WriteLine($"[DenService] ValidateUserDenMembershipAsync - result: {isMember}");
+            _logger.LogDebug("ValidateUserDenMembershipAsync - result: {IsMember}", isMember);
             return isMember;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DenService] ValidateUserDenMembershipAsync - error: {ex.Message}");
+            _logger.LogError(ex, "Error validating den membership");
             return false;
         }
     }
 
     public string? GetCurrentDenId()
     {
-        Console.WriteLine($"[DenService] GetCurrentDenId called - isInitialized: {_isInitialized}, currentDenId: {_currentDenId ?? "null"}");
         return _currentDenId;
     }
 
@@ -228,55 +220,37 @@ public class SupabaseDenService : IDenService
 
     public async Task SetCurrentDenAsync(string denId)
     {
-        Console.WriteLine($"[DenService] SetCurrentDenAsync called with denId: {denId}");
+        _logger.LogDebug("SetCurrentDenAsync called");
         _currentDenId = denId;
         ClearCaches();
 
         try
         {
-            Console.WriteLine($"[DenService] SetCurrentDenAsync - writing to SecureStorage key: '{CurrentDenStorageKey}' value: '{denId}'");
             await SecureStorage.SetAsync(CurrentDenStorageKey, denId);
-
-            // Verify the write by reading back
-            var verifyValue = await SecureStorage.GetAsync(CurrentDenStorageKey);
-            Console.WriteLine($"[DenService] SetCurrentDenAsync - verification read: '{verifyValue ?? "null"}'");
-
-            if (verifyValue == denId)
-            {
-                Console.WriteLine($"[DenService] SetCurrentDenAsync - SecureStorage write VERIFIED successfully");
-            }
-            else
-            {
-                Console.WriteLine($"[DenService] SetCurrentDenAsync - WARNING: SecureStorage write verification FAILED! Expected '{denId}', got '{verifyValue ?? "null"}'");
-            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DenService] SetCurrentDenAsync - error saving to SecureStorage: {ex.Message}");
-            Console.WriteLine($"[DenService] SetCurrentDenAsync - exception type: {ex.GetType().Name}");
+            _logger.LogError(ex, "Error saving den to SecureStorage");
         }
 
         var den = await GetCurrentDenAsync();
-        Console.WriteLine($"[DenService] SetCurrentDenAsync - firing DenChanged event, den name: {den?.Name ?? "null"}");
         DenChanged?.Invoke(this, new DenChangedEventArgs(den));
     }
 
     public async Task<Den> CreateDenAsync(string name)
     {
-        Console.WriteLine($"[SupabaseDenService] CreateDenAsync called with name: {name}");
+        _logger.LogDebug("CreateDenAsync called");
 
         // Get user ID directly from the Supabase auth session
         // This ensures we use the same ID that auth.uid() sees on the server
         var supabaseUser = SupabaseClient?.Auth.CurrentUser;
         if (supabaseUser == null || string.IsNullOrEmpty(supabaseUser.Id))
         {
-            Console.WriteLine("[SupabaseDenService] Error: No authenticated Supabase session");
+            _logger.LogWarning("CreateDenAsync - no authenticated session");
             throw new InvalidOperationException("User not authenticated");
         }
 
         var userId = supabaseUser.Id;
-        Console.WriteLine($"[SupabaseDenService] Supabase auth.uid(): {userId}");
-        Console.WriteLine($"[SupabaseDenService] Session access token present: {!string.IsNullOrEmpty(SupabaseClient?.Auth.CurrentSession?.AccessToken)}");
 
         var den = new Den
         {
@@ -285,21 +259,19 @@ public class SupabaseDenService : IDenService
             CreatedBy = userId,
             CreatedAt = _clock.UtcNow
         };
-        Console.WriteLine($"[SupabaseDenService] Created Den object - ID: {den.Id}, CreatedBy: {den.CreatedBy}");
 
         // Insert den into Supabase
         try
         {
-            Console.WriteLine("[SupabaseDenService] Inserting den into Supabase...");
-            var denResponse = await SupabaseClient!
+            _logger.LogDebug("Inserting den into Supabase");
+            await SupabaseClient!
                 .From<Den>()
                 .Insert(den);
-            Console.WriteLine($"[SupabaseDenService] Den insert response: {denResponse?.Models?.Count ?? 0} models returned");
+            _logger.LogDebug("Den inserted successfully");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SupabaseDenService] Error inserting den: {ex.Message}");
-            Console.WriteLine($"[SupabaseDenService] Stack trace: {ex.StackTrace}");
+            _logger.LogError(ex, "Failed to insert den");
             throw new InvalidOperationException($"Failed to create den: {ex.Message}", ex);
         }
 
@@ -312,25 +284,23 @@ public class SupabaseDenService : IDenService
             Role = "owner",
             JoinedAt = _clock.UtcNow
         };
-        Console.WriteLine($"[SupabaseDenService] Created DenMember object with ID: {member.Id}");
 
         try
         {
-            Console.WriteLine("[SupabaseDenService] Inserting den_member into Supabase...");
-            var memberResponse = await SupabaseClient!
+            _logger.LogDebug("Inserting den_member into Supabase");
+            await SupabaseClient!
                 .From<DenMember>()
                 .Insert(member);
-            Console.WriteLine($"[SupabaseDenService] DenMember insert response: {memberResponse?.Models?.Count ?? 0} models returned");
+            _logger.LogDebug("DenMember inserted successfully");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SupabaseDenService] Error inserting den_member: {ex.Message}");
-            Console.WriteLine($"[SupabaseDenService] Stack trace: {ex.StackTrace}");
+            _logger.LogError(ex, "Failed to insert den_member");
             // Try to clean up the orphaned den
             try
             {
                 await SupabaseClient!.From<Den>().Where(d => d.Id == den.Id).Delete();
-                Console.WriteLine("[SupabaseDenService] Cleaned up orphaned den after member insert failure");
+                _logger.LogDebug("Cleaned up orphaned den after member insert failure");
             }
             catch { /* Best effort cleanup */ }
             throw new InvalidOperationException($"Failed to add owner as member: {ex.Message}", ex);
@@ -338,7 +308,7 @@ public class SupabaseDenService : IDenService
 
         // Set as current den
         await SetCurrentDenAsync(den.Id);
-        Console.WriteLine($"[SupabaseDenService] Successfully created den and set as current: {den.Id}");
+        _logger.LogInformation("Den created successfully");
 
         return den;
     }
@@ -346,11 +316,9 @@ public class SupabaseDenService : IDenService
     public async Task<List<DenMember>> GetDenMembersAsync(string? denId = null)
     {
         var targetDenId = denId ?? _currentDenId;
-        Console.WriteLine($"[DenService] GetDenMembersAsync called, targetDenId: {targetDenId ?? "null"}");
 
         if (string.IsNullOrEmpty(targetDenId))
         {
-            Console.WriteLine("[DenService] GetDenMembersAsync - no den ID, returning empty list");
             return new List<DenMember>();
         }
 
@@ -371,17 +339,15 @@ public class SupabaseDenService : IDenService
                 .Get();
 
             var members = response.Models;
-            Console.WriteLine($"[DenService] GetDenMembersAsync - fetched {members.Count} members from den_members table");
+            _logger.LogDebug("Fetched {Count} members", members.Count);
 
             if (members.Count == 0)
                 return members;
 
             // Fetch profiles for all member user IDs to get display names
             var userIds = members.Select(m => m.UserId).Distinct().ToList();
-            Console.WriteLine($"[DenService] GetDenMembersAsync - fetching profiles for {userIds.Count} user IDs");
-
             var profiles = await GetProfilesAsync(userIds);
-            Console.WriteLine($"[DenService] GetDenMembersAsync - fetched {profiles.Count} profiles");
+            _logger.LogDebug("Fetched {Count} profiles", profiles.Count);
 
             // Populate display properties on members
             foreach (var member in members)
@@ -391,11 +357,6 @@ public class SupabaseDenService : IDenService
                     member.Email = profile.Email;
                     member.DisplayName = profile.Name;
                     member.AvatarUrl = profile.AvatarUrl;
-                    Console.WriteLine($"[DenService] GetDenMembersAsync - member {member.UserId}: Email={profile.Email}, Name={profile.Name}");
-                }
-                else
-                {
-                    Console.WriteLine($"[DenService] GetDenMembersAsync - no profile found for member {member.UserId}");
                 }
             }
 
@@ -404,7 +365,7 @@ public class SupabaseDenService : IDenService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DenService] GetDenMembersAsync - error: {ex.Message}");
+            _logger.LogError(ex, "Failed to get den members");
             return new List<DenMember>();
         }
     }
@@ -431,7 +392,7 @@ public class SupabaseDenService : IDenService
         // Also clear profile cache as it's related
         _profileCache.Clear();
         _profileCacheUpdatedAtUtc = default;
-        Console.WriteLine("[DenService] Member and profile caches invalidated.");
+        _logger.LogDebug("Member and profile caches invalidated");
     }
 
     private void ClearCaches()
@@ -661,26 +622,24 @@ public class SupabaseDenService : IDenService
     {
         try
         {
-            Console.WriteLine($"[DenService] JoinDenAsync - starting with code: {code}");
+            _logger.LogDebug("JoinDenAsync starting");
 
             var user = await _authService.GetCurrentUserAsync();
             if (user == null)
             {
-                Console.WriteLine("[DenService] JoinDenAsync - user not authenticated");
+                _logger.LogWarning("JoinDenAsync - user not authenticated");
                 return new JoinDenResult(false, "User not authenticated");
             }
-            Console.WriteLine($"[DenService] JoinDenAsync - user: {user.Id}");
 
             // Check rate limit
             var failedAttempts = await GetFailedAttemptsCountAsync(RateLimitMinutes);
-            Console.WriteLine($"[DenService] JoinDenAsync - failed attempts: {failedAttempts}");
+            _logger.LogDebug("JoinDenAsync - failed attempts: {Count}", failedAttempts);
             if (failedAttempts >= MaxFailedAttempts)
             {
                 return new JoinDenResult(false, $"Too many attempts. Please try again later.", 0);
             }
 
             var normalizedCode = NormalizeCode(code);
-            Console.WriteLine($"[DenService] JoinDenAsync - normalized code: {normalizedCode}");
             var invite = await ValidateInviteCodeAsync(normalizedCode);
 
             // Log attempt
@@ -688,11 +647,11 @@ public class SupabaseDenService : IDenService
 
             if (invite == null)
             {
-                Console.WriteLine("[DenService] JoinDenAsync - invite not found or invalid");
+                _logger.LogDebug("JoinDenAsync - invite not found or invalid");
                 var remaining = MaxFailedAttempts - failedAttempts - 1;
                 return new JoinDenResult(false, "Invalid or expired code", remaining);
             }
-            Console.WriteLine($"[DenService] JoinDenAsync - invite valid, denId: {invite.DenId}");
+            _logger.LogDebug("JoinDenAsync - invite valid");
 
             // Check if already a member
             var existingMember = await SupabaseClient!
@@ -703,14 +662,14 @@ public class SupabaseDenService : IDenService
 
             if (existingMember.Models.Count > 0)
             {
-                Console.WriteLine("[DenService] JoinDenAsync - user already a member, setting as current");
+                _logger.LogDebug("JoinDenAsync - user already a member, setting as current");
                 // Already a member, just set as current
                 await SetCurrentDenAsync(invite.DenId);
                 var existingDen = await GetCurrentDenAsync();
                 return new JoinDenResult(true, Den: existingDen);
             }
 
-            Console.WriteLine("[DenService] JoinDenAsync - adding user as new member");
+            _logger.LogDebug("JoinDenAsync - adding user as new member");
             // Add as member with role from invite
             var member = new DenMember
             {
@@ -725,11 +684,10 @@ public class SupabaseDenService : IDenService
             await SupabaseClient!
                 .From<DenMember>()
                 .Insert(member);
-            Console.WriteLine("[DenService] JoinDenAsync - member inserted successfully");
+            _logger.LogDebug("Member inserted successfully");
             InvalidateMembersCache();
 
             // Mark invite as used
-            Console.WriteLine("[DenService] JoinDenAsync - marking invite as used");
             invite.UsedAt = _clock.UtcNow;
             invite.UsedBy = user.Id;
 
@@ -739,20 +697,17 @@ public class SupabaseDenService : IDenService
                 .Set(i => i.UsedAt!, invite.UsedAt)
                 .Set(i => i.UsedBy!, invite.UsedBy)
                 .Update();
-            Console.WriteLine("[DenService] JoinDenAsync - invite updated");
 
             // Set as current den
-            Console.WriteLine("[DenService] JoinDenAsync - setting current den");
             await SetCurrentDenAsync(invite.DenId);
             var den = await GetCurrentDenAsync();
-            Console.WriteLine($"[DenService] JoinDenAsync - complete, den: {den?.Name}");
+            _logger.LogInformation("User joined den successfully");
 
             return new JoinDenResult(true, Den: den);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DenService] JoinDenAsync - ERROR: {ex.Message}");
-            Console.WriteLine($"[DenService] JoinDenAsync - Stack: {ex.StackTrace}");
+            _logger.LogError(ex, "Failed to join den");
             return new JoinDenResult(false, $"Failed to join den: {ex.Message}");
         }
     }

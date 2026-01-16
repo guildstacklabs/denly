@@ -1,4 +1,5 @@
 using Denly.Models;
+using Microsoft.Extensions.Logging;
 
 namespace Denly.Services;
 
@@ -8,12 +9,14 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
 
     private readonly IClock _clock;
     private readonly IStorageService _storageService;
+    private readonly ILogger<SupabaseDocumentService> _logger;
 
-    public SupabaseDocumentService(IDenService denService, IAuthService authService, IClock clock, IStorageService storageService)
+    public SupabaseDocumentService(IDenService denService, IAuthService authService, IClock clock, IStorageService storageService, ILogger<SupabaseDocumentService> logger)
         : base(denService, authService)
     {
         _clock = clock;
         _storageService = storageService;
+        _logger = logger;
     }
 
     public async Task<List<Document>> GetAllDocumentsAsync(CancellationToken cancellationToken = default)
@@ -106,7 +109,7 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DocumentService] Error searching documents: {ex.Message}");
+            _logger.LogError(ex, "Failed to search documents");
             return new List<Document>();
         }
     }
@@ -282,7 +285,7 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DocumentService] Error checking for documents: {ex.Message}");
+            _logger.LogError(ex, "Failed to check for documents");
             return false;
         }
     }
@@ -302,7 +305,7 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DocumentService] Error uploading document: {ex.Message}");
+            _logger.LogError(ex, "Failed to upload document");
             throw;
         }
     }

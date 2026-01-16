@@ -1,10 +1,12 @@
 @page "/"
 @using Denly.Models
 @using Denly.Services
+@using Microsoft.Extensions.Logging
 @inject IScheduleService ScheduleService
 @inject IExpenseService ExpenseService
 @inject IDocumentService DocumentService
 @inject NavigationManager Navigation
+@inject ILogger<Home> Logger
 
 <div class="home-page">
     <div class="page-header">
@@ -213,16 +215,16 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Console.WriteLine("[Home] OnInitializedAsync starting");
+        Logger.LogDebug("OnInitializedAsync starting");
         await LoadDashboardData();
-        Console.WriteLine("[Home] OnInitializedAsync complete");
+        Logger.LogDebug("OnInitializedAsync complete");
     }
 
     private async Task LoadDashboardData()
     {
         _isLoading = true;
         StateHasChanged();
-        Console.WriteLine("[Home] LoadDashboardData starting");
+        Logger.LogDebug("LoadDashboardData starting");
 
         try
         {
@@ -239,7 +241,7 @@
 
             // Determine if this is a new user
             _isNewUser = !_hasExpenses && !_hasUpcomingEvents && !_hasDocuments;
-            Console.WriteLine($"[Home] Is new user: {_isNewUser}");
+            Logger.LogDebug("Is new user: {IsNewUser}", _isNewUser);
 
             if (!_isNewUser)
             {
@@ -254,14 +256,13 @@
                 _balances = balancesTask.Result;
                 _recentDocuments = recentDocumentsTask.Result;
 
-                Console.WriteLine($"[Home] Upcoming events loaded: {_upcomingEvents.Count}");
-                Console.WriteLine($"[Home] Balances loaded: {_balances.Count} entries");
-                Console.WriteLine($"[Home] Recent documents loaded: {_recentDocuments.Count}");
+                Logger.LogDebug("Dashboard data loaded: {EventCount} events, {BalanceCount} balances, {DocCount} documents",
+                    _upcomingEvents.Count, _balances.Count, _recentDocuments.Count);
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Home] Error loading dashboard: {ex.Message}");
+            Logger.LogError(ex, "Failed to load dashboard data");
         }
         finally
         {

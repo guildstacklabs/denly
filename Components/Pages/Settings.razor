@@ -1,9 +1,11 @@
 @page "/settings"
 @using Denly.Models
 @using Denly.Services
+@using Microsoft.Extensions.Logging
 @inject IDenService DenService
 @inject IAuthService Auth
 @inject NavigationManager Navigation
+@inject ILogger<Settings> Logger
 
 <div class="settings-page">
     <div class="page-header">
@@ -321,11 +323,11 @@
         try
         {
             await Clipboard.Default.SetTextAsync(_activeInvite.Code);
-            Console.WriteLine("Code copied!");
+            Logger.LogDebug("Code copied to clipboard");
         }
-        catch
+        catch (Exception ex)
         {
-            Console.WriteLine("Could not copy code");
+            Logger.LogWarning(ex, "Failed to copy code to clipboard");
         }
     }
 
@@ -372,14 +374,14 @@
         try
         {
             await DenService.RemoveMemberAsync(_currentDen.Id, _memberToRemove.UserId);
-            Console.WriteLine("Member removed");
+            Logger.LogInformation("Member removed successfully");
             _showRemoveModal = false;
             _memberToRemove = null;
             await LoadData();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error removing member: {ex.Message}");
+            Logger.LogError(ex, "Failed to remove member");
         }
     }
 

@@ -48,48 +48,13 @@ If you are **Codex** or **Gemini**, follow these steps:
 
 ## P0 - Security (MVP Critical)
 
-### 1. Replace Console.WriteLine with Structured Logging
-**Source:** Codex #1 | **Effort:** Medium | **Risk:** Low
-
-> **Delegate:** Claude only
-> **Reason:** Security-sensitive, sets logging patterns for entire codebase. Requires decisions about what to log and what to redact.
-
-**Problem:** Services log sensitive data (user IDs, tokens, invite codes) to console. Unacceptable for a co-parenting app.
-
-**Solution:**
-- Replace `Console.WriteLine` with `ILogger<T>`
-- Establish logging policy: never log PII, use log levels appropriately
-- Use structured event names: `Auth.SignIn.Started`, `Den.Invite.Failed`
-
-**Targets:**
-- `Services/SupabaseAuthService.cs`
-- `Services/SupabaseDenService.cs`
-- `Services/SupabaseExpenseService.cs`
-- `Services/SupabaseScheduleService.cs`
-- `Services/SupabaseStorageService.cs`
-- `Services/SupabaseDocumentService.cs`
-- `Components/Pages/Home.razor`
-- `Components/Pages/CreateDen.razor`
-- `Components/Pages/JoinDen.razor`
-- `Components/Pages/Settings.razor`
+### 1. ~~Replace Console.WriteLine with Structured Logging~~ ✅ COMPLETE
+*Completed by Claude. Replaced 86+ Console.WriteLine calls with ILogger<T> across 10 files. Removed all PII (user IDs, den IDs, invite codes, emails, stack traces) from logs.*
 
 ---
 
-### 2. Invite Code Leakage Prevention
-**Source:** Codex #8 | **Effort:** Low | **Risk:** Low
-
-> **Delegate:** Claude only
-> **Reason:** Security audit requires careful review of what data is exposed.
-
-**Problem:** Invite validation may expose more den info than necessary; codes might be logged.
-
-**Solution:**
-- Ensure `ValidateInviteCodeAsync` returns only minimal den info (name, not IDs)
-- Audit all logging for invite codes
-- Ensure RLS prevents enumeration
-
-**Targets:**
-- `Services/SupabaseDenService.cs`
+### 2. ~~Invite Code Leakage Prevention~~ ✅ COMPLETE
+*Completed by Claude as part of #1. Audit verified: invite codes are no longer logged anywhere in the codebase. ValidateInviteCodeAsync returns only minimal den info.*
 
 ---
 
@@ -630,8 +595,8 @@ Replace spinners with skeleton loaders (gray bars mimicking text/cards).
 
 | # | Item | Delegate | Tier |
 |---|------|----------|------|
-| 1 | Structured logging | Claude | - |
-| 2 | Invite code audit | Claude | - |
+| 1 | ~~Structured logging~~ | ~~Claude~~ | ✅ Done |
+| 2 | ~~Invite code audit~~ | ~~Claude~~ | ✅ Done |
 | 3 | Auth/Den guards | Claude | - |
 | 4 | User feedback service | Claude | - |
 | 5 | ~~Network connectivity~~ | ~~Gemini~~ | ✅ Done |

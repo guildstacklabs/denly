@@ -5,6 +5,7 @@ using Supabase.Gotrue;
 using Supabase.Gotrue.Interfaces;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Denly.Services;
 
@@ -17,16 +18,18 @@ public class SupabaseAuthService : IAuthService
 
     private readonly IServiceProvider _serviceProvider;
     private readonly DenlyOptions _options;
+    private readonly ILogger<SupabaseAuthService> _logger;
     private Supabase.Client? _supabase;
     private bool _isInitialized;
     private string? _initializationError;
 
     public event EventHandler<AuthStateChangedEventArgs>? AuthStateChanged;
 
-    public SupabaseAuthService(IServiceProvider serviceProvider, IOptions<DenlyOptions> options)
+    public SupabaseAuthService(IServiceProvider serviceProvider, IOptions<DenlyOptions> options, ILogger<SupabaseAuthService> logger)
     {
         _serviceProvider = serviceProvider;
         _options = options.Value;
+        _logger = logger;
     }
 
     public async Task InitializeAsync()
@@ -43,7 +46,7 @@ public class SupabaseAuthService : IAuthService
         {
             _initializationError = MissingConfigMessage;
             _isInitialized = true;
-            Console.WriteLine("[AuthService] InitializeAsync - Supabase configuration is missing.");
+            _logger.LogWarning("Supabase configuration is missing");
             return;
         }
 
@@ -69,7 +72,7 @@ public class SupabaseAuthService : IAuthService
         catch (Exception ex)
         {
             _initializationError = "Failed to initialize Supabase client.";
-            Console.WriteLine($"[AuthService] InitializeAsync - error: {ex.Message}");
+            _logger.LogError(ex, "Failed to initialize Supabase client");
         }
     }
 
@@ -114,7 +117,7 @@ public class SupabaseAuthService : IAuthService
     {
         if (!string.IsNullOrEmpty(_initializationError))
         {
-            Console.WriteLine($"[AuthService] IsAuthenticatedAsync - initialization error: {_initializationError}");
+            _logger.LogWarning("IsAuthenticatedAsync called but service has initialization error");
             return Task.FromResult(false);
         }
 
@@ -125,7 +128,7 @@ public class SupabaseAuthService : IAuthService
     {
         if (!string.IsNullOrEmpty(_initializationError))
         {
-            Console.WriteLine($"[AuthService] GetCurrentUserAsync - initialization error: {_initializationError}");
+            _logger.LogWarning("GetCurrentUserAsync called but service has initialization error");
             return Task.FromResult<AppUser?>(null);
         }
 
@@ -234,32 +237,31 @@ public class SupabaseAuthService : IAuthService
             if (_supabase == null)
                 return new AuthResult(false, "Service not initialized");
 
-            Console.WriteLine("[AuthService] SignUpWithEmailAsync - Starting signup");
+            _logger.LogDebug("SignUpWithEmailAsync starting");
             var session = await _supabase.Auth.SignUp(email, password);
 
             if (session?.User == null)
             {
-                Console.WriteLine("[AuthService] SignUpWithEmailAsync - No user returned");
+                _logger.LogWarning("SignUpWithEmailAsync - no user returned");
                 return new AuthResult(false, "Failed to create account");
             }
 
-            Console.WriteLine($"[AuthService] SignUpWithEmailAsync - User created: {session.User.Id}");
-            Console.WriteLine($"[AuthService] SignUpWithEmailAsync - AccessToken present: {!string.IsNullOrEmpty(session.AccessToken)}");
+            _logger.LogInformation("User account created successfully");
 
             // Check if we have a valid session (email confirmation may be required)
             if (string.IsNullOrEmpty(session.AccessToken))
             {
-                Console.WriteLine("[AuthService] SignUpWithEmailAsync - No access token, email confirmation may be required");
+                _logger.LogDebug("No access token returned - email confirmation may be required");
                 return new AuthResult(false, "Please check your email to confirm your account before signing in.");
             }
 
             await PersistSessionAsync();
-            Console.WriteLine("[AuthService] SignUpWithEmailAsync - Session persisted, signup complete");
+            _logger.LogDebug("Signup complete, session persisted");
             return new AuthResult(true);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[AuthService] SignUpWithEmailAsync - Error: {ex.Message}");
+            _logger.LogError(ex, "Failed to sign up with email");
             var message = ex.Message;
             if (message.Contains("already registered"))
                 message = "An account with this email already exists";
@@ -271,7 +273,7 @@ public class SupabaseAuthService : IAuthService
     {
         try
         {
-            Console.WriteLine("[AuthService] SignOutAsync - starting sign out");
+            _logger.LogDebug("SignOutAsync starting");
 
             // Reset DenService state first
             var denService = _serviceProvider.GetRequiredService<IDenService>();
@@ -283,11 +285,11 @@ public class SupabaseAuthService : IAuthService
             }
 
             SecureStorage.Remove(SessionStorageKey);
-            Console.WriteLine("[AuthService] SignOutAsync - sign out complete");
+            _logger.LogDebug("Sign out complete");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[AuthService] SignOutAsync - error: {ex.Message}");
+            _logger.LogError(ex, "Error during sign out");
             // Best effort sign out
         }
     }
@@ -296,16 +298,15 @@ public class SupabaseAuthService : IAuthService
     {
         if (!string.IsNullOrEmpty(_initializationError))
         {
-            Console.WriteLine($"[AuthService] HasDenAsync - initialization error: {_initializationError}");
+            _logger.LogWarning("HasDenAsync called but service has initialization error");
             return false;
         }
 
-        Console.WriteLine("[AuthService] HasDenAsync called");
         var denService = _serviceProvider.GetRequiredService<IDenService>();
         await denService.InitializeAsync();
         var denId = denService.GetCurrentDenId();
         var hasDen = !string.IsNullOrEmpty(denId);
-        Console.WriteLine($"[AuthService] HasDenAsync - result: {hasDen}, denId: {denId ?? "null"}");
+        _logger.LogDebug("HasDenAsync result: {HasDen}", hasDen);
         return hasDen;
     }
 
@@ -313,7 +314,7 @@ public class SupabaseAuthService : IAuthService
     {
         if (!string.IsNullOrEmpty(_initializationError))
         {
-            Console.WriteLine($"[AuthService] GetCurrentDenAsync - initialization error: {_initializationError}");
+            _logger.LogWarning("GetCurrentDenAsync called but service has initialization error");
             return null;
         }
 
@@ -326,7 +327,7 @@ public class SupabaseAuthService : IAuthService
     {
         if (!string.IsNullOrEmpty(_initializationError))
         {
-            Console.WriteLine($"[AuthService] CreateDenAsync - initialization error: {_initializationError}");
+            _logger.LogWarning("CreateDenAsync called but service has initialization error");
             return;
         }
 

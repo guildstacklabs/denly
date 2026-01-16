@@ -2,9 +2,11 @@
 @layout LoginLayout
 @using Denly.Models
 @using Denly.Services
+@using Microsoft.Extensions.Logging
 @inject IDenService DenService
 @inject IAuthService Auth
 @inject NavigationManager Navigation
+@inject ILogger<JoinDen> Logger
 
 <div class="join-den-container">
     <div class="join-den-header">
@@ -207,7 +209,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[JoinDen] Error logging out: {ex.Message}");
+            Logger.LogError(ex, "Failed to sign out");
             _isLoading = false;
             StateHasChanged();
         }
