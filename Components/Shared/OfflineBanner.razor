@@ -1,4 +1,3 @@
-@inject IConnectivity Connectivity
 @inject NavigationManager NavigationManager
 @implements IDisposable
 
@@ -13,6 +12,7 @@
 @code {
     private bool _isOnline = true;
     private bool _dismissed = false;
+    private IConnectivity Connectivity => Microsoft.Maui.Networking.Connectivity.Current;
 
     protected override void OnInitialized()
     {

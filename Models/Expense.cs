@@ -57,6 +57,7 @@ public class Expense : BaseModel
 
     [Column("settled_at")]
     [JsonProperty("settled_at")]
+    [Newtonsoft.Json.JsonConverter(typeof(NullableDateTimeOrArrayConverter))]
     public DateTime? SettledAt { get; set; }
 
     // Helper properties for UI

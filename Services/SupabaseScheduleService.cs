@@ -16,10 +16,11 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
     public async Task<List<Event>> GetEventsByMonthAsync(int year, int month, CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync();
-        cancellationToken.ThrowIfCancellationRequested();
 
-        var denId = DenService.GetCurrentDenId();
-        if (string.IsNullOrEmpty(denId)) return new List<Event>();
+        var denId = TryGetCurrentDenId();
+        if (denId == null) return new List<Event>();
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
@@ -33,7 +34,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            var response = await SupabaseClient!
+            var response = await GetClientOrThrow()
                 .From<Event>()
                 .Select("id, den_id, child_id, title, event_type, starts_at, ends_at, all_day, location, notes, created_by, created_at")
                 .Where(e => e.DenId == denId)
@@ -60,10 +61,11 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
     public async Task<List<Event>> GetEventsByDateAsync(DateTime date, CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync();
-        cancellationToken.ThrowIfCancellationRequested();
 
-        var denId = DenService.GetCurrentDenId();
-        if (string.IsNullOrEmpty(denId)) return new List<Event>();
+        var denId = TryGetCurrentDenId();
+        if (denId == null) return new List<Event>();
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
@@ -85,7 +87,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            var response = await SupabaseClient!
+            var response = await GetClientOrThrow()
                 .From<Event>()
                 .Select("id, den_id, child_id, title, event_type, starts_at, ends_at, all_day, location, notes, created_by, created_at")
                 .Where(e => e.DenId == denId)
@@ -128,10 +130,11 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
     public async Task<List<Event>> GetUpcomingEventsAsync(int count, CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync();
-        cancellationToken.ThrowIfCancellationRequested();
 
-        var denId = DenService.GetCurrentDenId();
-        if (string.IsNullOrEmpty(denId)) return new List<Event>();
+        var denId = TryGetCurrentDenId();
+        if (denId == null) return new List<Event>();
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
@@ -139,7 +142,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            var response = await SupabaseClient!
+            var response = await GetClientOrThrow()
                 .From<Event>()
                 .Select("id, den_id, child_id, title, event_type, starts_at, ends_at, all_day, location, notes, created_by, created_at")
                 .Where(e => e.DenId == denId)
@@ -170,13 +173,18 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
         try
         {
-            var evt = await SupabaseClient!
+            var response = await GetClientOrThrow()
                 .From<Event>()
                 .Select("id, den_id, child_id, title, event_type, starts_at, ends_at, all_day, location, notes, created_by, created_at")
                 .Where(e => e.Id == id)
-                .Single();
+                .Limit(1)
+                .Get();
 
-            if (evt != null) ConvertToLocal(evt);
+            var evt = response.Models.FirstOrDefault();
+            if (evt != null)
+            {
+                ConvertToLocal(evt);
+            }
             return evt;
         }
         catch (OperationCanceledException)
@@ -195,24 +203,12 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         _logger.LogDebug("SaveEventAsync called");
 
         await EnsureInitializedAsync();
+
+        var denId = GetCurrentDenIdOrThrow();
+        var userId = GetAuthenticatedUserIdOrThrow();
+        var client = GetClientOrThrow();
+
         cancellationToken.ThrowIfCancellationRequested();
-
-        var denId = DenService.GetCurrentDenId();
-        if (string.IsNullOrEmpty(denId))
-        {
-            _logger.LogWarning("Cannot save event - no den selected");
-            return;
-        }
-
-        // Get user ID directly from the Supabase auth session
-        var supabaseUser = SupabaseClient?.Auth.CurrentUser;
-        if (supabaseUser == null || string.IsNullOrEmpty(supabaseUser.Id))
-        {
-            _logger.LogWarning("Cannot save event - no authenticated session");
-            return;
-        }
-
-        var userId = supabaseUser.Id;
 
         evt.DenId = denId;
 
@@ -239,12 +235,12 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
             _logger.LogDebug("Updating existing event");
             try
             {
-                await SupabaseClient!
+                await client
                     .From<Event>()
                     .Where(e => e.Id == evt.Id)
                     .Set(e => e.Title, evt.Title)
                     .Set(e => e.StartsAt, startUtc)
-                    .Set(e => e.EndsAt!, endUtc)
+                    .Set(e => e.EndsAtRaw!, endUtc)
                     .Set(e => e.AllDay, evt.AllDay)
                     .Set(e => e.EventTypeString, evt.EventTypeString)
                     .Set(e => e.Location!, evt.Location)
@@ -265,7 +261,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         else
         {
             _logger.LogDebug("Inserting new event");
-            evt.CreatedBy = supabaseUser.Id;
+            evt.CreatedBy = userId;
             evt.CreatedAt = DateTime.UtcNow;
 
             // Temporarily set UTC times on the object for insertion
@@ -277,7 +273,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
             try
             {
-                await SupabaseClient!
+                await client
                     .From<Event>()
                     .Insert(evt);
                 _logger.LogDebug("Event inserted successfully");
@@ -307,7 +303,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
         try
         {
-            await SupabaseClient!
+            await GetClientOrThrow()
                 .From<Event>()
                 .Where(e => e.Id == id)
                 .Delete();
@@ -342,13 +338,14 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
     public async Task<bool> HasUpcomingEventsAsync()
     {
         await EnsureInitializedAsync();
-        var denId = DenService.GetCurrentDenId();
+
+        var denId = TryGetCurrentDenId();
         if (denId == null) return false;
 
         try
         {
             var now = DateTime.UtcNow;
-            var result = await SupabaseClient!
+            var result = await GetClientOrThrow()
                 .From<Event>()
                 .Select("id")
                 .Filter("den_id", Supabase.Postgrest.Constants.Operator.Equals, denId)

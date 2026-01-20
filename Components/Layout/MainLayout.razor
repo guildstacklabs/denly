@@ -5,11 +5,30 @@
 @inject Denly.Services.IAuthService Auth
 @inject Denly.Services.IDenService DenService
 @inject NavigationManager Navigation
+@inject ILogger<MainLayout> Logger
 
 @if (_isLoading)
 {
     <div class="auth-loading">
         <div class="loading-spinner"></div>
+        <p style="margin-top: 1rem; color: #666; font-size: 0.875rem;">@_loadingStatus</p>
+    </div>
+}
+else if (_initializationFailed)
+{
+    <div class="auth-loading">
+        <div class="error-container">
+            <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <h2>Connection Error</h2>
+            <p>Unable to connect to Denly. Please check your internet connection and try again.</p>
+            <button class="retry-btn" @onclick="ClearSessionAndRetry">
+                Clear Session & Retry
+            </button>
+        </div>
     </div>
 }
 else if (_isAuthenticated)
@@ -41,7 +60,23 @@ else if (_isAuthenticated)
 
         <main class="main-content">
             <article class="content">
-                @Body
+                <ErrorBoundary>
+                    <ChildContent>
+                        @Body
+                    </ChildContent>
+                    <ErrorContent Context="context">
+                        <div style="padding: 2rem; text-align: center;">
+                            <h2 style="color: #ef4444;">Render Error</h2>
+                            @{
+                                Logger.LogError(context, "MainLayout render error");
+                            }
+                            <pre style="text-align: left; background: #f5f5f5; padding: 1rem; border-radius: 8px; font-size: 0.75rem; white-space: pre-wrap; word-break: break-word;">@context.ToString()</pre>
+                            <button @onclick="ClearSessionAndRetry" style="margin-top: 1rem; background: #5b8db8; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px;">
+                                Clear Session & Retry
+                            </button>
+                        </div>
+                    </ErrorContent>
+                </ErrorBoundary>
             </article>
         </main>
 
@@ -54,26 +89,106 @@ else if (_isAuthenticated)
 @code {
     private bool _isLoading = true;
     private bool _isAuthenticated;
+    private bool _initializationFailed;
     private string? _currentDenId;
     private List<Denly.Models.Den> _userDens = new();
+    private string _loadingStatus = "Starting...";
 
     protected override async Task OnInitializedAsync()
     {
-        await Auth.InitializeAsync();
-        await DenService.InitializeAsync();
-
-        _isAuthenticated = await Auth.IsAuthenticatedAsync();
-        _isLoading = false;
-
-        if (!_isAuthenticated)
+        try
         {
-            Navigation.NavigateTo("/login", forceLoad: true);
-            return;
+            _loadingStatus = "Initializing auth...";
+            StateHasChanged();
+            await Task.Delay(100); // Allow UI to update
+
+            await Auth.InitializeAsync();
+
+            _loadingStatus = "Initializing den service...";
+            StateHasChanged();
+            await Task.Delay(100);
+
+            await DenService.InitializeAsync();
+
+            _loadingStatus = "Checking authentication...";
+            StateHasChanged();
+            await Task.Delay(100);
+
+            try
+            {
+                _isAuthenticated = await Auth.IsAuthenticatedAsync();
+            }
+            catch (Exception authEx)
+            {
+                _loadingStatus = $"Auth check error: {authEx.Message}";
+                StateHasChanged();
+                throw;
+            }
+
+            if (!_isAuthenticated)
+            {
+                _loadingStatus = "Redirecting to login...";
+                StateHasChanged();
+                await Task.Delay(200);
+                _isLoading = false;
+                Navigation.NavigateTo("/login", forceLoad: true);
+                return;
+            }
+
+            // Load user's dens
+            _loadingStatus = "Loading your dens...";
+            StateHasChanged();
+
+            try
+            {
+                _userDens = await DenService.GetUserDensAsync();
+                _currentDenId = DenService.GetCurrentDenId();
+
+                // If we have dens but no current one is selected, default to the first
+                if (string.IsNullOrEmpty(_currentDenId) && _userDens.Any())
+                {
+                    _currentDenId = _userDens.First().Id;
+                    await DenService.SetCurrentDenAsync(_currentDenId);
+                }
+
+                _loadingStatus = $"Loaded {_userDens.Count} dens";
+                StateHasChanged();
+                await Task.Delay(100);
+            }
+            catch (Exception denEx)
+            {
+                _loadingStatus = $"Den load error: {denEx.Message}";
+                StateHasChanged();
+                throw;
+            }
+
+            // All done - show the app
+            _isLoading = false;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "MainLayout initialization failed");
+            _initializationFailed = true;
+            _isLoading = false;
+            _loadingStatus = $"Error: {ex.Message}";
+        }
+    }
+
+    private async Task ClearSessionAndRetry()
+    {
+        try
+        {
+            // Clear all stored session data
+            SecureStorage.RemoveAll();
+        }
+        catch
+        {
+            // Best effort
         }
 
-        // Load user's dens
-        _userDens = await DenService.GetUserDensAsync();
-        _currentDenId = DenService.GetCurrentDenId();
+        // Force reload to start fresh
+        Navigation.NavigateTo("/login", forceLoad: true);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

@@ -130,10 +130,7 @@
                 @if (_hasExpenses)
                 {
                     <div class="balance-display">
-                        @{
-                            var totalOwed = GetTotalOwed();
-                        }
-                        @if (totalOwed == 0)
+                        @if (_totalOwed == 0)
                         {
                             <div class="balance-settled">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -147,7 +144,7 @@
                         {
                             <div class="balance-owed">
                                 <span class="balance-who">Outstanding balance</span>
-                                <span class="balance-amount">@totalOwed.ToString("C")</span>
+                                <span class="balance-amount">@_totalOwed.ToString("C")</span>
                             </div>
                         }
                     </div>
@@ -212,6 +209,7 @@
     private List<Document> _recentDocuments = new();
     private bool _isNewUser;
     private bool _isLoading = true;
+    private decimal _totalOwed;
 
     protected override async Task OnInitializedAsync()
     {
@@ -252,9 +250,14 @@
                 
                 await Task.WhenAll(upcomingEventsTask, balancesTask, recentDocumentsTask);
 
-                _upcomingEvents = upcomingEventsTask.Result;
-                _balances = balancesTask.Result;
-                _recentDocuments = recentDocumentsTask.Result;
+                _upcomingEvents = upcomingEventsTask.Result ?? new List<Event>();
+                _balances = balancesTask.Result ?? new Dictionary<string, decimal>();
+                _recentDocuments = recentDocumentsTask.Result ?? new List<Document>();
+
+                if (_hasExpenses)
+                {
+                    _totalOwed = GetTotalOwed();
+                }
 
                 Logger.LogDebug("Dashboard data loaded: {EventCount} events, {BalanceCount} balances, {DocCount} documents",
                     _upcomingEvents.Count, _balances.Count, _recentDocuments.Count);
@@ -289,8 +292,11 @@
 
     private decimal GetTotalOwed()
     {
+        Logger.LogDebug("GetTotalOwed called. _balances is {IsNull}", _balances == null ? "NULL" : "NOT NULL");
+        
         // Return the maximum absolute balance (what someone owes)
-        if (_balances.Count == 0) return 0;
+        if (_balances == null || _balances.Count == 0) return 0;
+        
         var maxBalance = _balances.Values.Max();
         var minBalance = _balances.Values.Min();
         return Math.Max(Math.Abs(maxBalance), Math.Abs(minBalance));

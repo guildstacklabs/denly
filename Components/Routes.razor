@@ -1,6 +1,37 @@
-﻿<Router AppAssembly="typeof(MauiProgram).Assembly" NotFoundPage="typeof(Pages.NotFound)">
-    <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
-        <FocusOnNavigate RouteData="routeData" Selector="h1" />
-    </Found>
-</Router>
+﻿@inject ILogger<Routes> Logger
+
+<ErrorBoundary @ref="_errorBoundary">
+    <ChildContent>
+        <Router AppAssembly="typeof(MauiProgram).Assembly" NotFoundPage="typeof(Pages.NotFound)">
+            <Found Context="routeData">
+                <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+                <FocusOnNavigate RouteData="routeData" Selector="h1" />
+            </Found>
+        </Router>
+    </ChildContent>
+    <ErrorContent Context="ex">
+        <div style="padding: 2rem; text-align: center; font-family: system-ui;">
+            <h2 style="color: #ef4444;">Application Error</h2>
+            @{
+                Logger.LogError(ex, "Routes error boundary captured an exception");
+            }
+            <p style="color: #666; margin-bottom: 1rem;">An unexpected error occurred.</p>
+            <details style="text-align: left; background: #f5f5f5; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                <summary style="cursor: pointer; font-weight: bold;">Error Details</summary>
+                <pre style="white-space: pre-wrap; word-break: break-word; font-size: 0.75rem; margin-top: 0.5rem;">@ex.ToString()</pre>
+            </details>
+            <button @onclick="Recover" style="background: #5b8db8; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer;">
+                Try Again
+            </button>
+        </div>
+    </ErrorContent>
+</ErrorBoundary>
+
+@code {
+    private ErrorBoundary? _errorBoundary;
+
+    private void Recover()
+    {
+        _errorBoundary?.Recover();
+    }
+}

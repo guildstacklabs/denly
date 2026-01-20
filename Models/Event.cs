@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
 
@@ -53,7 +54,27 @@ public class Event : BaseModel
 
     [Column("ends_at")]
     [JsonProperty("ends_at")]
-    public DateTime? EndsAt { get; set; }
+    public JToken? EndsAtRaw
+    {
+        get => _endsAtRaw;
+        set
+        {
+            _endsAtRaw = value;
+            _endsAt = ParseNullableDateTime(value);
+        }
+    }
+
+    [Newtonsoft.Json.JsonIgnore]
+    [System.Text.Json.Serialization.JsonIgnore]
+    public DateTime? EndsAt
+    {
+        get => _endsAt;
+        set
+        {
+            _endsAt = value;
+            _endsAtRaw = value.HasValue ? new JValue(value.Value) : null;
+        }
+    }
 
     [Column("all_day")]
     [JsonProperty("all_day")]
@@ -88,6 +109,26 @@ public class Event : BaseModel
     [Newtonsoft.Json.JsonIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     public TimeSpan? Time => AllDay ? null : (StartsAt.Kind == DateTimeKind.Utc ? StartsAt.ToLocalTime() : StartsAt).TimeOfDay;
+
+    private static DateTime? ParseNullableDateTime(JToken? token)
+    {
+        if (token == null || token.Type == JTokenType.Null)
+        {
+            return null;
+        }
+
+        if (token.Type == JTokenType.Array)
+        {
+            var array = (JArray)token;
+            var last = array.Last ?? array.First;
+            return last?.ToObject<DateTime?>();
+        }
+
+        return token.ToObject<DateTime?>();
+    }
+
+    private JToken? _endsAtRaw;
+    private DateTime? _endsAt;
 }
 
 public static class EventTypeExtensions

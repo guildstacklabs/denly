@@ -40,8 +40,16 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <!-- App Icon -->
-        <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
+        <!-- App Icon (Light Mode) -->
+        <MauiIcon Include="Resources\AppIcon\appicon.svg" />
+
+        <!-- App Icon (Dark Mode) - for platform-specific dark mode support -->
+        <!-- iOS 18+: Add to Assets.xcassets with "Dark" appearance in Xcode -->
+        <MauiImage Include="Resources\AppIcon\appicon_dark.svg" BaseSize="1024,1024" />
+
+        <!-- App Icon (Monochrome) - for Android 13+ themed icons -->
+        <!-- Android tints this based on user's wallpaper colors -->
+        <MauiImage Include="Resources\AppIcon\appicon_monochrome.svg" BaseSize="1024,1024" />
 
         <!-- Splash Screen -->
         <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
@@ -55,12 +63,22 @@
 
         <!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
         <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
-        <MauiAsset Include="appsettings.json" LogicalName="appsettings.json" />
+
+        <!-- App Configuration - embedded so it works on all platforms -->
+        <EmbeddedResource Include="appsettings.json" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Prevent appsettings.json from being treated as a bundled asset -->
+        <MauiAsset Remove="appsettings.json" />
+        <Content Remove="appsettings.json" />
+        <None Remove="appsettings.json" />
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
         <PackageReference Include="Supabase" Version="1.1.1" />
         <PackageReference Include="SkiaSharp" Version="2.88.6" />

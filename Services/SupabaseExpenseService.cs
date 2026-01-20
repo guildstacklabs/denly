@@ -37,14 +37,15 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
     public async Task<List<Expense>> GetAllExpensesAsync(CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync();
-        cancellationToken.ThrowIfCancellationRequested();
 
-        var denId = DenService.GetCurrentDenId();
-        if (string.IsNullOrEmpty(denId)) return new List<Expense>();
+        var denId = TryGetCurrentDenId();
+        if (denId == null) return new List<Expense>();
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
-            var response = await SupabaseClient!
+            var response = await GetClientOrThrow()
                 .From<Expense>()
                 .Select("id, den_id, child_id, description, amount, paid_by, receipt_url, created_by, created_at, settled_at")
                 .Where(e => e.DenId == denId)
@@ -101,7 +102,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
 
         try
         {
-            return await SupabaseClient!
+            return await GetClientOrThrow()
                 .From<Expense>()
                 .Select("id, den_id, child_id, description, amount, paid_by, receipt_url, created_by, created_at, settled_at")
                 .Where(e => e.Id == id)
@@ -123,24 +124,12 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         _logger.LogDebug("SaveExpenseAsync called");
 
         await EnsureInitializedAsync();
+
+        var denId = GetCurrentDenIdOrThrow();
+        var userId = GetAuthenticatedUserIdOrThrow();
+        var client = GetClientOrThrow();
+
         cancellationToken.ThrowIfCancellationRequested();
-
-        var denId = DenService.GetCurrentDenId();
-        if (string.IsNullOrEmpty(denId))
-        {
-            _logger.LogWarning("Cannot save expense - no den selected");
-            return;
-        }
-
-        // Get user ID directly from the Supabase auth session
-        var supabaseUser = SupabaseClient?.Auth.CurrentUser;
-        if (supabaseUser == null || string.IsNullOrEmpty(supabaseUser.Id))
-        {
-            _logger.LogWarning("Cannot save expense - no authenticated session");
-            return;
-        }
-
-        var userId = supabaseUser.Id;
 
         expense.DenId = denId;
 
@@ -153,7 +142,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
             _logger.LogDebug("Updating existing expense");
             try
             {
-                await SupabaseClient!
+                await client
                     .From<Expense>()
                     .Where(e => e.Id == expense.Id)
                     .Set(e => e.Description, expense.Description)
@@ -177,12 +166,12 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         else
         {
             _logger.LogDebug("Inserting new expense");
-            expense.CreatedBy = supabaseUser.Id;
+            expense.CreatedBy = userId;
             expense.CreatedAt = DateTime.UtcNow;
 
             try
             {
-                await SupabaseClient!
+                await client
                     .From<Expense>()
                     .Insert(expense);
                 _logger.LogDebug("Expense inserted successfully");
@@ -216,7 +205,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            await SupabaseClient!
+            await GetClientOrThrow()
                 .From<Expense>()
                 .Where(e => e.Id == id)
                 .Delete();
@@ -236,10 +225,11 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
     public async Task<Dictionary<string, decimal>> GetBalancesAsync(CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync();
-        cancellationToken.ThrowIfCancellationRequested();
 
-        var denId = DenService.GetCurrentDenId();
-        if (string.IsNullOrEmpty(denId)) return new Dictionary<string, decimal>();
+        var denId = TryGetCurrentDenId();
+        if (denId == null) return new Dictionary<string, decimal>();
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (_balancesCache != null && _balancesCacheDenId == denId && DateTime.UtcNow - _balancesCacheTime < TimeSpan.FromMinutes(CacheTtlMinutes))
         {
@@ -252,7 +242,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         try
         {
             // Get unsettled expenses (where settled_at is null)
-            var expenseResponse = await SupabaseClient!
+            var expenseResponse = await GetClientOrThrow()
                 .From<Expense>()
                 .Select("id, den_id, child_id, description, amount, paid_by, receipt_url, created_by, created_at, settled_at")
                 .Where(e => e.DenId == denId)
@@ -300,14 +290,15 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
     public async Task<List<Settlement>> GetAllSettlementsAsync(CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync();
-        cancellationToken.ThrowIfCancellationRequested();
 
-        var denId = DenService.GetCurrentDenId();
-        if (string.IsNullOrEmpty(denId)) return new List<Settlement>();
+        var denId = TryGetCurrentDenId();
+        if (denId == null) return new List<Settlement>();
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
-            var response = await SupabaseClient!
+            var response = await GetClientOrThrow()
                 .From<Settlement>()
                 .Select("id, den_id, from_user_id, to_user_id, amount, note, created_by, created_at")
                 .Where(s => s.DenId == denId)
@@ -367,23 +358,12 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         _logger.LogDebug("CreateSettlementAsync called - Amount: {Amount}", amount);
 
         await EnsureInitializedAsync();
+
+        var denId = GetCurrentDenIdOrThrow();
+        var userId = GetAuthenticatedUserIdOrThrow();
+        var client = GetClientOrThrow();
+
         cancellationToken.ThrowIfCancellationRequested();
-
-        var denId = DenService.GetCurrentDenId();
-        if (string.IsNullOrEmpty(denId))
-        {
-            _logger.LogWarning("Cannot create settlement - no den selected");
-            throw new InvalidOperationException("No den selected");
-        }
-
-        var supabaseUser = SupabaseClient?.Auth.CurrentUser;
-        if (supabaseUser == null || string.IsNullOrEmpty(supabaseUser.Id))
-        {
-            _logger.LogWarning("Cannot create settlement - no authenticated session");
-            throw new InvalidOperationException("User not authenticated");
-        }
-
-        var userId = supabaseUser.Id;
 
         var settlement = new Settlement
         {
@@ -401,13 +381,13 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
             _logger.LogDebug("Inserting settlement");
             cancellationToken.ThrowIfCancellationRequested();
 
-            await SupabaseClient!
+            await client
                 .From<Settlement>()
                 .Insert(settlement);
             _logger.LogDebug("Settlement inserted successfully");
 
             // Mark all unsettled expenses as settled
-            var unsettled = await SupabaseClient!
+            var unsettled = await client
                 .From<Expense>()
                 .Select("id, den_id, child_id, description, amount, paid_by, receipt_url, created_by, created_at, settled_at")
                 .Where(e => e.DenId == denId)
@@ -418,7 +398,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
             foreach (var expense in unsettled.Models)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                await SupabaseClient!
+                await client
                     .From<Expense>()
                     .Where(e => e.Id == expense.Id)
                     .Set(e => e.SettledAt!, settledAt)
@@ -444,12 +424,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
     {
         _logger.LogDebug("SaveReceiptAsync called");
 
-        var denId = DenService.GetCurrentDenId();
-        if (string.IsNullOrEmpty(denId))
-        {
-            _logger.LogWarning("Cannot save receipt - no den selected");
-            throw new InvalidOperationException("No den selected");
-        }
+        var denId = GetCurrentDenIdOrThrow();
 
         try
         {
@@ -480,12 +455,13 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
     public async Task<bool> HasExpensesAsync()
     {
         await EnsureInitializedAsync();
-        var denId = DenService.GetCurrentDenId();
+
+        var denId = TryGetCurrentDenId();
         if (denId == null) return false;
 
         try
         {
-            var result = await SupabaseClient!
+            var result = await GetClientOrThrow()
                 .From<Expense>()
                 .Select("id")
                 .Filter("den_id", Supabase.Postgrest.Constants.Operator.Equals, denId)

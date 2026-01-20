@@ -5,8 +5,8 @@
       <stop offset="100%" style="stop-color:#F6D365"/>
     </linearGradient>
   </defs>
-  <!-- Background -->
-  <rect width="120" height="120" rx="27" fill="#FFF9F0"/>
+  <!-- Dark background -->
+  <rect width="120" height="120" rx="27" fill="#1F2A2A"/>
   <!-- Den embrace shape -->
   <circle cx="60" cy="60" r="40" fill="none" stroke="url(#embrace)" stroke-width="10" stroke-linecap="round" stroke-dasharray="200 60"/>
   <!-- Parent 1 - Deep coral -->
@@ -17,6 +17,4 @@
   <circle cx="52" cy="72" r="7" fill="#81B29A"/>
   <!-- Child 2 - Sandy gold -->
   <circle cx="68" cy="72" r="7" fill="#F2CC8F"/>
-  <!-- Soft glow in center -->
-  <ellipse cx="60" cy="60" rx="20" ry="15" fill="#FFF0E0" opacity="0.5"/>
 </svg>

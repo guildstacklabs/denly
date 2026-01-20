@@ -2,6 +2,7 @@
 using Denly.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Reflection;
 
 namespace Denly;
 
@@ -10,7 +11,20 @@ public static class MauiProgram
 	public static MauiApp CreateMauiApp()
 	{
 		var builder = MauiApp.CreateBuilder();
-		builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: false);
+
+		// Load appsettings.json from embedded resource (works on all platforms)
+		var assembly = Assembly.GetExecutingAssembly();
+		using var stream = assembly.GetManifestResourceStream("Denly.appsettings.json");
+		if (stream != null)
+		{
+			builder.Configuration.AddJsonStream(stream);
+			System.Diagnostics.Debug.WriteLine(">>> MauiProgram: Loaded appsettings.json from embedded resource");
+		}
+		else
+		{
+			System.Diagnostics.Debug.WriteLine(">>> MauiProgram: WARNING - appsettings.json not found as embedded resource");
+		}
+
 		builder
 			.UseMauiApp<App>()
 			.ConfigureFonts(fonts =>
@@ -40,12 +54,32 @@ public static class MauiProgram
 #else
 		builder.Services.AddSingleton<ISafeAreaService, DefaultSafeAreaService>();
 #endif
+		builder.Services.AddSingleton<Microsoft.Maui.Networking.IConnectivity>(
+			Microsoft.Maui.Networking.Connectivity.Current);
+
+		AppDomain.CurrentDomain.FirstChanceException += (sender, e) =>
+		{
+			System.Diagnostics.Debug.WriteLine($"********** FirstChanceException **********");
+			System.Diagnostics.Debug.WriteLine(e.Exception.ToString());
+		};
+
+		builder.Logging.AddConsole();
 
 #if DEBUG
 		builder.Services.AddBlazorWebViewDeveloperTools();
 		builder.Logging.AddDebug();
+		builder.Logging.SetMinimumLevel(LogLevel.Debug);
 #endif
 
-		return builder.Build();
+		var app = builder.Build();
+
+		var denService = app.Services.GetService<IDenService>();
+		if (denService == null)
+		{
+			Console.WriteLine("********** DI ERROR: IDenService not registered **********");
+			System.Diagnostics.Debug.WriteLine("********** DI ERROR: IDenService not registered **********");
+		}
+
+		return app;
 	}
 }

@@ -28,6 +28,10 @@
     </array>
     <key>XSAppIconAssets</key>
     <string>Assets.xcassets/appicon.appiconset</string>
+    <!-- iOS 18+ Dark Mode App Icon Support -->
+    <!-- Note: Full dark mode icon support requires manual asset catalog configuration -->
+    <!-- The dark icon is available at Resources/AppIcon/appicon_dark.svg -->
+    <!-- To enable: Add appicon_dark to Assets.xcassets with "Dark" appearance in Xcode -->
     <key>CFBundleURLTypes</key>
     <array>
         <dict>

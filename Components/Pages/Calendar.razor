@@ -72,7 +72,15 @@
                 </button>
             </div>
 
-            @if (SelectedDayEvents.Any())
+            @if (_isLoadingDay && HasEventsForSelectedDay)
+            {
+                <div class="events-skeleton">
+                    <div class="event-skeleton"></div>
+                    <div class="event-skeleton"></div>
+                    <div class="event-skeleton"></div>
+                </div>
+            }
+            else if (SelectedDayEvents.Any())
             {
                 <div class="events-list">
                     @foreach (var evt in SelectedDayEvents)
@@ -136,9 +144,9 @@
 
                 <div class="form-group">
                     <label>Time (optional)</label>
-                    <div class="time-picker-native @(ShowTimeError ? "time-picker-error" : "")">
+                    <div class="time-picker-native @(ShowTimeError ? "time-picker-error" : "") @(ShowTimeSuccess ? "time-picker-success" : "")">
                         <div class="time-picker-wheel">
-                            <select @bind="EditingHour" class="wheel-select @(ShowTimeError && !EditingHour.HasValue ? "wheel-select-error" : "")">
+                            <select @bind="EditingHour" @bind:after="OnTimeFieldChanged" class="wheel-select @(ShowTimeError && !EditingHour.HasValue ? "wheel-select-error" : "") @(ShowTimeSuccess ? "wheel-select-success" : "")">
                                 <option value="">--</option>
                                 <option value="12">12</option>
                                 @for (int h = 1; h <= 11; h++)
@@ -148,7 +156,7 @@
                             </select>
                         </div>
                         <div class="time-picker-wheel">
-                            <select @bind="EditingMinute" class="wheel-select @(ShowTimeError && !EditingMinute.HasValue ? "wheel-select-error" : "")">
+                            <select @bind="EditingMinute" @bind:after="OnTimeFieldChanged" class="wheel-select @(ShowTimeError && !EditingMinute.HasValue ? "wheel-select-error" : "") @(ShowTimeSuccess ? "wheel-select-success" : "")">
                                 <option value="">--</option>
                                 <option value="0">00</option>
                                 <option value="15">15</option>
@@ -157,16 +165,20 @@
                             </select>
                         </div>
                         <div class="time-picker-wheel">
-                            <select @bind="EditingAmPm" class="wheel-select @(ShowTimeError && string.IsNullOrEmpty(EditingAmPm) ? "wheel-select-error" : "")">
+                            <select @bind="EditingAmPm" @bind:after="OnTimeFieldChanged" class="wheel-select @(ShowTimeError && string.IsNullOrEmpty(EditingAmPm) ? "wheel-select-error" : "") @(ShowTimeSuccess ? "wheel-select-success" : "")">
                                 <option value="">--</option>
                                 <option value="AM">AM</option>
                                 <option value="PM">PM</option>
                             </select>
                         </div>
                     </div>
-                    @if (ShowTimeError)
+                    @if (ShowTimeError && !HasValidTime)
                     {
                         <span class="time-error-message">Please select hour, minute, and AM/PM</span>
+                    }
+                    else if (ShowTimeSuccess)
+                    {
+                        <span class="time-success-message">Time set</span>
                     }
                 </div>
 
@@ -229,6 +241,7 @@
 
     private bool _isLoading = true;
     private bool _isLoadingMonth;
+    private bool _isLoadingDay;
     private bool _isOnline = true;
 
     private bool ShowEventModal;
@@ -240,6 +253,7 @@
     private int? EditingHour;
     private int? EditingMinute;
     private string? EditingAmPm;
+    private bool _timeFieldsTouched;
 
     private static readonly string[] DayNames = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 
@@ -301,7 +315,17 @@
     {
         if (SelectedDate.HasValue)
         {
-            SelectedDayEvents = await ScheduleService.GetEventsByDateAsync(SelectedDate.Value);
+            _isLoadingDay = true;
+            SelectedDayEvents = new List<Event>();
+            StateHasChanged();
+            try
+            {
+                SelectedDayEvents = await ScheduleService.GetEventsByDateAsync(SelectedDate.Value);
+            }
+            finally
+            {
+                _isLoadingDay = false;
+            }
         }
     }
 
@@ -361,6 +385,8 @@
         EditingHour = null;
         EditingMinute = null;
         EditingAmPm = null;
+        ShowTimeError = false;
+        _timeFieldsTouched = false;
         ShowEventModal = true;
     }
 
@@ -396,16 +422,22 @@
             EditingMinute = null;
             EditingAmPm = null;
         }
+        ShowTimeError = false;
+        _timeFieldsTouched = false;
         ShowEventModal = true;
     }
 
     private void CloseModal()
     {
         ShowEventModal = false;
+        ShowTimeError = false;
+        _timeFieldsTouched = false;
         EditingEvent = new Event();
     }
 
     private bool HasValidTime => EditingHour.HasValue && EditingMinute.HasValue && !string.IsNullOrEmpty(EditingAmPm);
+    private bool ShowTimeSuccess => HasValidTime && _timeFieldsTouched;
+    private bool HasEventsForSelectedDay => SelectedDate.HasValue && MonthEvents.Any(e => e.Date.Date == SelectedDate.Value.Date);
 
     private bool HasPartialTime
     {
@@ -426,6 +458,14 @@
             return;
 
         Logger.LogDebug("SaveEvent starting");
+
+        if (HasPartialTime)
+        {
+            ShowTimeError = true;
+            return;
+        }
+
+        ShowTimeError = false;
 
         // Set StartsAt based on date and optional time
         // Convert local time to UTC for storage
@@ -496,6 +536,15 @@
     public void Dispose()
     {
         Connectivity.ConnectivityChanged -= OnConnectivityChanged;
+    }
+
+    private void OnTimeFieldChanged()
+    {
+        _timeFieldsTouched = true;
+        if (HasValidTime)
+        {
+            ShowTimeError = false;
+        }
     }
 
     private class CalendarDay

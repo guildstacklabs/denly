@@ -60,28 +60,8 @@ If you are **Codex** or **Gemini**, follow these steps:
 
 ## P1 - Stability (MVP Critical)
 
-### 3. Centralize Auth/Den Guards in SupabaseServiceBase
-**Source:** Codex #2 | **Effort:** Medium | **Risk:** Low
-
-> **Delegate:** Claude only
-> **Reason:** Architectural change to base class that all services inherit from. Incorrect implementation breaks everything.
-
-**Problem:** Services re-check auth/den state inconsistently. Some methods access den ID before initialization completes.
-
-**Solution:**
-Add guard helpers to `SupabaseServiceBase`:
-```csharp
-string GetCurrentDenIdOrThrow()      // For writes
-string? TryGetCurrentDenId()         // For reads (returns null, caller handles)
-string GetAuthenticatedUserIdOrThrow()
-Supabase.Client GetClientOrThrow()   // Eliminates ! usage
-```
-
-**Targets:**
-- `Services/SupabaseServiceBase.cs` (add helpers)
-- `Services/SupabaseDocumentService.cs`
-- `Services/SupabaseExpenseService.cs`
-- `Services/SupabaseScheduleService.cs`
+### 3. ~~Centralize Auth/Den Guards in SupabaseServiceBase~~ ✅ COMPLETE
+*Completed by Claude. Added guard helpers to SupabaseServiceBase: GetCurrentDenIdOrThrow(), TryGetCurrentDenId(), GetAuthenticatedUserIdOrThrow(), GetClientOrThrow(). Updated all three services (Document, Expense, Schedule) to use consistent patterns - read methods use TryGetCurrentDenId(), write methods use OrThrow() variants. Eliminated all SupabaseClient! null-forgiving operators.*
 
 ---
 
@@ -597,7 +577,7 @@ Replace spinners with skeleton loaders (gray bars mimicking text/cards).
 |---|------|----------|------|
 | 1 | ~~Structured logging~~ | ~~Claude~~ | ✅ Done |
 | 2 | ~~Invite code audit~~ | ~~Claude~~ | ✅ Done |
-| 3 | Auth/Den guards | Claude | - |
+| 3 | ~~Auth/Den guards~~ | ~~Claude~~ | ✅ Done |
 | 4 | User feedback service | Claude | - |
 | 5 | ~~Network connectivity~~ | ~~Gemini~~ | ✅ Done |
 | 6 | ~~Zombie den state~~ | ~~Codex~~ | ✅ Done |

@@ -21,15 +21,16 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
 
     public async Task<List<Document>> GetAllDocumentsAsync(CancellationToken cancellationToken = default)
     {
-        var denId = DenService.GetCurrentDenId();
-        if (string.IsNullOrEmpty(denId)) return new List<Document>();
-
         await EnsureInitializedAsync();
+
+        var denId = TryGetCurrentDenId();
+        if (denId == null) return new List<Document>();
+
         cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
-            var response = await SupabaseClient!
+            var response = await GetClientOrThrow()
                 .From<Document>()
                 .Select("id, den_id, child_id, title, category, file_url, uploaded_by, created_at")
                 .Where(d => d.DenId == denId)
@@ -52,16 +53,17 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
 
     public async Task<List<Document>> GetDocumentsByFolderAsync(DocumentFolder folder, CancellationToken cancellationToken = default)
     {
-        var denId = DenService.GetCurrentDenId();
-        if (string.IsNullOrEmpty(denId)) return new List<Document>();
-
         await EnsureInitializedAsync();
+
+        var denId = TryGetCurrentDenId();
+        if (denId == null) return new List<Document>();
+
         cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
             var folderStr = folder.ToString().ToLowerInvariant();
-            var response = await SupabaseClient!
+            var response = await GetClientOrThrow()
                 .From<Document>()
                 .Select("id, den_id, child_id, title, category, file_url, uploaded_by, created_at")
                 .Where(d => d.DenId == denId)
@@ -83,8 +85,9 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
     public async Task<List<Document>> SearchDocumentsAsync(string searchTerm, CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync();
-        var denId = DenService.GetCurrentDenId();
-        if (string.IsNullOrEmpty(denId)) return new List<Document>();
+
+        var denId = TryGetCurrentDenId();
+        if (denId == null) return new List<Document>();
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -93,7 +96,7 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
 
         try
         {
-            var result = await SupabaseClient!
+            var result = await GetClientOrThrow()
                .From<Document>()
                .Select("id, den_id, title, category, file_url, created_at, uploaded_by")
                .Filter("den_id", Supabase.Postgrest.Constants.Operator.Equals, denId)
@@ -116,15 +119,16 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
 
     public async Task<List<Document>> GetRecentDocumentsAsync(int count = 3, CancellationToken cancellationToken = default)
     {
-        var denId = DenService.GetCurrentDenId();
-        if (string.IsNullOrEmpty(denId)) return new List<Document>();
-
         await EnsureInitializedAsync();
+
+        var denId = TryGetCurrentDenId();
+        if (denId == null) return new List<Document>();
+
         cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
-            var response = await SupabaseClient!
+            var response = await GetClientOrThrow()
                 .From<Document>()
                 .Select("id, den_id, child_id, title, category, file_url, uploaded_by, created_at")
                 .Where(d => d.DenId == denId)
@@ -151,7 +155,7 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
 
         try
         {
-            return await SupabaseClient!
+            return await GetClientOrThrow()
                 .From<Document>()
                 .Select("id, den_id, child_id, title, category, file_url, uploaded_by, created_at")
                 .Where(d => d.Id == id)
@@ -169,13 +173,12 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
 
     public async Task SaveDocumentAsync(Document document, CancellationToken cancellationToken = default)
     {
-        var denId = DenService.GetCurrentDenId();
-        if (string.IsNullOrEmpty(denId)) return;
-
-        var user = await AuthService.GetCurrentUserAsync();
-        if (user == null) return;
-
         await EnsureInitializedAsync();
+
+        var denId = GetCurrentDenIdOrThrow();
+        var userId = GetAuthenticatedUserIdOrThrow();
+        var client = GetClientOrThrow();
+
         cancellationToken.ThrowIfCancellationRequested();
 
         document.DenId = denId;
@@ -186,7 +189,7 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
 
         if (existing != null)
         {
-            await SupabaseClient!
+            await client
                 .From<Document>()
                 .Where(d => d.Id == document.Id)
                 .Set(d => d.Title, document.Title)
@@ -197,10 +200,10 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
         }
         else
         {
-            document.UploadedBy = user.Id;
+            document.UploadedBy = userId;
             document.CreatedAt = _clock.UtcNow;
 
-            await SupabaseClient!
+            await client
                 .From<Document>()
                 .Insert(document);
         }
@@ -220,7 +223,7 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        await SupabaseClient!
+        await GetClientOrThrow()
             .From<Document>()
             .Where(d => d.Id == id)
             .Delete();
@@ -228,7 +231,6 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
 
     public async Task<Dictionary<DocumentFolder, int>> GetFolderCountsAsync(CancellationToken cancellationToken = default)
     {
-        var denId = DenService.GetCurrentDenId();
         var counts = new Dictionary<DocumentFolder, int>();
 
         foreach (DocumentFolder folder in Enum.GetValues<DocumentFolder>())
@@ -236,14 +238,16 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
             counts[folder] = 0;
         }
 
-        if (string.IsNullOrEmpty(denId)) return counts;
-
         await EnsureInitializedAsync();
+
+        var denId = TryGetCurrentDenId();
+        if (denId == null) return counts;
+
         cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
-            var response = await SupabaseClient!
+            var response = await GetClientOrThrow()
                 .From<Document>()
                 .Select("id, den_id, child_id, title, category, file_url, uploaded_by, created_at")
                 .Where(d => d.DenId == denId)
@@ -269,12 +273,13 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
     public async Task<bool> HasDocumentsAsync()
     {
         await EnsureInitializedAsync();
-        var denId = DenService.GetCurrentDenId();
+
+        var denId = TryGetCurrentDenId();
         if (denId == null) return false;
 
         try
         {
-            var result = await SupabaseClient!
+            var result = await GetClientOrThrow()
                 .From<Document>()
                 .Select("id")
                 .Filter("den_id", Supabase.Postgrest.Constants.Operator.Equals, denId)
@@ -292,11 +297,7 @@ public class SupabaseDocumentService : SupabaseServiceBase, IDocumentService
 
     public async Task<string> UploadDocumentAsync(Stream stream, string fileName, CancellationToken cancellationToken = default)
     {
-        var denId = DenService.GetCurrentDenId();
-        if (string.IsNullOrEmpty(denId))
-        {
-            throw new InvalidOperationException("No den selected for document upload.");
-        }
+        var denId = GetCurrentDenIdOrThrow();
 
         try
         {

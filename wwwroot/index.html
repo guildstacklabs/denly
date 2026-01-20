@@ -21,6 +21,26 @@
         <span class="dismiss">🗙</span>
     </div>
 
+    <script>
+        // Capture and log Blazor errors
+        window.addEventListener('error', function(e) {
+            console.error('Window error:', e.error);
+            var errorDiv = document.getElementById('blazor-error-ui');
+            if (errorDiv) {
+                errorDiv.innerHTML += '<pre style="font-size:10px;max-height:200px;overflow:auto;text-align:left;padding:10px;background:#fee;">' +
+                    (e.error ? e.error.stack || e.error.message || e.error : e.message) + '</pre>';
+            }
+        });
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('Unhandled rejection:', e.reason);
+            var errorDiv = document.getElementById('blazor-error-ui');
+            if (errorDiv) {
+                errorDiv.innerHTML += '<pre style="font-size:10px;max-height:200px;overflow:auto;text-align:left;padding:10px;background:#fee;">' +
+                    (e.reason ? e.reason.stack || e.reason.message || e.reason : 'Unknown rejection') + '</pre>';
+            }
+        });
+    </script>
+
     <script src="_framework/blazor.webview.js" autostart="false"></script>
     <script>
         function setSafeAreaInsets(top, bottom, left, right) {

@@ -36,6 +36,8 @@ public class SupabaseAuthService : IAuthService
     {
         if (_isInitialized) return;
 
+        System.Diagnostics.Debug.WriteLine(">>> AuthService: InitializeAsync starting...");
+
         var options = new SupabaseOptions
         {
             AutoRefreshToken = true,
@@ -45,18 +47,39 @@ public class SupabaseAuthService : IAuthService
         if (string.IsNullOrWhiteSpace(_options.SupabaseUrl) || string.IsNullOrWhiteSpace(_options.SupabaseAnonKey))
         {
             _initializationError = MissingConfigMessage;
-            _isInitialized = true;
-            _logger.LogWarning("Supabase configuration is missing");
+            System.Diagnostics.Debug.WriteLine(">>> AuthService: Missing Supabase config - URL or Key is empty");
+            _logger.LogWarning("Supabase configuration is missing. URL={Url}, KeyPresent={KeyPresent}",
+                _options.SupabaseUrl ?? "(null)",
+                !string.IsNullOrWhiteSpace(_options.SupabaseAnonKey));
             return;
         }
+
+        System.Diagnostics.Debug.WriteLine($">>> AuthService: Config OK, URL={_options.SupabaseUrl}");
 
         try
         {
             _supabase = new Supabase.Client(_options.SupabaseUrl, _options.SupabaseAnonKey, options);
-            await _supabase.InitializeAsync();
+
+            System.Diagnostics.Debug.WriteLine(">>> AuthService: Calling _supabase.InitializeAsync()...");
+
+            // Add timeout to prevent indefinite hanging
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var initTask = _supabase.InitializeAsync();
+            var completedTask = await Task.WhenAny(initTask, Task.Delay(Timeout.Infinite, cts.Token));
+
+            if (completedTask != initTask)
+            {
+                throw new TimeoutException("Supabase initialization timed out after 10 seconds");
+            }
+
+            await initTask; // Propagate any exception
+
+            System.Diagnostics.Debug.WriteLine(">>> AuthService: Supabase initialized, restoring session...");
 
             // Try to restore session from secure storage
             await RestoreSessionAsync();
+
+            System.Diagnostics.Debug.WriteLine(">>> AuthService: Session restored, adding state listener...");
 
             // Listen for auth state changes
             _supabase.Auth.AddStateChangedListener((sender, state) =>
@@ -68,10 +91,13 @@ public class SupabaseAuthService : IAuthService
 
             _initializationError = null;
             _isInitialized = true;
+            System.Diagnostics.Debug.WriteLine(">>> AuthService: InitializeAsync complete!");
         }
         catch (Exception ex)
         {
-            _initializationError = "Failed to initialize Supabase client.";
+            _initializationError = $"Failed to initialize: {ex.Message}";
+            _isInitialized = false; // Allow retries after transient failures.
+            System.Diagnostics.Debug.WriteLine($">>> AuthService: EXCEPTION: {ex}");
             _logger.LogError(ex, "Failed to initialize Supabase client");
         }
     }
