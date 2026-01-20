@@ -65,7 +65,47 @@ If you are **Codex** or **Gemini**, follow these steps:
 
 ---
 
-### 4. Centralized User Feedback Service
+### 4. Hide Error Details in Production UI
+**Source:** Codex review | **Effort:** Medium | **Risk:** Low
+
+> **Delegate:** Claude only
+> **Reason:** Security-sensitive (error details can reveal internals). Needs careful gating for debug vs release.
+
+**Problem:** Error boundaries and global handlers display full exception details to end users (and console), which can leak internal state or PII in production.
+
+**Solution:**
+- Gate detailed error output behind `#if DEBUG` (or environment flag).
+- Show a generic error message to users in release builds.
+- Log errors via `ILogger` with redaction (no PII).
+
+**Targets:**
+- `Components/Routes.razor`
+- `Components/Layout/MainLayout.razor`
+- `wwwroot/index.html`
+- `App.xaml.cs`
+- `MauiProgram.cs`
+
+---
+
+### 5. Guard SupabaseDenService Client Access
+**Source:** Codex review | **Effort:** Medium | **Risk:** Medium
+
+> **Delegate:** Claude only
+> **Reason:** Touches auth/den initialization and all den data access paths.
+
+**Problem:** `SupabaseDenService` uses `SupabaseClient!` extensively, which can throw if auth isn't initialized or the client is unavailable.
+
+**Solution:**
+- Add a `GetClientOrThrow()` helper (or equivalent) within `SupabaseDenService`.
+- Replace all `SupabaseClient!` usages with the guarded helper.
+- Ensure initialization/auth checks happen before any data calls; return safe defaults for reads when unauthenticated.
+
+**Targets:**
+- `Services/SupabaseDenService.cs`
+
+---
+
+### 6. Centralized User Feedback Service
 **Source:** Gemini #1B | **Effort:** Medium | **Risk:** Low
 
 > **Delegate:** Claude only
@@ -92,17 +132,17 @@ Implementation: Use `CommunityToolkit.Maui` Toast or Snackbar.
 
 ---
 
-### 5. ~~Network Connectivity Guardrails~~ ✅ COMPLETE
+### 7. ~~Network Connectivity Guardrails~~ ✅ COMPLETE
 *Completed by Gemini, verified by Claude. Commit: 7b6a6f8*
 
 ---
 
-### 6. ~~Den Switching "Zombie" State~~ ✅ COMPLETE
+### 8. ~~Den Switching "Zombie" State~~ ✅ COMPLETE
 *Completed by Codex, verified by Claude. Commit: 4a70cd2*
 
 ---
 
-### 7. App Lifecycle & Stale Data Refresh
+### 9. App Lifecycle & Stale Data Refresh
 **Source:** Gemini #3D | **Effort:** Medium | **Risk:** Low
 
 > **Delegate:** Claude only
@@ -121,7 +161,7 @@ Implementation: Use `CommunityToolkit.Maui` Toast or Snackbar.
 
 ---
 
-### 8. Settlement Batch Updates
+### 10. Settlement Batch Updates
 **Source:** Codex #4 | **Effort:** Medium | **Risk:** Medium
 
 > **Delegate:** Claude only
@@ -141,7 +181,7 @@ Option B: Postgres RPC function `settle_expenses(den_id, settled_at)`
 
 ## P2 - Performance (Post-Stability)
 
-### 9. Dashboard Optimization - Lightweight Has Data Methods
+### 11. Dashboard Optimization - Lightweight Has Data Methods
 > **Delegate:** Gemini | **Status:** ✅ Verified
 
 **Problem:** Home page loads all expenses/events to check "new user" status. Expensive.
@@ -239,7 +279,7 @@ Add efficient methods to check if a den has any expenses, events, or documents w
 
 ---
 
-### 10. Aggressive Caching for Balances and Members
+### 12. Aggressive Caching for Balances and Members
 > **Delegate:** Gemini | **Status:** ✅ Verified
 
 **Problem:** `GetBalancesAsync` and `GetDenMembersAsync` called repeatedly despite rarely changing.
@@ -321,12 +361,12 @@ public async Task<List<DenMember>> GetDenMembersAsync()
 
 ---
 
-### 11. ~~Select Specific Columns in Queries~~ ✅ COMPLETE
+### 13. ~~Select Specific Columns in Queries~~ ✅ COMPLETE
 *Completed by Codex, verified by Claude. Commit: 5d2e10b*
 
 ---
 
-### 12. Move Document Search Server-Side
+### 14. Move Document Search Server-Side
 **Source:** Codex #5 | **Effort:** Medium | **Risk:** Low
 
 > **Delegate:** Gemini | **Status:** ✅ Verified
@@ -406,12 +446,12 @@ Replace client-side document filtering with server-side search using Postgres `i
 
 ---
 
-### 13. ~~Storage Upload Memory Guard~~ ✅ COMPLETE
+### 15. ~~Storage Upload Memory Guard~~ ✅ COMPLETE
 *Completed by Codex, verified by Claude. Commit: 5d2e10b*
 
 ---
 
-### 14. Client-Side Image Compression
+### 16. Client-Side Image Compression
 > **Delegate:** Gemini | **Status:** ✅ Verified
 
 **Problem:** Phone cameras produce 5MB+ images. Slow uploads, high storage costs.
@@ -503,7 +543,7 @@ Compress images before uploading to reduce storage costs and improve upload spee
 
 ## P3 - UX Polish (Post-MVP)
 
-### 15. Role-Based UI Filtering
+### 17. Role-Based UI Filtering
 **Source:** Gemini #3B | **Effort:** Medium | **Risk:** Low
 
 > **Delegate:** Gemini | **Status:** Ready (Post-MVP)
@@ -517,7 +557,7 @@ Compress images before uploading to reduce storage costs and improve upload spee
 
 ---
 
-### 16. Skeleton Loading States
+### 18. Skeleton Loading States
 **Source:** Gemini #2B | **Effort:** Low | **Risk:** Low
 
 > **Delegate:** Codex | **Status:** Ready (Post-MVP)
@@ -533,7 +573,7 @@ Replace spinners with skeleton loaders (gray bars mimicking text/cards).
 
 ---
 
-### 17. Optimistic UI Updates
+### 19. Optimistic UI Updates
 **Source:** Gemini #2A | **Effort:** High | **Risk:** Medium
 
 > **Delegate:** Claude only
@@ -547,7 +587,7 @@ Replace spinners with skeleton loaders (gray bars mimicking text/cards).
 
 ---
 
-### 18. ISupabaseClientProvider for Testability
+### 20. ISupabaseClientProvider for Testability
 **Source:** Gemini #1A | **Effort:** High | **Risk:** Medium
 
 > **Delegate:** Claude only
@@ -558,6 +598,203 @@ Replace spinners with skeleton loaders (gray bars mimicking text/cards).
 **Solution:**
 - Create `IDataService<T>` or repository interfaces
 - Refactor services to depend on interfaces
+
+---
+
+### 21. Shared ErrorState Component
+**Source:** Codex review | **Effort:** Low | **Risk:** Low
+
+> **Delegate:** Codex | **Status:** Ready (Post-MVP)
+
+**Problem:** Error UI is duplicated with inline styles in `Routes.razor` and `MainLayout.razor`, making it hard to update or keep consistent.
+
+**Solution:**
+- Create `Components/Shared/ErrorState.razor` with parameters:
+  - `Title`, `Message`, `Details`, `ActionLabel`, `OnAction`
+- Add `ErrorState.razor.css` for styling (no inline styles)
+- Replace error markup in `Components/Routes.razor` and `Components/Layout/MainLayout.razor`
+
+**Targets:**
+- `Components/Shared/ErrorState.razor`
+- `Components/Shared/ErrorState.razor.css`
+- `Components/Routes.razor`
+- `Components/Layout/MainLayout.razor`
+
+#### Delegation Prompt (Codex)
+```
+## Task: Extract Shared ErrorState Component
+
+### Goal
+Replace duplicated inline-styled error UI with a shared `ErrorState` component.
+
+### Requirements
+1. Create `Components/Shared/ErrorState.razor` with params:
+   - `string Title`, `string Message`
+   - `string? Details`
+   - `string? ActionLabel`
+   - `EventCallback OnAction`
+2. Create `Components/Shared/ErrorState.razor.css` and move styles there (no inline styles).
+3. Update `Components/Routes.razor` and `Components/Layout/MainLayout.razor` to use `ErrorState`.
+4. Preserve existing content (headings, details, retry action) and behavior.
+
+### Constraints
+- Keep layout and content equivalent.
+- No new dependencies.
+```
+
+#### Review Checklist
+- [ ] `ErrorState.razor` created with parameters and renders optional details/action
+- [ ] Styles moved from inline to `.razor.css`
+- [ ] `Routes.razor` and `MainLayout.razor` use `ErrorState`
+- [ ] Visual output matches previous UI
+
+#### Completion Report
+<!-- Agent fills this in when done -->
+
+---
+
+### 22. Calendar Page Component Split
+**Source:** Codex review | **Effort:** High | **Risk:** Medium
+
+> **Delegate:** Claude only
+> **Reason:** Large refactor of stateful UI and event callbacks. Needs careful review.
+
+**Problem:** `Components/Pages/Calendar.razor` is 500+ lines mixing state management, rendering, and modal logic, which makes changes risky.
+
+**Solution:**
+- Split into focused components:
+  - `CalendarHeader.razor` (month navigation)
+  - `CalendarGrid.razor` (day cells)
+  - `DayEventsList.razor` (selected day events)
+  - `EventEditorModal.razor` (create/edit modal)
+- Keep state in `Calendar.razor`, pass data via parameters and `EventCallback`.
+
+**Targets:**
+- `Components/Pages/Calendar.razor`
+- `Components/Pages/Calendar.razor.css`
+- New components under `Components/Pages/Calendar/`
+
+#### Delegation Prompt (Claude)
+```
+## Task: Split Calendar Page into Subcomponents
+
+### Goal
+Reduce complexity in `Calendar.razor` by extracting UI sections into focused components without changing behavior.
+
+### Requirements
+1. Extract header/navigation, grid, day event list, and modal editor into separate components.
+2. Keep all state and service calls in `Calendar.razor`.
+3. Use `EventCallback` for actions (select day, open modal, save, delete).
+4. Keep CSS isolation intact; move relevant styles into new component `.razor.css` files where appropriate.
+
+### Constraints
+- No behavioral changes or visual regressions.
+- No new services or dependencies.
+```
+
+#### Review Checklist
+- [ ] `Calendar.razor` reduced to orchestrator and state
+- [ ] Components render same UI/behavior as before
+- [ ] All callbacks wired correctly
+- [ ] `dotnet build` passes
+
+#### Completion Report
+<!-- Agent fills this in when done -->
+
+---
+
+### 23. Expenses Page Component Split
+**Source:** Codex review | **Effort:** High | **Risk:** Medium
+
+> **Delegate:** Claude only
+> **Reason:** Stateful UI with multiple modes; refactor risk is moderate.
+
+**Problem:** `Components/Pages/Expenses.razor` is 500+ lines with mixed concerns (filtering, forms, list rendering).
+
+**Solution:**
+- Extract components for:
+  - `ExpensesSummary.razor` (totals/balances)
+  - `ExpensesList.razor` (grouped list rendering)
+  - `ExpenseEditorModal.razor` (create/edit modal)
+- Keep data loading and state in `Expenses.razor`.
+
+**Targets:**
+- `Components/Pages/Expenses.razor`
+- `Components/Pages/Expenses.razor.css`
+- New components under `Components/Pages/Expenses/`
+
+#### Delegation Prompt (Claude)
+```
+## Task: Split Expenses Page into Subcomponents
+
+### Goal
+Simplify `Expenses.razor` by extracting the major UI sections while preserving behavior.
+
+### Requirements
+1. Extract summary, list, and modal editor sections into separate components.
+2. Keep all state and service calls in `Expenses.razor`.
+3. Use `EventCallback` and parameters for interactions.
+4. Keep CSS isolation intact; move relevant styles into new component `.razor.css` files.
+
+### Constraints
+- No changes to business logic.
+- No visual changes.
+```
+
+#### Review Checklist
+- [ ] `Expenses.razor` reduced to state + orchestration
+- [ ] Components render same UI/behavior as before
+- [ ] All callbacks wired correctly
+- [ ] `dotnet build` passes
+
+#### Completion Report
+<!-- Agent fills this in when done -->
+
+---
+
+### 24. Standardize Time Access via IClock
+**Source:** Codex review | **Effort:** Medium | **Risk:** Low
+
+> **Delegate:** Claude only
+> **Reason:** Cross-cutting changes in multiple services; risk of subtle time bugs.
+
+**Problem:** Several services use `DateTime.UtcNow` directly, while others rely on `IClock`. This makes time-sensitive behavior harder to test and can lead to inconsistent timestamps.
+
+**Solution:**
+- Inject `IClock` into services still using `DateTime.UtcNow` (e.g., `SupabaseExpenseService`, `SupabaseScheduleService`, `SupabaseAuthService`).
+- Replace direct `DateTime.UtcNow` usages with `_clock.UtcNow`.
+- Ensure any "local date" logic remains explicit and unchanged.
+
+**Targets:**
+- `Services/SupabaseExpenseService.cs`
+- `Services/SupabaseScheduleService.cs`
+- `Services/SupabaseAuthService.cs`
+- `MauiProgram.cs` (if DI updates needed)
+
+#### Delegation Prompt (Claude)
+```
+## Task: Standardize Time Access via IClock
+
+### Goal
+Replace direct `DateTime.UtcNow` usage in services with the injected `IClock` to improve testability.
+
+### Requirements
+1. Inject `IClock` into services that still use `DateTime.UtcNow`.
+2. Replace `DateTime.UtcNow` with `_clock.UtcNow`.
+3. Keep any local-date logic (`DateTime.Today`, `ToLocalTime`) unchanged.
+
+### Constraints
+- No changes to business logic or external behavior.
+- Do not modify model defaults.
+```
+
+#### Review Checklist
+- [ ] Services inject and use `IClock` consistently
+- [ ] No unintended local-time conversions
+- [ ] `dotnet build` passes
+
+#### Completion Report
+<!-- Agent fills this in when done -->
 
 ---
 
@@ -578,43 +815,49 @@ Replace spinners with skeleton loaders (gray bars mimicking text/cards).
 | 1 | ~~Structured logging~~ | ~~Claude~~ | ✅ Done |
 | 2 | ~~Invite code audit~~ | ~~Claude~~ | ✅ Done |
 | 3 | ~~Auth/Den guards~~ | ~~Claude~~ | ✅ Done |
-| 4 | User feedback service | Claude | - |
-| 5 | ~~Network connectivity~~ | ~~Gemini~~ | ✅ Done |
-| 6 | ~~Zombie den state~~ | ~~Codex~~ | ✅ Done |
-| 7 | App lifecycle refresh | Claude | - |
-| 8 | Settlement batch | Claude | - |
-| 9 | ~~Dashboard optimization~~ | ~~Gemini~~ | ✅ Done |
-| 10 | ~~Aggressive caching~~ | ~~Gemini~~ | ✅ Done |
-| 11 | ~~Select columns~~ | ~~Codex~~ | ✅ Done |
-| 12 | ~~Server-side search~~ | ~~Gemini~~ | ✅ Done |
-| 13 | ~~Upload size guard~~ | ~~Codex~~ | ✅ Done |
-| 14 | ~~Image compression~~ | ~~Gemini~~ | ✅ Done |
-| 15 | Role-based UI | **Gemini** | Post-MVP |
-| 16 | Skeleton loading | **Codex** | Post-MVP |
-| 17 | Optimistic UI | Claude | - |
-| 18 | Testability refactor | Claude | - |
+| 4 | Hide error details | Claude | - |
+| 5 | Guard DenService client | Claude | - |
+| 6 | User feedback service | Claude | - |
+| 7 | ~~Network connectivity~~ | ~~Gemini~~ | ✅ Done |
+| 8 | ~~Zombie den state~~ | ~~Codex~~ | ✅ Done |
+| 9 | App lifecycle refresh | Claude | - |
+| 10 | Settlement batch | Claude | - |
+| 11 | ~~Dashboard optimization~~ | ~~Gemini~~ | ✅ Done |
+| 12 | ~~Aggressive caching~~ | ~~Gemini~~ | ✅ Done |
+| 13 | ~~Select columns~~ | ~~Codex~~ | ✅ Done |
+| 14 | ~~Server-side search~~ | ~~Gemini~~ | ✅ Done |
+| 15 | ~~Upload size guard~~ | ~~Codex~~ | ✅ Done |
+| 16 | ~~Image compression~~ | ~~Gemini~~ | ✅ Done |
+| 17 | Role-based UI | **Gemini** | Post-MVP |
+| 18 | Skeleton loading | **Codex** | Post-MVP |
+| 19 | Optimistic UI | Claude | - |
+| 20 | Testability refactor | Claude | - |
+| 21 | Shared error UI | **Codex** | Post-MVP |
+| 22 | Calendar split | Claude | - |
+| 23 | Expenses split | Claude | - |
+| 24 | IClock standardization | Claude | - |
 
 ---
 
 ## Suggested Sprint Order
 
 **Sprint 1 (Security & Foundation) - Claude only:**
-1, 2, 3, 4
+1, 2, 3, 4, 5, 6
 
 **Sprint 2 (Stability) - Mixed:**
-- Claude: 7, 8
-- Codex: 6
-- Gemini: 5
+- Claude: 9, 10
+- Codex: 8
+- Gemini: 7
 
 **Sprint 3 (Performance) - Mostly delegatable:**
-- Codex: 11, 13
-- Gemini: 9, 10
+- Codex: 13, 15
+- Gemini: 11, 12
 
 **Sprint 4 (Performance cont.):**
-- Gemini: 12, 14
+- Gemini: 14, 16
 
 **Post-MVP:**
-15, 16, 17, 18
+17, 18, 19, 20, 21, 22, 23, 24
 
 ---
 
