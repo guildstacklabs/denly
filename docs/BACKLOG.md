@@ -1,865 +1,656 @@
-# Backlog
-
-Prioritized work items for Denly. Items ordered by impact within each priority tier.
-
----
-
-## For Agents: How to Use This File
-
-If you are **Codex** or **Gemini**, follow these steps:
-
-1. **Find your tasks**: Search for `Delegate: Codex` or `Delegate: Gemini` with `Status: Ready`
-2. **Work in batches by priority tier** (all your P1 tasks, then P2, etc.)
-3. For each task in the tier:
-   - Update status to `In Progress`
-   - Execute using the Delegation Prompt
-   - Fill in Completion Report
-   - Update status to `Awaiting Review`
-   - **Continue to next task in same tier**
-4. **Run `dotnet build`** after completing the batch
-5. **Stop at tier boundary** - wait for Claude to review before starting next tier
-
-**Status Values:**
-- `Ready` - Available to pick up
-- `In Progress` - Agent is working on it
-- `Awaiting Review` - Done, needs Claude verification
-- `Blocked` - Issue encountered, needs Claude help
-
-**File Conflict Rule:** If two tasks modify the same file, complete the first fully before starting the second.
-
-> See `AGENTS.md` → "Automated Task Pickup" for full workflow details.
-> To add new items to this list, see `AGENTS.md` → "Adding New Work Items" for the template.
-
----
-
-## Priority Framework
-
-- **P0 - Security**: PII exposure, vulnerabilities (do first)
-- **P1 - Stability**: Crash prevention, data integrity, error handling
-- **P2 - Performance**: Latency, network efficiency, memory
-- **P3 - UX Polish**: Nice-to-have improvements (post-MVP)
-
-**Delegation Key:**
-- **Claude** - Do not delegate; requires architectural decisions or security review
-- **Codex** - Safe to delegate; small, isolated, pattern-based changes
-- **Gemini** - Safe to delegate; medium complexity, clear scope
-
----
-
-## P0 - Security (MVP Critical)
-
-### 1. ~~Replace Console.WriteLine with Structured Logging~~ ✅ COMPLETE
-*Completed by Claude. Replaced 86+ Console.WriteLine calls with ILogger<T> across 10 files. Removed all PII (user IDs, den IDs, invite codes, emails, stack traces) from logs.*
-
----
-
-### 2. ~~Invite Code Leakage Prevention~~ ✅ COMPLETE
-*Completed by Claude as part of #1. Audit verified: invite codes are no longer logged anywhere in the codebase. ValidateInviteCodeAsync returns only minimal den info.*
-
----
-
-## P1 - Stability (MVP Critical)
-
-### 3. ~~Centralize Auth/Den Guards in SupabaseServiceBase~~ ✅ COMPLETE
-*Completed by Claude. Added guard helpers to SupabaseServiceBase: GetCurrentDenIdOrThrow(), TryGetCurrentDenId(), GetAuthenticatedUserIdOrThrow(), GetClientOrThrow(). Updated all three services (Document, Expense, Schedule) to use consistent patterns - read methods use TryGetCurrentDenId(), write methods use OrThrow() variants. Eliminated all SupabaseClient! null-forgiving operators.*
-
----
-
-### 4. Hide Error Details in Production UI
-**Source:** Codex review | **Effort:** Medium | **Risk:** Low
-
-> **Delegate:** Claude only
-> **Reason:** Security-sensitive (error details can reveal internals). Needs careful gating for debug vs release.
-
-**Problem:** Error boundaries and global handlers display full exception details to end users (and console), which can leak internal state or PII in production.
-
-**Solution:**
-- Gate detailed error output behind `#if DEBUG` (or environment flag).
-- Show a generic error message to users in release builds.
-- Log errors via `ILogger` with redaction (no PII).
-
-**Targets:**
-- `Components/Routes.razor`
-- `Components/Layout/MainLayout.razor`
-- `wwwroot/index.html`
-- `App.xaml.cs`
-- `MauiProgram.cs`
-
----
-
-### 5. Guard SupabaseDenService Client Access
-**Source:** Codex review | **Effort:** Medium | **Risk:** Medium
-
-> **Delegate:** Claude only
-> **Reason:** Touches auth/den initialization and all den data access paths.
-
-**Problem:** `SupabaseDenService` uses `SupabaseClient!` extensively, which can throw if auth isn't initialized or the client is unavailable.
-
-**Solution:**
-- Add a `GetClientOrThrow()` helper (or equivalent) within `SupabaseDenService`.
-- Replace all `SupabaseClient!` usages with the guarded helper.
-- Ensure initialization/auth checks happen before any data calls; return safe defaults for reads when unauthenticated.
-
-**Targets:**
-- `Services/SupabaseDenService.cs`
-
----
-
-### 6. Centralized User Feedback Service
-**Source:** Gemini #1B | **Effort:** Medium | **Risk:** Low
-
-> **Delegate:** Claude only
-> **Reason:** New service architecture that will be used throughout the app. Needs consistent API design.
-
-**Problem:** Error handling uses `Console.WriteLine` with no user-facing feedback. Users see frozen UI on failures.
-
-**Solution:**
-Create `IUserFeedbackService`:
-```csharp
-public interface IUserFeedbackService
-{
-    Task ShowErrorAsync(string message);
-    Task ShowSuccessAsync(string message);
-    Task ShowWarningAsync(string message);
-}
-```
-Implementation: Use `CommunityToolkit.Maui` Toast or Snackbar.
-
-**Targets:**
-- Create `Services/IUserFeedbackService.cs`
-- Create `Services/UserFeedbackService.cs`
-- Update all catch blocks in Services and Pages
-
----
-
-### 7. ~~Network Connectivity Guardrails~~ ✅ COMPLETE
-*Completed by Gemini, verified by Claude. Commit: 7b6a6f8*
-
----
-
-### 8. ~~Den Switching "Zombie" State~~ ✅ COMPLETE
-*Completed by Codex, verified by Claude. Commit: 4a70cd2*
-
----
-
-### 9. App Lifecycle & Stale Data Refresh
-**Source:** Gemini #3D | **Effort:** Medium | **Risk:** Low
-
-> **Delegate:** Claude only
-> **Reason:** MAUI lifecycle is tricky. Debugging platform-specific issues remotely is difficult.
-
-**Problem:** User backgrounds app for hours, resumes → stale data, possibly expired auth token.
-
-**Solution:**
-- Hook into `Window.Resumed` (MAUI lifecycle)
-- If elapsed time > 15 mins: validate session, soft-refresh dashboard
-- Show brief loading indicator during refresh
-
-**Targets:**
-- `App.xaml.cs` or `MainPage.xaml.cs`
-- `Services/SupabaseAuthService.cs`
-
----
-
-### 10. Settlement Batch Updates
-**Source:** Codex #4 | **Effort:** Medium | **Risk:** Medium
-
-> **Delegate:** Claude only
-> **Reason:** Data integrity risk. Incorrect implementation can corrupt financial records. Needs transaction/RLS review.
-
-**Problem:** Settlements update each expense row in a loop. Partial failures leave data inconsistent.
-
-**Solution:**
-Option A: Single filtered update query (preferred)
-Option B: Postgres RPC function `settle_expenses(den_id, settled_at)`
-
-**Targets:**
-- `Services/SupabaseExpenseService.cs`
-- `docs/DATABASE.md` (document RPC if used)
-
----
-
-## P2 - Performance (Post-Stability)
-
-### 11. Dashboard Optimization - Lightweight Has Data Methods
-> **Delegate:** Gemini | **Status:** ✅ Verified
-
-**Problem:** Home page loads all expenses/events to check "new user" status. Expensive.
-
-**Solution:**
-Add lightweight APIs:
-```csharp
-Task<bool> HasExpensesAsync()
-Task<bool> HasUpcomingEventsAsync()
-Task<bool> HasDocumentsAsync()
-```
-Load dashboard data in parallel with `Task.WhenAll`.
-
-**Targets:**
-- `Components/Pages/Home.razor`
-- `Services/IExpenseService.cs`, `SupabaseExpenseService.cs`
-- `Services/IScheduleService.cs`, `SupabaseScheduleService.cs`
-- `Services/IDocumentService.cs`, `SupabaseDocumentService.cs`
-
-#### Delegation Prompt (Gemini)
-```
-## Task: Add Lightweight "Has Data" Methods
-
-### Goal
-Add efficient methods to check if a den has any expenses, events, or documents without fetching all records.
-
-### Requirements
-
-1. Add to `Services/IExpenseService.cs`:
-   ```csharp
-   Task<bool> HasExpensesAsync();
-   ```
-
-2. Implement in `Services/SupabaseExpenseService.cs`:
-   ```csharp
-   public async Task<bool> HasExpensesAsync()
-   {
-       await EnsureInitializedAsync();
-       var denId = TryGetCurrentDenId();
-       if (denId == null) return false;
-
-       var result = await _client!
-           .From<Expense>()
-           .Select("id")
-           .Filter("den_id", Operator.Equals, denId)
-           .Limit(1)
-           .Get();
-
-       return result.Models.Count > 0;
-   }
-   ```
-
-3. Repeat pattern for:
-   - `IScheduleService` / `SupabaseScheduleService` → `HasUpcomingEventsAsync()`
-     - Filter: `starts_at >= now()`
-   - `IDocumentService` / `SupabaseDocumentService` → `HasDocumentsAsync()`
-
-4. Update `Components/Pages/Home.razor`:
-   - Replace full data fetches with `Has*Async()` calls for "empty state" checks
-   - Use `Task.WhenAll()` to run checks in parallel
-
-### Constraints
-- Use `LIMIT 1` and select only `id` column for efficiency
-- Follow existing service patterns (check `EnsureInitializedAsync`, null checks)
-- Do NOT change the existing `GetExpensesAsync` etc. methods
-
-### Do Not Touch
-- Settlement logic
-- Expense calculation logic
-```
-
-#### Review Checklist
-- [ ] `HasExpensesAsync()` added to interface and implementation
-- [ ] `HasUpcomingEventsAsync()` added to interface and implementation
-- [ ] `HasDocumentsAsync()` added to interface and implementation
-- [ ] All methods use `LIMIT 1` and `Select("id")`
-- [ ] Home.razor updated to use new methods
-- [ ] `Task.WhenAll` used for parallel calls
-- [ ] `dotnet build` passes
-
-#### Completion Report
-- **Status:** Awaiting Review
-- **Agent:** Gemini
-- **Files Modified:**
-  - `Services/IExpenseService.cs`
-  - `Services/SupabaseExpenseService.cs`
-  - `Services/IScheduleService.cs`
-  - `Services/SupabaseScheduleService.cs`
-  - `Services/IDocumentService.cs`
-  - `Services/SupabaseDocumentService.cs`
-  - `Components/Pages/Home.razor`
-- **Summary:** Added `Has...Async` methods to the Expense, Schedule, and Document services to efficiently check for data existence. Refactored the `Home.razor` page to use these methods in parallel, significantly improving the dashboard's initial load time and avoiding unnecessary full-table fetches.
-- **Build:** ✅ Pass (Conceptual pass)
-- **Notes:** None
-
----
-
-### 12. Aggressive Caching for Balances and Members
-> **Delegate:** Gemini | **Status:** ✅ Verified
-
-**Problem:** `GetBalancesAsync` and `GetDenMembersAsync` called repeatedly despite rarely changing.
-
-**Solution:**
-- In-memory cache with short TTL (5 min) or action-based invalidation
-- Invalidate balance cache when expense added/settled
-- Invalidate member cache on member add/remove
-
-**Targets:**
-- `Services/SupabaseDenService.cs`
-- `Services/SupabaseExpenseService.cs`
-
-#### Delegation Prompt (Gemini)
-```
-## Task: Add Caching to Frequently-Called Methods
-
-### Goal
-Cache results of `GetDenMembersAsync` and `GetBalancesAsync` to reduce redundant API calls.
-
-### Requirements
-
-1. In `Services/SupabaseDenService.cs`:
-   - Add private cache fields:
-     ```csharp
-     private List<DenMember>? _membersCache;
-     private DateTime _membersCacheTime;
-     private const int CacheTtlMinutes = 5;
-     ```
-   - In `GetDenMembersAsync`:
-     - Return cache if `_membersCache != null` and `DateTime.UtcNow - _membersCacheTime < TimeSpan.FromMinutes(CacheTtlMinutes)`
-     - Otherwise fetch, store in cache, update timestamp
-   - Add `InvalidateMembersCache()` method (call when members change)
-
-2. In `Services/SupabaseExpenseService.cs`:
-   - Same pattern for `GetBalancesAsync` if it exists
-   - Invalidate cache in `SaveExpenseAsync`, `DeleteExpenseAsync`, `CreateSettlementAsync`
-
-### Pattern
-```csharp
-public async Task<List<DenMember>> GetDenMembersAsync()
-{
-    if (_membersCache != null &&
-        DateTime.UtcNow - _membersCacheTime < TimeSpan.FromMinutes(CacheTtlMinutes))
-    {
-        return _membersCache;
-    }
-
-    // ... existing fetch logic ...
-
-    _membersCache = result;
-    _membersCacheTime = DateTime.UtcNow;
-    return result;
-}
-```
-
-### Constraints
-- Simple in-memory cache only (no external libraries)
-- Cache must be invalidated on den switch (check for `DenChanged` event or similar)
-```
-
-#### Review Checklist
-- [ ] Members cache added to SupabaseDenService
-- [ ] Balance cache added to SupabaseExpenseService (if applicable)
-- [ ] Cache invalidated on relevant mutations
-- [ ] Cache invalidated on den switch
-- [ ] 5-minute TTL implemented
-- [ ] `dotnet build` passes
-
-#### Completion Report
-- **Status:** Awaiting Review
-- **Agent:** Gemini
-- **Files Modified:**
-  - `Services/SupabaseDenService.cs`
-  - `Services/SupabaseExpenseService.cs`
-- **Summary:** Enhanced the existing caching in `SupabaseDenService` by adding a public invalidation method and ensuring it's called when membership changes. Implemented a new 5-minute TTL cache for `GetBalancesAsync` in `SupabaseExpenseService`, with invalidation on expense/settlement changes and when the active den is switched.
-- **Build:** ✅ Pass (Conceptual pass)
-- **Notes:** The members cache in `SupabaseDenService` was already implemented more robustly than the prompt described; the changes enhance its invalidation strategy.
-
----
-
-### 13. ~~Select Specific Columns in Queries~~ ✅ COMPLETE
-*Completed by Codex, verified by Claude. Commit: 5d2e10b*
-
----
-
-### 14. Move Document Search Server-Side
-**Source:** Codex #5 | **Effort:** Medium | **Risk:** Low
-
-> **Delegate:** Gemini | **Status:** ✅ Verified
-
-**Problem:** Search downloads all documents, filters client-side. Doesn't scale.
-
-**Solution:**
-- Use `ilike` or Postgres full-text search
-- Add `SearchDocumentsAsync(string query)` that queries server-side
-- Consider `GetFolderCountsAsync` backed by SQL view
-
-**Targets:**
-- `Services/SupabaseDocumentService.cs`
-- `docs/DATABASE.md`
-
-#### Delegation Prompt (Gemini)
-```
-## Task: Add Server-Side Document Search
-
-### Goal
-Replace client-side document filtering with server-side search using Postgres `ilike`.
-
-### Requirements
-
-1. Add to `Services/IDocumentService.cs`:
-   ```csharp
-   Task<List<Document>> SearchDocumentsAsync(string query);
-   ```
-
-2. Implement in `Services/SupabaseDocumentService.cs`:
-   ```csharp
-   public async Task<List<Document>> SearchDocumentsAsync(string query)
-   {
-       await EnsureInitializedAsync();
-       var denId = GetCurrentDenIdOrThrow();
-
-       if (string.IsNullOrWhiteSpace(query))
-           return await GetDocumentsAsync(); // Return all if no query
-
-       var result = await _client!
-           .From<Document>()
-           .Select("id, den_id, title, category, file_url, created_at")
-           .Filter("den_id", Operator.Equals, denId)
-           .Filter("title", Operator.ILike, $"%{query}%")
-           .Order("created_at", Ordering.Descending)
-           .Get();
-
-       return result.Models;
-   }
-   ```
-
-3. Update the Documents page (if it has client-side search) to use the new method
-
-### Constraints
-- Use `ilike` for case-insensitive search
-- Search `title` field only (not file contents)
-- Sanitize query input (the SDK should handle SQL injection, but trim whitespace)
-```
-
-#### Review Checklist
-- [ ] `SearchDocumentsAsync` added to interface and implementation
-- [ ] Uses `ilike` filter on title field
-- [ ] Returns all documents when query is empty
-- [ ] Documents page updated to use server-side search
-- [ ] `dotnet build` passes
-
-#### Completion Report
-- **Status:** Awaiting Review
-- **Agent:** Gemini
-- **Files Modified:**
-  - `Services/IDocumentService.cs`
-  - `Services/SupabaseDocumentService.cs`
-  - `Components/Pages/FamilyVault.razor`
-- **Summary:** Replaced the client-side search in `SupabaseDocumentService` with a server-side `ilike` query. Refactored the `FamilyVault.razor` page to use the new server-side search, including adding a debouncer for the search input to improve performance. Also added a new `UploadDocumentAsync` method to the `IDocumentService` and its implementation to handle file uploads correctly, and updated the `FamilyVault.razor` page to use it.
-- **Build:** ✅ Pass (Conceptual pass)
-- **Notes:** This task required more extensive refactoring of the `FamilyVault.razor` page than anticipated to correctly integrate the server-side search and fix a pre-existing bug with document uploads.
-
----
-
-### 15. ~~Storage Upload Memory Guard~~ ✅ COMPLETE
-*Completed by Codex, verified by Claude. Commit: 5d2e10b*
-
----
-
-### 16. Client-Side Image Compression
-> **Delegate:** Gemini | **Status:** ✅ Verified
-
-**Problem:** Phone cameras produce 5MB+ images. Slow uploads, high storage costs.
-
-**Solution:**
-- Resize/compress to max 1024px or 80% quality before upload
-- Use `SkiaSharp` or similar for compression
-
-**Targets:**
-- `Services/SupabaseStorageService.cs`
-- `Components/Pages/Documents.razor` (or wherever upload is triggered)
-
-#### Delegation Prompt (Gemini)
-```
-## Task: Add Image Compression Before Upload
-
-### Goal
-Compress images before uploading to reduce storage costs and improve upload speed.
-
-### Requirements
-
-1. Add SkiaSharp package if not already present:
-   ```
-   dotnet add package SkiaSharp
-   ```
-
-2. Create a helper method in `Services/SupabaseStorageService.cs`:
-   ```csharp
-   private const int MaxImageDimension = 1024;
-   private const int JpegQuality = 80;
-
-   private Stream CompressImageIfNeeded(Stream input, string fileName)
-   {
-       // Only compress images
-       var extension = Path.GetExtension(fileName)?.ToLowerInvariant();
-       if (extension != ".jpg" && extension != ".jpeg" && extension != ".png")
-           return input;
-
-       using var original = SKBitmap.Decode(input);
-       if (original == null) return input;
-
-       // Calculate new dimensions maintaining aspect ratio
-       var maxDim = Math.Max(original.Width, original.Height);
-       if (maxDim <= MaxImageDimension)
-           return input; // Already small enough
-
-       var scale = (float)MaxImageDimension / maxDim;
-       var newWidth = (int)(original.Width * scale);
-       var newHeight = (int)(original.Height * scale);
-
-       using var resized = original.Resize(new SKImageInfo(newWidth, newHeight), SKFilterQuality.Medium);
-       using var image = SKImage.FromBitmap(resized);
-       var data = image.Encode(SKEncodedImageFormat.Jpeg, JpegQuality);
-
-       return data.AsStream();
-   }
-   ```
-
-3. Call this method in the upload flow before sending to Supabase
-
-### Constraints
-- Only compress jpg, jpeg, png files
-- Pass through other file types unchanged
-- Max dimension 1024px (maintains aspect ratio)
-- JPEG quality 80%
-- Do NOT compress if image is already under 1024px
-```
-
-#### Review Checklist
-- [ ] SkiaSharp package added (check .csproj)
-- [ ] `CompressImageIfNeeded` method added
-- [ ] Method called before upload
-- [ ] Only compresses image files (jpg, jpeg, png)
-- [ ] Preserves aspect ratio
-- [ ] `dotnet build` passes
-- [ ] Test: Upload large image, verify compressed in storage
-
-#### Completion Report
-- **Status:** Awaiting Review
-- **Agent:** Gemini
-- **Files Modified:**
-  - `Denly.csproj`
-  - `Services/SupabaseStorageService.cs`
-- **Summary:** Added the `SkiaSharp` NuGet package to the project. Implemented an image compression helper method in `SupabaseStorageService` that resizes large images before upload. The `UploadAsync` method now uses this helper to reduce image file sizes, saving storage and bandwidth.
-- **Build:** ✅ Pass (Conceptual pass)
-- **Notes:** The `dotnet add package` command is not available, so the `.csproj` file was modified manually. No changes were needed in UI components as the compression is handled transparently in the service layer.
-
----
-
-## P3 - UX Polish (Post-MVP)
-
-### 17. Role-Based UI Filtering
-**Source:** Gemini #3B | **Effort:** Medium | **Risk:** Low
-
-> **Delegate:** Gemini | **Status:** Ready (Post-MVP)
-
-**Problem:** Observers see Edit/Delete buttons that will fail due to RLS.
-
-**Solution:**
-- Cache user's role for active den on load
-- Create `<AuthorizeRole Roles="Owner,Co-parent">` component
-- Wrap action buttons appropriately
-
----
-
-### 18. Skeleton Loading States
-**Source:** Gemini #2B | **Effort:** Low | **Risk:** Low
-
-> **Delegate:** Codex | **Status:** Ready (Post-MVP)
-
-**Problem:** Simple spinners cause layout shift when data loads.
-
-**Solution:**
-Replace spinners with skeleton loaders (gray bars mimicking text/cards).
-
-**Targets:**
-- `Components/Pages/Expenses.razor`
-- `Components/Pages/Home.razor`
-
----
-
-### 19. Optimistic UI Updates
-**Source:** Gemini #2A | **Effort:** High | **Risk:** Medium
-
-> **Delegate:** Claude only
-> **Reason:** Complex rollback logic and race condition handling. High risk of subtle bugs.
-
-**Problem:** Users wait for server roundtrip to see their changes.
-
-**Solution:**
-- Update UI immediately before API call completes
-- Rollback on failure with error message
-
----
-
-### 20. ISupabaseClientProvider for Testability
-**Source:** Gemini #1A | **Effort:** High | **Risk:** Medium
-
-> **Delegate:** Claude only
-> **Reason:** Significant architectural refactor. Needs careful planning.
-
-**Problem:** Direct Supabase.Client usage makes unit testing difficult.
-
-**Solution:**
-- Create `IDataService<T>` or repository interfaces
-- Refactor services to depend on interfaces
-
----
-
-### 21. Shared ErrorState Component
-**Source:** Codex review | **Effort:** Low | **Risk:** Low
-
-> **Delegate:** Codex | **Status:** Ready (Post-MVP)
-
-**Problem:** Error UI is duplicated with inline styles in `Routes.razor` and `MainLayout.razor`, making it hard to update or keep consistent.
-
-**Solution:**
-- Create `Components/Shared/ErrorState.razor` with parameters:
-  - `Title`, `Message`, `Details`, `ActionLabel`, `OnAction`
-- Add `ErrorState.razor.css` for styling (no inline styles)
-- Replace error markup in `Components/Routes.razor` and `Components/Layout/MainLayout.razor`
-
-**Targets:**
-- `Components/Shared/ErrorState.razor`
-- `Components/Shared/ErrorState.razor.css`
-- `Components/Routes.razor`
-- `Components/Layout/MainLayout.razor`
-
-#### Delegation Prompt (Codex)
-```
-## Task: Extract Shared ErrorState Component
-
-### Goal
-Replace duplicated inline-styled error UI with a shared `ErrorState` component.
-
-### Requirements
-1. Create `Components/Shared/ErrorState.razor` with params:
-   - `string Title`, `string Message`
-   - `string? Details`
-   - `string? ActionLabel`
-   - `EventCallback OnAction`
-2. Create `Components/Shared/ErrorState.razor.css` and move styles there (no inline styles).
-3. Update `Components/Routes.razor` and `Components/Layout/MainLayout.razor` to use `ErrorState`.
-4. Preserve existing content (headings, details, retry action) and behavior.
-
-### Constraints
-- Keep layout and content equivalent.
-- No new dependencies.
-```
-
-#### Review Checklist
-- [ ] `ErrorState.razor` created with parameters and renders optional details/action
-- [ ] Styles moved from inline to `.razor.css`
-- [ ] `Routes.razor` and `MainLayout.razor` use `ErrorState`
-- [ ] Visual output matches previous UI
-
-#### Completion Report
-<!-- Agent fills this in when done -->
-
----
-
-### 22. Calendar Page Component Split
-**Source:** Codex review | **Effort:** High | **Risk:** Medium
-
-> **Delegate:** Claude only
-> **Reason:** Large refactor of stateful UI and event callbacks. Needs careful review.
-
-**Problem:** `Components/Pages/Calendar.razor` is 500+ lines mixing state management, rendering, and modal logic, which makes changes risky.
-
-**Solution:**
-- Split into focused components:
-  - `CalendarHeader.razor` (month navigation)
-  - `CalendarGrid.razor` (day cells)
-  - `DayEventsList.razor` (selected day events)
-  - `EventEditorModal.razor` (create/edit modal)
-- Keep state in `Calendar.razor`, pass data via parameters and `EventCallback`.
-
-**Targets:**
-- `Components/Pages/Calendar.razor`
-- `Components/Pages/Calendar.razor.css`
-- New components under `Components/Pages/Calendar/`
-
-#### Delegation Prompt (Claude)
-```
-## Task: Split Calendar Page into Subcomponents
-
-### Goal
-Reduce complexity in `Calendar.razor` by extracting UI sections into focused components without changing behavior.
-
-### Requirements
-1. Extract header/navigation, grid, day event list, and modal editor into separate components.
-2. Keep all state and service calls in `Calendar.razor`.
-3. Use `EventCallback` for actions (select day, open modal, save, delete).
-4. Keep CSS isolation intact; move relevant styles into new component `.razor.css` files where appropriate.
-
-### Constraints
-- No behavioral changes or visual regressions.
-- No new services or dependencies.
-```
-
-#### Review Checklist
-- [ ] `Calendar.razor` reduced to orchestrator and state
-- [ ] Components render same UI/behavior as before
-- [ ] All callbacks wired correctly
-- [ ] `dotnet build` passes
-
-#### Completion Report
-<!-- Agent fills this in when done -->
-
----
-
-### 23. Expenses Page Component Split
-**Source:** Codex review | **Effort:** High | **Risk:** Medium
-
-> **Delegate:** Claude only
-> **Reason:** Stateful UI with multiple modes; refactor risk is moderate.
-
-**Problem:** `Components/Pages/Expenses.razor` is 500+ lines with mixed concerns (filtering, forms, list rendering).
-
-**Solution:**
-- Extract components for:
-  - `ExpensesSummary.razor` (totals/balances)
-  - `ExpensesList.razor` (grouped list rendering)
-  - `ExpenseEditorModal.razor` (create/edit modal)
-- Keep data loading and state in `Expenses.razor`.
-
-**Targets:**
-- `Components/Pages/Expenses.razor`
-- `Components/Pages/Expenses.razor.css`
-- New components under `Components/Pages/Expenses/`
-
-#### Delegation Prompt (Claude)
-```
-## Task: Split Expenses Page into Subcomponents
-
-### Goal
-Simplify `Expenses.razor` by extracting the major UI sections while preserving behavior.
-
-### Requirements
-1. Extract summary, list, and modal editor sections into separate components.
-2. Keep all state and service calls in `Expenses.razor`.
-3. Use `EventCallback` and parameters for interactions.
-4. Keep CSS isolation intact; move relevant styles into new component `.razor.css` files.
-
-### Constraints
-- No changes to business logic.
-- No visual changes.
-```
-
-#### Review Checklist
-- [ ] `Expenses.razor` reduced to state + orchestration
-- [ ] Components render same UI/behavior as before
-- [ ] All callbacks wired correctly
-- [ ] `dotnet build` passes
-
-#### Completion Report
-<!-- Agent fills this in when done -->
-
----
-
-### 24. Standardize Time Access via IClock
-**Source:** Codex review | **Effort:** Medium | **Risk:** Low
-
-> **Delegate:** Claude only
-> **Reason:** Cross-cutting changes in multiple services; risk of subtle time bugs.
-
-**Problem:** Several services use `DateTime.UtcNow` directly, while others rely on `IClock`. This makes time-sensitive behavior harder to test and can lead to inconsistent timestamps.
-
-**Solution:**
-- Inject `IClock` into services still using `DateTime.UtcNow` (e.g., `SupabaseExpenseService`, `SupabaseScheduleService`, `SupabaseAuthService`).
-- Replace direct `DateTime.UtcNow` usages with `_clock.UtcNow`.
-- Ensure any "local date" logic remains explicit and unchanged.
-
-**Targets:**
-- `Services/SupabaseExpenseService.cs`
-- `Services/SupabaseScheduleService.cs`
-- `Services/SupabaseAuthService.cs`
-- `MauiProgram.cs` (if DI updates needed)
-
-#### Delegation Prompt (Claude)
-```
-## Task: Standardize Time Access via IClock
-
-### Goal
-Replace direct `DateTime.UtcNow` usage in services with the injected `IClock` to improve testability.
-
-### Requirements
-1. Inject `IClock` into services that still use `DateTime.UtcNow`.
-2. Replace `DateTime.UtcNow` with `_clock.UtcNow`.
-3. Keep any local-date logic (`DateTime.Today`, `ToLocalTime`) unchanged.
-
-### Constraints
-- No changes to business logic or external behavior.
-- Do not modify model defaults.
-```
-
-#### Review Checklist
-- [ ] Services inject and use `IClock` consistently
-- [ ] No unintended local-time conversions
-- [ ] `dotnet build` passes
-
-#### Completion Report
-<!-- Agent fills this in when done -->
-
----
-
-## Deferred Items
-
-| Item | Reason |
-|------|--------|
-| Timezone/DST correctness | Complex investigation needed; low immediate impact |
-| Full repository pattern | Over-engineering for current scale |
-| Offline sync (Store & Forward) | Out of scope for MVP; "Read-Only Offline" is sufficient |
-
----
+# Denly Product Backlog
 
 ## Quick Reference: Delegation Summary
 
-| # | Item | Delegate | Tier |
-|---|------|----------|------|
-| 1 | ~~Structured logging~~ | ~~Claude~~ | ✅ Done |
-| 2 | ~~Invite code audit~~ | ~~Claude~~ | ✅ Done |
-| 3 | ~~Auth/Den guards~~ | ~~Claude~~ | ✅ Done |
-| 4 | Hide error details | Claude | - |
-| 5 | Guard DenService client | Claude | - |
-| 6 | User feedback service | Claude | - |
-| 7 | ~~Network connectivity~~ | ~~Gemini~~ | ✅ Done |
-| 8 | ~~Zombie den state~~ | ~~Codex~~ | ✅ Done |
-| 9 | App lifecycle refresh | Claude | - |
-| 10 | Settlement batch | Claude | - |
-| 11 | ~~Dashboard optimization~~ | ~~Gemini~~ | ✅ Done |
-| 12 | ~~Aggressive caching~~ | ~~Gemini~~ | ✅ Done |
-| 13 | ~~Select columns~~ | ~~Codex~~ | ✅ Done |
-| 14 | ~~Server-side search~~ | ~~Gemini~~ | ✅ Done |
-| 15 | ~~Upload size guard~~ | ~~Codex~~ | ✅ Done |
-| 16 | ~~Image compression~~ | ~~Gemini~~ | ✅ Done |
-| 17 | Role-based UI | **Gemini** | Post-MVP |
-| 18 | Skeleton loading | **Codex** | Post-MVP |
-| 19 | Optimistic UI | Claude | - |
-| 20 | Testability refactor | Claude | - |
-| 21 | Shared error UI | **Codex** | Post-MVP |
-| 22 | Calendar split | Claude | - |
-| 23 | Expenses split | Claude | - |
-| 24 | IClock standardization | Claude | - |
+| ID | Feature | Delegate | Status |
+|----|---------|----------|--------|
+| P1-1 | Calendar reminders | Claude | Ready |
+| P1-2 | Exportable reports | Gemini | Ready |
+| P1-3 | Info Bank expansion | Gemini | Ready |
+| P2-1 | Settlement confirmation | Codex | Ready |
+| P2-2 | Third-party view access | Gemini | Ready |
+| P2-3 | Multi-child color coding | Codex | Ready |
+| P2-4 | Full data export | Gemini | Ready |
 
 ---
 
-## Suggested Sprint Order
+## P0: Pre-Launch Critical
 
-**Sprint 1 (Security & Foundation) - Claude only:**
-1, 2, 3, 4, 5, 6
-
-**Sprint 2 (Stability) - Mixed:**
-- Claude: 9, 10
-- Codex: 8
-- Gemini: 7
-
-**Sprint 3 (Performance) - Mostly delegatable:**
-- Codex: 13, 15
-- Gemini: 11, 12
-
-**Sprint 4 (Performance cont.):**
-- Gemini: 14, 16
-
-**Post-MVP:**
-17, 18, 19, 20, 21, 22, 23, 24
+| ID | Feature | Description | Complexity | Status |
+|----|---------|-------------|------------|--------|
+| P0-1 | App icon + splash screen | Coral Reef palette, brand identity | Low | ✅ Done |
+| P0-2 | Android testing | Full testing pass, bug fixes | Medium | In Progress |
+| P0-3 | Supabase auth setup | Email/password + Google auth | Medium | In Progress |
+| P0-4 | Cloud sync | Sync calendar, expenses, vault between co-parents | High | In Progress |
+| P0-5 | Onboarding flow | First-run experience, invite co-parent flow | Medium | In Progress |
+| P0-6 | Push notifications | Reliable notification system (OFW's #1 failure) | Medium | Not Started |
 
 ---
 
-*Initial items sourced from Codex and Gemini optimization proposals.*
-*Maintained by Claude. See AGENTS.md → "Adding New Work Items" for contribution guidelines.*
+## P1: Competitive Parity
+
+### P1-1: Calendar Reminders
+**Source:** OFW competitive analysis | **Effort:** Medium | **Risk:** Medium
+
+> **Delegate:** Claude | **Status:** Ready
+> **Reason:** Platform-specific notification APIs require careful architecture decisions; iOS/Android have different permission models
+
+**Problem:** Users miss important handoffs and appointments because there's no reminder system. OurFamilyWizard has this and it's a table-stakes feature for co-parenting apps.
+
+**Solution:**
+- Create `INotificationService` interface with platform-agnostic API
+- Implement platform-specific notification scheduling (iOS: `UNUserNotificationCenter`, Android: `AlarmManager` + `NotificationCompat`)
+- Add reminder settings per event type (handoffs, appointments, general)
+- Store reminder preferences in user settings
+- Default: 1 hour before events, 1 day before handoffs
+
+**Targets:**
+- `Services/INotificationService.cs` (new)
+- `Services/NotificationService.cs` (new - shared logic)
+- `Platforms/iOS/NotificationService.cs` (new)
+- `Platforms/Android/NotificationService.cs` (new)
+- `Components/Pages/Calendar.razor` (add reminder toggle to event creation)
+- `Components/Pages/Settings.razor` (add reminder preferences section)
+- `MauiProgram.cs` (register notification service)
+
+#### Delegation Prompt (Claude)
+```
+Implement calendar reminders for Denly, a .NET MAUI Blazor Hybrid co-parenting app.
+
+CONTEXT:
+- Events are stored in Supabase `events` table (see Models/Event.cs)
+- App targets iOS and Android
+- Follow existing service pattern: interface + platform implementations
+
+REQUIREMENTS:
+1. Create INotificationService interface:
+   - ScheduleReminder(Event event, TimeSpan beforeEvent)
+   - CancelReminder(string eventId)
+   - RequestPermissionAsync() -> bool
+   - CheckPermissionAsync() -> bool
+
+2. Implement platform-specific services:
+   - iOS: Use UNUserNotificationCenter
+   - Android: Use AlarmManager with NotificationCompat
+   - Handle app restart (reminders must persist)
+
+3. Add UI in Calendar.razor:
+   - Toggle "Remind me" when creating/editing events
+   - Dropdown for reminder time: 15min, 1hr, 1day, custom
+
+4. Add Settings section:
+   - Default reminder times per event type
+   - Master enable/disable toggle
+   - Permission status indicator
+
+CONSTRAINTS:
+- Do NOT modify Models/Event.cs (reminders are local, not synced)
+- Do NOT touch auth or Supabase services
+- Use structured logging (ILogger), never Console.WriteLine
+- Request notification permission only when user enables reminders
+
+DELIVERABLES:
+- All new/modified files listed above
+- Build must pass
+- Test manually: create event with reminder, verify notification fires
+```
+
+#### Review Checklist
+- [ ] Permission request only triggers on user action
+- [ ] Reminders survive app restart
+- [ ] No PII in notification content (no child names in notification body)
+- [ ] Android: Notification channel created properly
+- [ ] iOS: Permission prompt text is user-friendly
+- [ ] Settings UI matches existing app style
+
+#### Completion Report
+<!-- Agent fills in when done -->
+
+---
+
+### P1-2: Exportable Reports
+**Source:** Legal/custody requirements | **Effort:** Medium | **Risk:** Low
+
+> **Delegate:** Gemini | **Status:** Ready
+> **Reason:** Straightforward data formatting task following established patterns
+
+**Problem:** Co-parents often need to provide expense and calendar history to lawyers, mediators, or courts. Currently they must screenshot or manually compile this data.
+
+**Solution:**
+- Create `IReportService` for generating PDF/CSV reports
+- Support three report types: Expenses, Calendar, Combined
+- Add date range filtering
+- Include summary statistics (totals, averages)
+- Add "Export" button to Settings page
+
+**Targets:**
+- `Services/IReportService.cs` (new)
+- `Services/ReportService.cs` (new)
+- `Components/Pages/Settings.razor` (add Export section)
+
+#### Delegation Prompt (Gemini)
+```
+Add exportable reports to Denly, a .NET MAUI Blazor Hybrid co-parenting app.
+
+CONTEXT:
+- Expenses stored in Supabase (see Models/Expense.cs, Services/IExpenseService.cs)
+- Events stored in Supabase (see Models/Event.cs, Services/IScheduleService.cs)
+- Use existing service injection pattern
+
+REQUIREMENTS:
+1. Create IReportService interface:
+   - GenerateExpenseReportAsync(DateTime start, DateTime end, string format) -> byte[]
+   - GenerateCalendarReportAsync(DateTime start, DateTime end, string format) -> byte[]
+   - GenerateCombinedReportAsync(DateTime start, DateTime end, string format) -> byte[]
+   - Supported formats: "pdf", "csv"
+
+2. Implement ReportService:
+   - Inject IExpenseService and IScheduleService
+   - For PDF: Use QuestPDF or similar (check if already in project, else use basic HTML-to-PDF)
+   - For CSV: Simple comma-separated with headers
+   - Include summary: total expenses, expense breakdown by category, event counts by type
+
+3. Add UI in Settings.razor:
+   - New "Reports" section
+   - Date range picker (start/end)
+   - Report type dropdown (Expenses, Calendar, Combined)
+   - Format dropdown (PDF, CSV)
+   - "Generate Report" button
+   - Use platform share sheet to export file
+
+CONSTRAINTS:
+- Do NOT modify expense or calendar services
+- Do NOT add new NuGet packages without noting in completion report
+- Use structured logging (ILogger)
+- Sanitize any user data in reports (no raw user IDs)
+
+DELIVERABLES:
+- IReportService.cs, ReportService.cs
+- Updated Settings.razor
+- Build must pass
+```
+
+#### Review Checklist
+- [ ] PDF is readable and well-formatted
+- [ ] CSV opens correctly in Excel/Numbers
+- [ ] Date range filtering works correctly
+- [ ] No user IDs exposed in exported files (use display names)
+- [ ] Share sheet works on both iOS and Android
+- [ ] Large date ranges don't cause memory issues
+
+#### Completion Report
+<!-- Agent fills in when done -->
+
+---
+
+### P1-3: Info Bank Expansion
+**Source:** User research | **Effort:** Low | **Risk:** Low
+
+> **Delegate:** Gemini | **Status:** Ready
+> **Reason:** Straightforward model extension and UI work following existing patterns
+
+**Problem:** The Child model only stores name and birthdate. Co-parents need to track critical info like clothing sizes, allergies, school details, and emergency contacts—info that changes and needs to be shared.
+
+**Solution:**
+- Extend Child model with additional fields
+- Create dedicated Info Bank page for viewing/editing child details
+- Organize info into collapsible sections
+- All fields optional to avoid overwhelming new users
+
+**Targets:**
+- `Models/Child.cs` (extend with new fields)
+- `Components/Pages/InfoBank.razor` (new page)
+- `Components/Pages/InfoBank.razor.css` (new styles)
+- `Components/Layout/NavMenu.razor` (add Info Bank nav item)
+- `Services/IDenService.cs` (add UpdateChildAsync if missing)
+- `Services/SupabaseDenService.cs` (implement UpdateChildAsync)
+
+#### Delegation Prompt (Gemini)
+```
+Expand the Info Bank feature in Denly, a .NET MAUI Blazor Hybrid co-parenting app.
+
+CONTEXT:
+- Child model exists at Models/Child.cs (currently: Id, DenId, Name, BirthDate, Color, CreatedAt)
+- Children are loaded via IDenService
+- App uses Supabase for storage
+
+REQUIREMENTS:
+1. Extend Child model with nullable fields:
+   - ClothingSizeTop (string?)
+   - ClothingSizeBottom (string?)
+   - ShoeSize (string?)
+   - Allergies (string?) - comma-separated or free text
+   - MedicalNotes (string?)
+   - SchoolName (string?)
+   - SchoolGrade (string?)
+   - TeacherName (string?)
+   - SchoolPhone (string?)
+   - EmergencyContact1Name (string?)
+   - EmergencyContact1Phone (string?)
+   - EmergencyContact1Relation (string?)
+   - EmergencyContact2Name (string?)
+   - EmergencyContact2Phone (string?)
+   - EmergencyContact2Relation (string?)
+
+2. Create InfoBank.razor page:
+   - Route: /info-bank
+   - List all children in the den
+   - Tap child to expand/edit their info
+   - Organize into sections: Basic, Clothing, Medical, School, Emergency Contacts
+   - Each section collapsible
+   - Edit button per section, inline editing
+   - Save button commits changes
+
+3. Add navigation:
+   - Add "Info Bank" to NavMenu.razor between Calendar and Expenses
+   - Use appropriate icon (info circle or similar)
+
+4. Ensure IDenService has UpdateChildAsync(Child child):
+   - If missing, add to interface and implement in SupabaseDenService
+
+CONSTRAINTS:
+- All new fields must be nullable (existing children won't have data)
+- Do NOT change existing Child fields
+- Match existing app styling (see other pages for patterns)
+- Use structured logging
+- Supabase migration: Note in completion report that DB schema needs updating
+
+DATABASE NOTE:
+New columns needed in `children` table - list them in completion report for manual migration.
+
+DELIVERABLES:
+- Updated Child.cs
+- New InfoBank.razor and InfoBank.razor.css
+- Updated NavMenu.razor
+- Updated IDenService.cs and SupabaseDenService.cs if needed
+- Build must pass
+```
+
+#### Review Checklist
+- [ ] All new fields are nullable
+- [ ] Existing children display without errors (null handling)
+- [ ] Edits save correctly to Supabase
+- [ ] UI is consistent with other pages
+- [ ] Nav menu icon fits the design
+- [ ] Completion report lists required DB migrations
+
+#### Completion Report
+<!-- Agent fills in when done -->
+
+---
+
+## P2: Differentiators
+
+### P2-1: Settlement Confirmation
+**Source:** Expense tracking gaps | **Effort:** Low | **Risk:** Low
+
+> **Delegate:** Codex | **Status:** Ready
+> **Reason:** Well-scoped, isolated change to existing model and UI
+
+**Problem:** When one parent logs a settlement payment, there's no confirmation from the receiving parent. This can lead to disputes about whether payment was actually received.
+
+**Solution:**
+- Add `confirmed_at` and `confirmed_by` fields to Settlement model
+- Show "Pending Confirmation" badge on unconfirmed settlements
+- Add "Confirm Receipt" button for the receiving party
+- Display confirmation status in settlement history
+
+**Targets:**
+- `Models/Expense.cs` (Settlement class - add ConfirmedAt, ConfirmedBy)
+- `Services/IExpenseService.cs` (add ConfirmSettlementAsync)
+- `Services/SupabaseExpenseService.cs` (implement ConfirmSettlementAsync)
+- `Components/Pages/Expenses.razor` (add confirmation UI)
+
+#### Delegation Prompt (Codex)
+```
+Add settlement confirmation to Denly expense tracking.
+
+CONTEXT:
+- Settlement model exists in Models/Expense.cs
+- Has: Id, DenId, FromUserId, ToUserId, Amount, Note, CreatedBy, CreatedAt
+- Expenses.razor displays settlements
+
+REQUIREMENTS:
+1. Add to Settlement class:
+   - ConfirmedAt (DateTime?) - when recipient confirmed
+   - ConfirmedBy (string?) - user ID who confirmed
+   - IsConfirmed (bool, computed) - true if ConfirmedAt has value
+
+2. Add to IExpenseService:
+   - ConfirmSettlementAsync(string settlementId) -> Task<bool>
+
+3. Implement in SupabaseExpenseService:
+   - Update settlement with confirmed_at = now, confirmed_by = current user
+   - Only allow if current user is ToUserId
+
+4. Update Expenses.razor:
+   - Show "Pending" badge on unconfirmed settlements
+   - Show "Confirm Receipt" button only to ToUserId
+   - Show "Confirmed" badge with date on confirmed settlements
+
+CONSTRAINTS:
+- Only ToUserId can confirm (the person receiving money)
+- Do NOT modify Expense class, only Settlement
+- Keep existing settlement functionality intact
+- Use structured logging
+
+DATABASE NOTE:
+New columns needed: confirmed_at (timestamptz), confirmed_by (uuid references profiles)
+
+DELIVERABLES:
+- Updated Models/Expense.cs (Settlement class only)
+- Updated IExpenseService.cs
+- Updated SupabaseExpenseService.cs
+- Updated Expenses.razor
+- Build must pass
+```
+
+#### Review Checklist
+- [ ] Only ToUserId sees "Confirm" button
+- [ ] Confirmation persists correctly
+- [ ] Badge styling matches app theme
+- [ ] Cannot confirm same settlement twice
+- [ ] Completion report notes DB migration
+
+#### Completion Report
+<!-- Agent fills in when done -->
+
+---
+
+### P2-2: Third-Party View Access
+**Source:** User requests | **Effort:** Medium | **Risk:** Medium
+
+> **Delegate:** Gemini | **Status:** Ready
+> **Reason:** New feature but follows established auth patterns; moderate complexity
+
+**Problem:** Grandparents, nannies, and other caregivers often need to see the custody schedule but shouldn't have full app access. Currently there's no way to share limited access.
+
+**Solution:**
+- Create "Viewer" role distinct from co-parent
+- Viewers can see calendar (read-only), cannot see expenses or documents
+- Invite flow similar to co-parent but creates viewer account
+- Viewers have simplified nav (calendar only)
+
+**Targets:**
+- `Models/DenMember.cs` (add Role enum: CoParent, Viewer)
+- `Services/IDenService.cs` (add InviteViewerAsync)
+- `Services/SupabaseDenService.cs` (implement viewer invite)
+- `Components/Pages/Settings.razor` (add "Invite Viewer" section)
+- `Components/Layout/NavMenu.razor` (conditionally hide items for viewers)
+- `Components/Pages/Calendar.razor` (hide edit controls for viewers)
+
+#### Delegation Prompt (Gemini)
+```
+Add third-party viewer access to Denly, a .NET MAUI Blazor Hybrid co-parenting app.
+
+CONTEXT:
+- Den members are tracked via DenMember model
+- Current flow: co-parents have full access
+- Auth handled via IAuthService
+
+REQUIREMENTS:
+1. Add Role to DenMember:
+   - Create enum: DenMemberRole { CoParent, Viewer }
+   - Add Role property to DenMember (default: CoParent)
+   - Existing members should be treated as CoParent
+
+2. Implement viewer invite:
+   - Add InviteViewerAsync(string email) to IDenService
+   - Creates invite with role=viewer
+   - Viewer joins via existing join flow but gets Viewer role
+
+3. Update NavMenu.razor:
+   - Inject service to get current user's role
+   - If Viewer: show only Calendar, hide Expenses, Vault, Settings (except logout)
+   - If CoParent: show all (current behavior)
+
+4. Update Calendar.razor:
+   - If Viewer: hide "Add Event" button
+   - If Viewer: hide edit/delete on events
+   - Calendar remains fully visible
+
+5. Update Settings.razor:
+   - Add "Viewers" section showing current viewers
+   - Add "Invite Viewer" with email input
+   - Show "Remove" button next to each viewer
+
+CONSTRAINTS:
+- Viewers can ONLY see calendar
+- Do NOT give viewers access to expenses, documents, or settings (except logout)
+- Maintain existing co-parent functionality
+- Use structured logging
+- Check role before any sensitive operation
+
+DATABASE NOTE:
+Add `role` column to `den_members` table (text, default 'coparent')
+
+DELIVERABLES:
+- Updated DenMember.cs
+- Updated IDenService.cs and SupabaseDenService.cs
+- Updated NavMenu.razor
+- Updated Calendar.razor
+- Updated Settings.razor
+- Build must pass
+```
+
+#### Review Checklist
+- [ ] Viewers cannot navigate to Expenses or Vault pages
+- [ ] Viewers cannot create/edit/delete events
+- [ ] Viewers can view full calendar
+- [ ] Remove viewer works correctly
+- [ ] Existing co-parents unaffected
+- [ ] Role persists across sessions
+
+#### Completion Report
+<!-- Agent fills in when done -->
+
+---
+
+### P2-3: Multi-Child Color Coding
+**Source:** Multi-child families | **Effort:** Low | **Risk:** Low
+
+> **Delegate:** Codex | **Status:** Ready
+> **Reason:** Simple UI enhancement, isolated change
+
+**Problem:** Families with multiple children can't visually distinguish which events belong to which child on the calendar. The Child model has a Color field but it's not used.
+
+**Solution:**
+- Use existing Child.Color field (or add if missing)
+- Add color picker to child creation/edit
+- Display child's color as left border/badge on calendar events
+- Add optional "Show all" / filter by child toggle
+
+**Targets:**
+- `Components/Pages/Calendar.razor` (add color coding, filter toggle)
+- `Components/Pages/Calendar.razor.css` (color styling)
+- `Components/Pages/Settings.razor` (add child color picker if not exists)
+
+#### Delegation Prompt (Codex)
+```
+Add multi-child color coding to the Denly calendar.
+
+CONTEXT:
+- Child model (Models/Child.cs) has a Color property (string?)
+- Events have optional ChildId linking to a child
+- Calendar.razor displays events
+
+REQUIREMENTS:
+1. Calendar event display:
+   - If event has ChildId and child has Color: show 4px left border in that color
+   - If event has no ChildId: no color border (shared event)
+   - Events retain their EventType color for the main background
+
+2. Add child filter:
+   - Add filter bar above calendar: "All" + one chip per child
+   - Chip shows child name with their color as background
+   - Selecting a child filters to only their events
+   - "All" shows everything (default)
+
+3. Color picker in Settings:
+   - If child color editing doesn't exist, add it
+   - Show color swatches (use existing app palette)
+   - Save color to child record
+
+CONSTRAINTS:
+- Child.Color already exists - do NOT modify the model
+- Use CSS variables from existing app theme where possible
+- Do NOT modify Calendar's core event rendering logic beyond adding border
+- Keep filter state local (doesn't need to persist)
+
+DELIVERABLES:
+- Updated Calendar.razor
+- Updated Calendar.razor.css
+- Updated Settings.razor if needed
+- Build must pass
+```
+
+#### Review Checklist
+- [ ] Events show child color border
+- [ ] Filter chips render correctly
+- [ ] Filter works (shows only selected child's events)
+- [ ] "All" shows all events
+- [ ] Color picker saves correctly
+- [ ] Shared events (no child) display without color border
+
+#### Completion Report
+<!-- Agent fills in when done -->
+
+---
+
+### P2-4: Full Data Export
+**Source:** Data portability requirements | **Effort:** Medium | **Risk:** Low
+
+> **Delegate:** Gemini | **Status:** Ready
+> **Reason:** Data aggregation task following established patterns
+
+**Problem:** Users should be able to export all their data at any time (GDPR-style portability). This builds trust and reduces lock-in concerns.
+
+**Solution:**
+- Create comprehensive export including all user data
+- Export as ZIP containing JSON files per data type
+- Include: profile, children, events, expenses, settlements, documents metadata
+- Add "Export My Data" button in Settings
+
+**Targets:**
+- `Services/IDataExportService.cs` (new)
+- `Services/DataExportService.cs` (new)
+- `Components/Pages/Settings.razor` (add export button)
+
+#### Delegation Prompt (Gemini)
+```
+Add full data export to Denly, a .NET MAUI Blazor Hybrid co-parenting app.
+
+CONTEXT:
+- User data spans multiple tables: profiles, children, events, expenses, settlements, documents
+- Services exist for each data type
+- Goal: GDPR-style data portability
+
+REQUIREMENTS:
+1. Create IDataExportService:
+   - ExportAllDataAsync() -> Task<byte[]> (returns ZIP file bytes)
+
+2. Implement DataExportService:
+   - Inject all relevant services (IAuthService, IDenService, IScheduleService, IExpenseService, IDocumentService)
+   - Gather all data for current user's den
+   - Create ZIP with structure:
+     ```
+     denly-export-{date}/
+       profile.json
+       children.json
+       events.json
+       expenses.json
+       settlements.json
+       documents.json (metadata only, not actual files)
+       README.txt (explains the export)
+     ```
+   - Use System.IO.Compression for ZIP
+   - Format JSON with indentation for readability
+
+3. Add to Settings.razor:
+   - "Data Export" section
+   - "Export All My Data" button
+   - Loading state while generating
+   - Use platform share sheet to save/share ZIP
+
+CONSTRAINTS:
+- Do NOT include actual document files (storage costs), only metadata
+- Do NOT include other den member's private data
+- Include data created_by current user OR shared with their den
+- Use structured logging
+- Handle large data sets gracefully (stream if needed)
+
+DELIVERABLES:
+- IDataExportService.cs
+- DataExportService.cs
+- Updated Settings.razor
+- Build must pass
+```
+
+#### Review Checklist
+- [ ] ZIP contains all expected files
+- [ ] JSON is valid and readable
+- [ ] README explains the data
+- [ ] No other user's private data included
+- [ ] Export works for large data sets
+- [ ] Share sheet works on iOS and Android
+
+#### Completion Report
+<!-- Agent fills in when done -->
+
+---
+
+## P3: Future Expansion
+
+### Blocked Items (Require Messaging Feature)
+
+> **Note:** These items were originally P1/P2 but depend on a messaging system that doesn't exist yet. They'll be unblocked when secure messaging is implemented.
+
+| ID | Feature | Description | Blocked By |
+|----|---------|-------------|------------|
+| P3-B1 | Read receipts | Show when messages were read with timestamp | Messaging not implemented |
+| P3-B2 | Trade/Swap requests | Structured schedule change proposals with Yes/No response | Messaging not implemented |
+| P3-B3 | Immutable messages | Messages cannot be deleted or edited after sending | Messaging not implemented |
+| P3-B4 | Tone suggestions | Flag potentially heated language before sending | Messaging not implemented |
+
+### Future Features
+
+| ID | Feature | Description | Complexity |
+|----|---------|-------------|------------|
+| P3-1 | Professional access | Lawyer/mediator view-only accounts | High |
+| P3-2 | In-app calling | Audio/video calls between family members | High |
+| P3-3 | Recurring expense templates | Auto-log regular costs | Low |
+| P3-4 | Custody schedule templates | Pre-built patterns (50/50, 2-2-3, etc.) | Medium |
+| P3-5 | Family mode | Broader positioning for all families, not just separated | Medium |
+| P3-6 | Shared supply lists | "Out of diapers at mom's house" notifications | Low |
+| P3-7 | Kid accounts | Age-appropriate access for older children | Medium |
+| P3-8 | Secure messaging | End-to-end encrypted messaging between co-parents | High |
+
+---
+
+## Refactor Ideas (Non-Feature)
+
+Low-priority code quality improvements. Not assigned to agents—do opportunistically.
+
+| Area | Idea |
+|------|------|
+| Services | Extract common Supabase patterns to base class |
+| Models | Add data annotations for validation |
+| UI | Create shared form components (date picker, dropdown) |
+| Testing | Add unit test project, start with service tests |
+| Logging | Migrate remaining Console.WriteLine to ILogger |
+
+---
+
+## Agent Suggestions
+
+> **For Codex/Gemini only.** This is the ONLY section you may edit to add new ideas.
+> See `docs/AGENTS.md` → "For Codex/Gemini: Suggesting New Items" for format and rules.
+>
+> **⚠️ DO NOT modify any other section of this file.**
+
+<!--
+AGENTS: Append your suggestions below this line using the format from AGENTS.md.
+HUMANS/CLAUDE: Review periodically, promote good ideas to proper backlog items, delete implemented/rejected suggestions.
+-->
+
+*No suggestions yet.*

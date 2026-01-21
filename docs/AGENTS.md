@@ -188,6 +188,48 @@ When new improvements, bugs, or features are identified, add them to `docs/BACKL
 - New P0/P1 items: Insert at correct priority position, renumber subsequent items
 - New P2/P3 items: Append to end of tier, use next available number
 
+### For Codex/Gemini: Suggesting New Items
+
+**⚠️ CRITICAL: Codex and Gemini must NEVER modify existing backlog items or sections.**
+
+When you discover a potential improvement, bug, or feature idea while working:
+
+1. **DO NOT** edit any existing sections of BACKLOG.md
+2. **DO NOT** add fully-specced items to P0/P1/P2/P3 sections
+3. **ONLY** append to the `## Agent Suggestions` section at the bottom of BACKLOG.md
+
+#### Suggestion Format
+```markdown
+### [Brief Title]
+- **Suggested by:** Codex/Gemini
+- **Date:** YYYY-MM-DD
+- **Context:** [What were you working on when you noticed this?]
+- **Idea:** [1-2 sentences describing the improvement]
+- **Potential files:** [Optional: files that might be involved]
+```
+
+#### Example
+```markdown
+### Add loading skeleton to Calendar
+- **Suggested by:** Gemini
+- **Date:** 2024-01-15
+- **Context:** Working on P2-3 (multi-child color coding)
+- **Idea:** Calendar shows blank space while events load. A skeleton UI would improve perceived performance.
+- **Potential files:** Calendar.razor, Calendar.razor.css
+```
+
+#### What Happens Next
+1. Human or Claude reviews the Suggestions section periodically
+2. Good ideas get promoted to proper backlog items with full specs
+3. Suggestions that are implemented or rejected get removed
+4. You may see your suggestion become a real task in a future session
+
+#### Why This Process?
+- Prevents accidental deletion/corruption of existing backlog items
+- Ensures architectural review before commitment
+- Maintains consistent formatting across the backlog
+- Captures valuable insights without blocking your current work
+
 ---
 
 ## Workflow Contract
