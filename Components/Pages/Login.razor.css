@@ -15,30 +15,30 @@
 .app-logo {
     width: 80px;
     height: 80px;
-    background: white;
+    background: var(--color-surface);
     border-radius: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto 1rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px var(--shadow-color-15);
 }
 
 .app-logo svg {
     width: 48px;
     height: 48px;
-    color: #5b8db8;
+    color: var(--color-primary);
 }
 
 .login-header h1 {
-    color: white;
+    color: var(--color-text-inverse);
     font-size: 2rem;
     font-weight: 700;
     margin: 0 0 0.5rem;
 }
 
 .tagline {
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--color-surface-glass-85);
     font-size: 1rem;
     margin: 0;
 }
@@ -47,9 +47,9 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    background: #fee2e2;
-    border: 1px solid #fecaca;
-    color: #dc2626;
+    background: var(--color-danger-soft);
+    border: 1px solid var(--color-danger-border);
+    color: var(--color-danger-dark);
     padding: 0.75rem 1rem;
     border-radius: 10px;
     margin-bottom: 1.5rem;
@@ -75,21 +75,21 @@
     align-items: center;
     justify-content: center;
     gap: 0.75rem;
-    background: white;
+    background: var(--color-surface);
     border: none;
     border-radius: 12px;
     padding: 0.875rem 1.25rem;
     font-size: 1rem;
     font-weight: 500;
-    color: #374151;
+    color: var(--color-text);
     cursor: pointer;
     transition: transform 0.15s, box-shadow 0.15s;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 2px 8px var(--shadow-color-12);
 }
 
 .btn-google:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px var(--shadow-color-15);
 }
 
 .btn-google:active:not(:disabled) {
@@ -117,20 +117,20 @@
     content: '';
     flex: 1;
     height: 1px;
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--color-surface-glass-30);
 }
 
 .divider span {
     padding: 0 1rem;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--color-surface-glass-80);
     font-size: 0.875rem;
 }
 
 .email-form {
-    background: white;
+    background: var(--color-surface);
     border-radius: 16px;
     padding: 1.5rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px var(--shadow-color-10);
 }
 
 .form-group {
@@ -145,26 +145,26 @@
     display: block;
     font-size: 0.875rem;
     font-weight: 500;
-    color: #374151;
+    color: var(--color-text);
     margin-bottom: 0.5rem;
 }
 
 .form-group input {
     width: 100%;
     padding: 0.75rem 1rem;
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--color-border-strong);
     border-radius: 10px;
     font-size: 1rem;
-    color: #374151;
-    background-color: #f9fafb;
+    color: var(--color-text);
+    background-color: var(--color-surface);
     transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
 }
 
 .form-group input:focus {
     outline: none;
-    border-color: #5b8db8;
-    box-shadow: 0 0 0 3px rgba(91, 141, 184, 0.15);
-    background-color: white;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-tint);
+    background-color: var(--color-text-inverse);
 }
 
 .form-group input:disabled {
@@ -173,14 +173,14 @@
 }
 
 .form-group input::placeholder {
-    color: #9ca3af;
+    color: var(--color-text-subtle);
 }
 
 .btn-primary {
     width: 100%;
-    background: #5b8db8;
+    background: var(--color-primary);
     border: none;
-    color: white;
+    color: var(--color-text-inverse);
     padding: 0.875rem 1.25rem;
     border-radius: 10px;
     font-size: 1rem;
@@ -190,23 +190,23 @@
 }
 
 .btn-primary:hover:not(:disabled) {
-    background: #4a7a9e;
+    background: var(--color-primary-hover);
 }
 
 .btn-primary:disabled {
-    background: #d1d5db;
+    background: var(--color-border-strong);
     cursor: not-allowed;
 }
 
 .signup-link {
     text-align: center;
     margin-top: 1.5rem;
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--color-surface-glass-90);
     font-size: 0.9375rem;
 }
 
 .signup-link a {
-    color: white;
+    color: var(--color-text-inverse);
     font-weight: 600;
     text-decoration: none;
     margin-left: 0.25rem;

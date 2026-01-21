@@ -17,7 +17,7 @@
 .page-header h1 {
     font-size: 1.5rem;
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text);
     margin: 0;
 }
 
@@ -25,8 +25,8 @@
     display: flex;
     align-items: center;
     gap: 0.375rem;
-    background-color: #5b8db8;
-    color: white;
+    background-color: var(--color-primary);
+    color: var(--color-text-inverse);
     border: none;
     padding: 0.5rem 0.875rem;
     border-radius: 8px;
@@ -37,7 +37,7 @@
 }
 
 .add-btn:hover {
-    background-color: #4a7a9e;
+    background-color: var(--color-primary-hover);
 }
 
 .add-btn svg {
@@ -47,12 +47,12 @@
 
 /* Balance Card */
 .balance-card {
-    background: linear-gradient(135deg, #5b8db8 0%, #4a7a9e 100%);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
     border-radius: 16px;
     padding: 1.25rem;
-    color: white;
+    color: var(--color-text-inverse);
     margin-bottom: 1.5rem;
-    box-shadow: 0 4px 12px rgba(91, 141, 184, 0.25);
+    box-shadow: 0 4px 12px var(--color-primary-tint-strong);
 }
 
 .balance-label {
@@ -68,7 +68,7 @@
 }
 
 .balance-amount.settled {
-    color: #d1fae5;
+    color: var(--color-success-soft);
 }
 
 .balance-amount .amount {
@@ -84,7 +84,7 @@
 .expenses-section h2 {
     font-size: 1rem;
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text);
     margin: 0 0 0.75rem;
 }
 
@@ -97,17 +97,17 @@
 .expense-card {
     display: flex;
     align-items: center;
-    background: white;
+    background: var(--color-surface);
     border-radius: 12px;
     padding: 0.875rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px var(--shadow-color-08);
+    border: 1px solid var(--color-border);
     cursor: pointer;
     transition: box-shadow 0.2s, transform 0.1s;
 }
 
 .expense-card:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px var(--shadow-color-10);
 }
 
 .expense-card:active {
@@ -137,7 +137,7 @@
 .expense-description {
     font-size: 0.9375rem;
     font-weight: 500;
-    color: #374151;
+    color: var(--color-text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -148,7 +148,7 @@
 .expense-amount {
     font-size: 0.9375rem;
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text);
     flex-shrink: 0;
 }
 
@@ -157,7 +157,7 @@
     align-items: center;
     gap: 0.5rem;
     font-size: 0.8125rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
 }
 
 .expense-date::before,
@@ -169,7 +169,7 @@
 .expense-chevron {
     width: 20px;
     height: 20px;
-    color: #9ca3af;
+    color: var(--color-text-subtle);
     flex-shrink: 0;
     margin-left: 0.5rem;
 }
@@ -177,10 +177,10 @@
 .no-expenses {
     text-align: center;
     padding: 3rem 1rem;
-    color: #6b7280;
-    background: white;
+    color: var(--color-text-muted);
+    background: var(--color-surface);
     border-radius: 12px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
 }
 
 .no-expenses p {
@@ -191,7 +191,7 @@
 .add-expense-link {
     background: none;
     border: none;
-    color: #5b8db8;
+    color: var(--color-primary);
     font-size: 0.9375rem;
     font-weight: 500;
     cursor: pointer;
@@ -205,7 +205,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.4);
+    background-color: var(--color-overlay-40);
     display: flex;
     align-items: flex-end;
     justify-content: center;
@@ -214,7 +214,7 @@
 }
 
 .modal-content {
-    background: white;
+    background: var(--color-surface);
     border-radius: 20px 20px 0 0;
     width: 100%;
     max-width: 500px;
@@ -239,13 +239,13 @@
     align-items: center;
     justify-content: space-between;
     padding: 1.25rem 1.25rem 0.75rem;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--color-border);
 }
 
 .modal-header h3 {
     font-size: 1.125rem;
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text);
     margin: 0;
 }
 
@@ -254,12 +254,12 @@
     border: none;
     padding: 0.5rem;
     cursor: pointer;
-    color: #6b7280;
+    color: var(--color-text-muted);
     border-radius: 8px;
 }
 
 .close-btn:hover {
-    background-color: #f3f4f6;
+    background-color: var(--color-surface-muted);
 }
 
 .close-btn svg {
@@ -283,7 +283,7 @@
     display: block;
     font-size: 0.875rem;
     font-weight: 500;
-    color: #374151;
+    color: var(--color-text);
     margin-bottom: 0.5rem;
 }
 
@@ -292,24 +292,24 @@
 .form-group input[type="number"] {
     width: 100%;
     padding: 0.75rem 1rem;
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--color-border-strong);
     border-radius: 10px;
     font-size: 1rem;
-    color: #374151;
-    background-color: #f9fafb;
+    color: var(--color-text);
+    background-color: var(--color-surface);
     transition: border-color 0.2s, box-shadow 0.2s;
     box-sizing: border-box;
 }
 
 .form-group input:focus {
     outline: none;
-    border-color: #5b8db8;
-    box-shadow: 0 0 0 3px rgba(91, 141, 184, 0.15);
-    background-color: white;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-tint);
+    background-color: var(--color-text-inverse);
 }
 
 .form-group input::placeholder {
-    color: #9ca3af;
+    color: var(--color-text-subtle);
 }
 
 /* Amount Input */
@@ -322,7 +322,7 @@
 .currency-symbol {
     position: absolute;
     left: 1rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
     font-size: 1rem;
     font-weight: 500;
 }
@@ -340,25 +340,25 @@
 
 .type-btn {
     padding: 0.5rem 0.875rem;
-    border: 2px solid #e5e7eb;
+    border: 2px solid var(--color-border);
     border-radius: 20px;
-    background: white;
+    background: var(--color-surface);
     font-size: 0.8125rem;
     font-weight: 500;
-    color: #374151;
+    color: var(--color-text);
     cursor: pointer;
     transition: all 0.15s;
 }
 
 .type-btn:hover {
     border-color: var(--type-color);
-    background-color: #f9fafb;
+    background-color: var(--color-surface);
 }
 
 .type-btn.selected {
     border-color: var(--type-color);
     background-color: var(--type-color);
-    color: white;
+    color: var(--color-text-inverse);
 }
 
 /* Payer Selector */
@@ -370,25 +370,25 @@
 .payer-btn {
     flex: 1;
     padding: 0.75rem 1rem;
-    border: 2px solid #e5e7eb;
+    border: 2px solid var(--color-border);
     border-radius: 10px;
-    background: white;
+    background: var(--color-surface);
     font-size: 0.9375rem;
     font-weight: 500;
-    color: #374151;
+    color: var(--color-text);
     cursor: pointer;
     transition: all 0.15s;
 }
 
 .payer-btn:hover {
-    border-color: #5b8db8;
-    background-color: #f9fafb;
+    border-color: var(--color-primary);
+    background-color: var(--color-surface);
 }
 
 .payer-btn.selected {
-    border-color: #5b8db8;
-    background-color: #5b8db8;
-    color: white;
+    border-color: var(--color-primary);
+    background-color: var(--color-primary);
+    color: var(--color-text-inverse);
 }
 
 /* Modal Footer */
@@ -396,7 +396,7 @@
     display: flex;
     gap: 0.75rem;
     padding: 1rem 1.25rem 1.5rem;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid var(--color-border);
 }
 
 .modal-footer button {
@@ -410,38 +410,38 @@
 
 .delete-btn {
     background: none;
-    border: 1px solid #ef4444;
-    color: #ef4444;
+    border: 1px solid var(--color-danger);
+    color: var(--color-danger);
     margin-right: auto;
 }
 
 .delete-btn:hover {
-    background-color: #fef2f2;
+    background-color: var(--color-danger-soft);
 }
 
 .cancel-btn {
-    background: #f3f4f6;
+    background: var(--color-surface-muted);
     border: none;
-    color: #374151;
+    color: var(--color-text);
 }
 
 .cancel-btn:hover {
-    background-color: #e5e7eb;
+    background-color: var(--color-border);
 }
 
 .save-btn {
-    background-color: #5b8db8;
+    background-color: var(--color-primary);
     border: none;
-    color: white;
+    color: var(--color-text-inverse);
     flex: 1;
 }
 
 .save-btn:hover:not(:disabled) {
-    background-color: #4a7a9e;
+    background-color: var(--color-primary-hover);
 }
 
 .save-btn:disabled {
-    background-color: #d1d5db;
+    background-color: var(--color-border-strong);
     cursor: not-allowed;
 }
 
@@ -457,10 +457,10 @@
     width: 100%;
     margin-top: 1rem;
     padding: 0.75rem 1rem;
-    background-color: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.4);
+    background-color: var(--color-surface-glass-20);
+    border: 1px solid var(--color-surface-glass-40);
     border-radius: 10px;
-    color: white;
+    color: var(--color-text-inverse);
     font-size: 0.9375rem;
     font-weight: 600;
     cursor: pointer;
@@ -468,23 +468,23 @@
 }
 
 .settle-up-btn:hover {
-    background-color: rgba(255, 255, 255, 0.3);
+    background-color: var(--color-surface-glass-30);
 }
 
 /* Settlement Card */
 .settlement-card {
     display: flex;
     align-items: center;
-    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    background: linear-gradient(135deg, var(--color-success-soft) 0%, var(--color-success-soft) 100%);
     border-radius: 12px;
     padding: 0.875rem;
-    border: 1px solid #6ee7b7;
+    border: 1px solid var(--color-success-soft-strong);
 }
 
 .settlement-icon {
     width: 40px;
     height: 40px;
-    background-color: #10b981;
+    background-color: var(--color-success);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -496,7 +496,7 @@
 .settlement-icon svg {
     width: 20px;
     height: 20px;
-    color: white;
+    color: var(--color-text-inverse);
 }
 
 .settlement-content {
@@ -514,13 +514,13 @@
 .settlement-description {
     font-size: 0.9375rem;
     font-weight: 600;
-    color: #065f46;
+    color: var(--color-success-strong);
 }
 
 .settlement-amount {
     font-size: 0.9375rem;
     font-weight: 600;
-    color: #065f46;
+    color: var(--color-success-strong);
     flex-shrink: 0;
 }
 
@@ -529,7 +529,7 @@
     align-items: center;
     gap: 0.5rem;
     font-size: 0.8125rem;
-    color: #047857;
+    color: var(--color-success-strong);
 }
 
 .settlement-date::before {
@@ -540,15 +540,15 @@
 /* Settled Expense Styling */
 .expense-card.settled {
     opacity: 0.7;
-    background-color: #f9fafb;
+    background-color: var(--color-surface);
 }
 
 .settled-badge {
     display: inline-block;
     font-size: 0.6875rem;
     font-weight: 500;
-    background-color: #d1fae5;
-    color: #065f46;
+    background-color: var(--color-success-soft);
+    color: var(--color-success-strong);
     padding: 0.125rem 0.5rem;
     border-radius: 10px;
     margin-left: 0.5rem;
@@ -559,7 +559,7 @@
 .receipt-indicator {
     display: inline-flex;
     align-items: center;
-    color: #5b8db8;
+    color: var(--color-primary);
 }
 
 .receipt-indicator svg {
@@ -584,10 +584,10 @@
     align-items: center;
     gap: 0.375rem;
     padding: 1rem;
-    border: 2px dashed #d1d5db;
+    border: 2px dashed var(--color-border-strong);
     border-radius: 10px;
-    background: #f9fafb;
-    color: #6b7280;
+    background: var(--color-surface);
+    color: var(--color-text-muted);
     font-size: 0.8125rem;
     font-weight: 500;
     cursor: pointer;
@@ -595,9 +595,9 @@
 }
 
 .receipt-btn:hover {
-    border-color: #5b8db8;
-    background-color: #f0f7fc;
-    color: #5b8db8;
+    border-color: var(--color-primary);
+    background-color: var(--color-secondary-soft);
+    color: var(--color-primary);
 }
 
 .receipt-btn svg {
@@ -614,7 +614,7 @@
     max-width: 120px;
     max-height: 120px;
     border-radius: 8px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     object-fit: cover;
 }
 
@@ -625,9 +625,9 @@
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background-color: #ef4444;
-    border: 2px solid white;
-    color: white;
+    background-color: var(--color-danger);
+    border: 2px solid var(--color-text-inverse);
+    color: var(--color-text-inverse);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -641,7 +641,7 @@
 }
 
 .remove-receipt-btn:hover {
-    background-color: #dc2626;
+    background-color: var(--color-danger-dark);
 }
 
 /* Settle Up Modal */
@@ -656,7 +656,7 @@
 .settle-up-icon {
     width: 64px;
     height: 64px;
-    background: linear-gradient(135deg, #5b8db8 0%, #4a7a9e 100%);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -667,32 +667,32 @@
 .settle-up-icon svg {
     width: 32px;
     height: 32px;
-    color: white;
+    color: var(--color-text-inverse);
 }
 
 .settle-up-text {
     font-size: 1rem;
-    color: #374151;
+    color: var(--color-text);
     margin-bottom: 0.5rem;
 }
 
 .settle-up-amount {
     font-size: 2rem;
     font-weight: 700;
-    color: #5b8db8;
+    color: var(--color-primary);
     margin-bottom: 1rem;
 }
 
 .settle-up-note {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
 }
 
 /* Empty State Hint */
 .empty-hint {
     display: block;
     font-size: 0.8125rem;
-    color: #9ca3af;
+    color: var(--color-text-subtle);
     margin-bottom: 0.75rem;
 }
 
@@ -719,20 +719,20 @@
 }
 
 .confirm-icon.delete-icon {
-    background-color: #fef2f2;
-    color: #ef4444;
+    background-color: var(--color-danger-soft);
+    color: var(--color-danger);
 }
 
 .confirm-title {
     font-size: 1.125rem;
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text);
     margin: 0 0 0.5rem;
 }
 
 .confirm-text {
     font-size: 0.9375rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
     margin: 0 0 1.5rem;
 }
 
@@ -752,11 +752,11 @@
 }
 
 .delete-confirm-btn {
-    background-color: #ef4444;
+    background-color: var(--color-danger);
     border: none;
-    color: white;
+    color: var(--color-text-inverse);
 }
 
 .delete-confirm-btn:hover {
-    background-color: #dc2626;
+    background-color: var(--color-danger-dark);
 }

@@ -13,14 +13,14 @@
     align-items: center;
     justify-content: center;
     padding: 4rem 1rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
 }
 
 .spinner {
     width: 32px;
     height: 32px;
-    border: 3px solid #e5e7eb;
-    border-top-color: #5b8db8;
+    border: 3px solid var(--color-border);
+    border-top-color: var(--color-primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin-bottom: 1rem;
@@ -39,29 +39,29 @@
 .page-header h1 {
     font-size: 1.75rem;
     font-weight: 700;
-    color: #374151;
+    color: var(--color-text);
     margin: 0;
 }
 
 .header-subtitle {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
 }
 
 /* Welcome Section for New Users */
 .welcome-section {
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    background: linear-gradient(135deg, var(--color-surface-alt) 0%, var(--color-surface-alt) 100%);
     border-radius: 20px;
     padding: 2rem 1.5rem;
     text-align: center;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border);
 }
 
 .welcome-icon {
     width: 64px;
     height: 64px;
     margin: 0 auto 1rem;
-    background: linear-gradient(135deg, #5b8db8 0%, #4a7a9e 100%);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
     border-radius: 16px;
     display: flex;
     align-items: center;
@@ -71,26 +71,26 @@
 .welcome-icon svg {
     width: 32px;
     height: 32px;
-    color: white;
+    color: var(--color-text-inverse);
 }
 
 .welcome-title {
     font-size: 1.5rem;
     font-weight: 700;
-    color: #374151;
+    color: var(--color-text);
     margin: 0 0 0.25rem;
 }
 
 .welcome-subtitle {
     font-size: 1rem;
-    color: #5b8db8;
+    color: var(--color-primary);
     font-weight: 500;
     margin: 0 0 1rem;
 }
 
 .welcome-text {
     font-size: 0.9375rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
     line-height: 1.5;
     margin: 0 0 1.5rem;
 }
@@ -107,8 +107,8 @@
     align-items: center;
     gap: 0.5rem;
     padding: 1rem;
-    background: white;
-    border: 1px solid #e5e7eb;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.15s;
@@ -117,8 +117,8 @@
 }
 
 .quick-action-btn:hover {
-    border-color: #5b8db8;
-    box-shadow: 0 2px 8px rgba(91, 141, 184, 0.15);
+    border-color: var(--color-primary);
+    box-shadow: 0 2px 8px var(--color-primary-tint);
 }
 
 .quick-action-btn:active {
@@ -142,16 +142,16 @@
 .quick-action-btn span {
     font-size: 0.75rem;
     font-weight: 500;
-    color: #374151;
+    color: var(--color-text);
 }
 
 /* Section Cards - Improved Visual Hierarchy */
 .section-card {
-    background: white;
+    background: var(--color-surface);
     border-radius: 16px;
     margin-bottom: 1rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px var(--shadow-color-06);
+    border: 1px solid var(--color-border);
     overflow: hidden;
 }
 
@@ -160,20 +160,20 @@
     align-items: center;
     gap: 0.75rem;
     padding: 1rem;
-    background: linear-gradient(135deg, #fafbfc 0%, #f5f7f9 100%);
-    border-bottom: 1px solid #f0f1f3;
+    background: linear-gradient(135deg, var(--color-surface-alt) 0%, var(--color-surface-alt) 100%);
+    border-bottom: 1px solid var(--color-surface-muted);
     cursor: pointer;
     transition: background-color 0.15s;
 }
 
 .section-header:hover {
-    background: linear-gradient(135deg, #f5f7f9 0%, #eef1f4 100%);
+    background: linear-gradient(135deg, var(--color-surface-alt) 0%, var(--color-surface-alt) 100%);
 }
 
 .section-header h2 {
     font-size: 0.9375rem;
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text);
     margin: 0;
     flex: 1;
 }
@@ -195,7 +195,7 @@
 .section-chevron {
     width: 18px;
     height: 18px;
-    color: #9ca3af;
+    color: var(--color-text-subtle);
 }
 
 .section-content {
@@ -210,28 +210,28 @@
 .section-empty p {
     margin: 0 0 0.25rem;
     font-size: 0.9375rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
 }
 
 .empty-hint {
     font-size: 0.8125rem;
-    color: #9ca3af;
+    color: var(--color-text-subtle);
 }
 
 /* Legacy card styles - keep for backwards compat */
 .schedule-icon {
-    background-color: #e07a5f20;
-    color: #e07a5f;
+    background-color: var(--color-primary-soft);
+    color: var(--color-primary);
 }
 
 .balance-icon {
-    background-color: #81b29a20;
-    color: #81b29a;
+    background-color: var(--color-success-soft-alpha);
+    color: var(--color-success);
 }
 
 .vault-icon {
-    background-color: #5b8db820;
-    color: #5b8db8;
+    background-color: var(--color-primary-soft);
+    color: var(--color-primary);
 }
 
 /* Event Items */
@@ -240,7 +240,7 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.5rem 0;
-    border-bottom: 1px solid #f3f4f6;
+    border-bottom: 1px solid var(--color-surface-muted);
 }
 
 .event-item:last-child {
@@ -269,7 +269,7 @@
 .event-title {
     font-size: 0.9375rem;
     font-weight: 500;
-    color: #374151;
+    color: var(--color-text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -277,7 +277,7 @@
 
 .event-date {
     font-size: 0.8125rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
 }
 
 /* Balance Display */
@@ -289,7 +289,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: #10b981;
+    color: var(--color-success);
     font-size: 1rem;
     font-weight: 500;
 }
@@ -307,13 +307,13 @@
 
 .balance-who {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
 }
 
 .balance-amount {
     font-size: 1.5rem;
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text);
 }
 
 /* Document Items */
@@ -322,7 +322,7 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.5rem 0;
-    border-bottom: 1px solid #f3f4f6;
+    border-bottom: 1px solid var(--color-surface-muted);
 }
 
 .document-item:last-child {
@@ -351,7 +351,7 @@
 .document-name {
     font-size: 0.9375rem;
     font-weight: 500;
-    color: #374151;
+    color: var(--color-text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -359,5 +359,5 @@
 
 .document-folder {
     font-size: 0.8125rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
 }

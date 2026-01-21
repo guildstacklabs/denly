@@ -11,16 +11,16 @@
     </ChildContent>
     <ErrorContent Context="ex">
         <div style="padding: 2rem; text-align: center; font-family: system-ui;">
-            <h2 style="color: #ef4444;">Application Error</h2>
+            <h2 style="color: var(--color-danger);">Application Error</h2>
             @{
                 Logger.LogError(ex, "Routes error boundary captured an exception");
             }
-            <p style="color: #666; margin-bottom: 1rem;">An unexpected error occurred.</p>
-            <details style="text-align: left; background: #f5f5f5; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+            <p style="color: var(--color-text-muted); margin-bottom: 1rem;">An unexpected error occurred.</p>
+            <details style="text-align: left; background: var(--color-surface-muted); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
                 <summary style="cursor: pointer; font-weight: bold;">Error Details</summary>
                 <pre style="white-space: pre-wrap; word-break: break-word; font-size: 0.75rem; margin-top: 0.5rem;">@ex.ToString()</pre>
             </details>
-            <button @onclick="Recover" style="background: #5b8db8; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer;">
+            <button @onclick="Recover" style="background: var(--color-primary); color: var(--color-text-inverse); border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer;">
                 Try Again
             </button>
         </div>

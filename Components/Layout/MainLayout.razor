@@ -11,7 +11,7 @@
 {
     <div class="auth-loading">
         <div class="loading-spinner"></div>
-        <p style="margin-top: 1rem; color: #666; font-size: 0.875rem;">@_loadingStatus</p>
+        <p style="margin-top: 1rem; color: var(--color-text-muted); font-size: 0.875rem;">@_loadingStatus</p>
     </div>
 }
 else if (_initializationFailed)
@@ -66,12 +66,12 @@ else if (_isAuthenticated)
                     </ChildContent>
                     <ErrorContent Context="context">
                         <div style="padding: 2rem; text-align: center;">
-                            <h2 style="color: #ef4444;">Render Error</h2>
+                            <h2 style="color: var(--color-danger);">Render Error</h2>
                             @{
                                 Logger.LogError(context, "MainLayout render error");
                             }
-                            <pre style="text-align: left; background: #f5f5f5; padding: 1rem; border-radius: 8px; font-size: 0.75rem; white-space: pre-wrap; word-break: break-word;">@context.ToString()</pre>
-                            <button @onclick="ClearSessionAndRetry" style="margin-top: 1rem; background: #5b8db8; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px;">
+                            <pre style="text-align: left; background: var(--color-surface-muted); padding: 1rem; border-radius: 8px; font-size: 0.75rem; white-space: pre-wrap; word-break: break-word;">@context.ToString()</pre>
+                            <button @onclick="ClearSessionAndRetry" style="margin-top: 1rem; background: var(--color-primary); color: var(--color-text-inverse); border: none; padding: 0.75rem 1.5rem; border-radius: 8px;">
                                 Clear Session & Retry
                             </button>
                         </div>

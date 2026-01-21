@@ -17,7 +17,7 @@
 .page-header h1 {
     font-size: 1.5rem;
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text);
     margin: 0;
 }
 
@@ -25,8 +25,8 @@
     display: flex;
     align-items: center;
     gap: 0.375rem;
-    background-color: #5b8db8;
-    color: white;
+    background-color: var(--color-primary);
+    color: var(--color-text-inverse);
     border: none;
     padding: 0.5rem 0.875rem;
     border-radius: 8px;
@@ -37,7 +37,7 @@
 }
 
 .add-btn:hover {
-    background-color: #4a7a9e;
+    background-color: var(--color-primary-hover);
 }
 
 .add-btn svg {
@@ -58,29 +58,29 @@
     transform: translateY(-50%);
     width: 18px;
     height: 18px;
-    color: #9ca3af;
+    color: var(--color-text-subtle);
 }
 
 .search-input {
     width: 100%;
     padding: 0.75rem 2.5rem 0.75rem 2.75rem;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     border-radius: 12px;
     font-size: 0.9375rem;
-    color: #374151;
-    background-color: white;
+    color: var(--color-text);
+    background-color: var(--color-text-inverse);
     box-sizing: border-box;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .search-input:focus {
     outline: none;
-    border-color: #5b8db8;
-    box-shadow: 0 0 0 3px rgba(91, 141, 184, 0.15);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-tint);
 }
 
 .search-input::placeholder {
-    color: #9ca3af;
+    color: var(--color-text-subtle);
 }
 
 .clear-search {
@@ -92,13 +92,13 @@
     border: none;
     padding: 0.25rem;
     cursor: pointer;
-    color: #9ca3af;
+    color: var(--color-text-subtle);
     border-radius: 4px;
 }
 
 .clear-search:hover {
-    color: #6b7280;
-    background-color: #f3f4f6;
+    color: var(--color-text-muted);
+    background-color: var(--color-surface-muted);
 }
 
 .clear-search svg {
@@ -126,37 +126,37 @@
     align-items: center;
     gap: 0.375rem;
     padding: 0.5rem 0.875rem;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     border-radius: 20px;
-    background: white;
+    background: var(--color-surface);
     font-size: 0.8125rem;
     font-weight: 500;
-    color: #6b7280;
+    color: var(--color-text-muted);
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.15s;
 }
 
 .folder-tab:hover {
-    border-color: var(--folder-color, #5b8db8);
-    color: #374151;
+    border-color: var(--folder-color, var(--color-primary));
+    color: var(--color-text);
 }
 
 .folder-tab.active {
-    border-color: var(--folder-color, #5b8db8);
-    background-color: var(--folder-color, #5b8db8);
-    color: white;
+    border-color: var(--folder-color, var(--color-primary));
+    background-color: var(--folder-color, var(--color-primary));
+    color: var(--color-text-inverse);
 }
 
 .tab-count {
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: var(--shadow-color-10);
     padding: 0.125rem 0.375rem;
     border-radius: 10px;
     font-size: 0.75rem;
 }
 
 .folder-tab.active .tab-count {
-    background-color: rgba(255, 255, 255, 0.25);
+    background-color: var(--color-surface-glass-25);
 }
 
 /* Documents Section */
@@ -186,13 +186,13 @@
 .folder-header h2 {
     font-size: 0.9375rem;
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text);
     margin: 0;
 }
 
 .folder-count {
     font-size: 0.8125rem;
-    color: #9ca3af;
+    color: var(--color-text-subtle);
     margin-left: auto;
 }
 
@@ -206,17 +206,17 @@
 .document-card {
     display: flex;
     align-items: center;
-    background: white;
+    background: var(--color-surface);
     border-radius: 12px;
     padding: 0.875rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px var(--shadow-color-08);
+    border: 1px solid var(--color-border);
     cursor: pointer;
     transition: box-shadow 0.2s, transform 0.1s;
 }
 
 .document-card:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px var(--shadow-color-10);
 }
 
 .document-card:active {
@@ -247,7 +247,7 @@
 .document-name {
     font-size: 0.9375rem;
     font-weight: 500;
-    color: #374151;
+    color: var(--color-text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -256,7 +256,7 @@
 .document-file,
 .document-notes {
     font-size: 0.8125rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -278,13 +278,13 @@
 .document-meta .document-file::before {
     content: "\00B7";
     margin-right: 0.5rem;
-    color: #9ca3af;
+    color: var(--color-text-subtle);
 }
 
 .document-chevron {
     width: 20px;
     height: 20px;
-    color: #9ca3af;
+    color: var(--color-text-subtle);
     flex-shrink: 0;
     margin-left: 0.5rem;
 }
@@ -293,10 +293,10 @@
 .no-documents {
     text-align: center;
     padding: 3rem 1rem;
-    color: #6b7280;
-    background: white;
+    color: var(--color-text-muted);
+    background: var(--color-surface);
     border-radius: 12px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
 }
 
 .no-documents svg {
@@ -314,7 +314,7 @@
 .add-document-link {
     background: none;
     border: none;
-    color: #5b8db8;
+    color: var(--color-primary);
     font-size: 0.9375rem;
     font-weight: 500;
     cursor: pointer;
@@ -328,7 +328,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.4);
+    background-color: var(--color-overlay-40);
     display: flex;
     align-items: flex-end;
     justify-content: center;
@@ -337,7 +337,7 @@
 }
 
 .modal-content {
-    background: white;
+    background: var(--color-surface);
     border-radius: 20px 20px 0 0;
     width: 100%;
     max-width: 500px;
@@ -362,13 +362,13 @@
     align-items: center;
     justify-content: space-between;
     padding: 1.25rem 1.25rem 0.75rem;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--color-border);
 }
 
 .modal-header h3 {
     font-size: 1.125rem;
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text);
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
@@ -382,13 +382,13 @@
     border: none;
     padding: 0.5rem;
     cursor: pointer;
-    color: #6b7280;
+    color: var(--color-text-muted);
     border-radius: 8px;
     flex-shrink: 0;
 }
 
 .close-btn:hover {
-    background-color: #f3f4f6;
+    background-color: var(--color-surface-muted);
 }
 
 .close-btn svg {
@@ -415,14 +415,14 @@
 
 .detail-label {
     font-size: 0.8125rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
     min-width: 60px;
     padding-top: 0.125rem;
 }
 
 .detail-value {
     font-size: 0.9375rem;
-    color: #374151;
+    color: var(--color-text);
     flex: 1;
 }
 
@@ -431,13 +431,13 @@
     padding: 0.25rem 0.75rem;
     border-radius: 12px;
     background-color: var(--folder-color);
-    color: white;
+    color: var(--color-text-inverse);
     font-size: 0.8125rem;
     font-weight: 500;
 }
 
 .file-name {
-    color: #5b8db8;
+    color: var(--color-primary);
     word-break: break-all;
 }
 
@@ -465,7 +465,7 @@
     display: block;
     font-size: 0.875rem;
     font-weight: 500;
-    color: #374151;
+    color: var(--color-text);
     margin-bottom: 0.5rem;
 }
 
@@ -473,11 +473,11 @@
 .form-group textarea {
     width: 100%;
     padding: 0.75rem 1rem;
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--color-border-strong);
     border-radius: 10px;
     font-size: 1rem;
-    color: #374151;
-    background-color: #f9fafb;
+    color: var(--color-text);
+    background-color: var(--color-surface);
     transition: border-color 0.2s, box-shadow 0.2s;
     box-sizing: border-box;
     font-family: inherit;
@@ -491,14 +491,14 @@
 .form-group input:focus,
 .form-group textarea:focus {
     outline: none;
-    border-color: #5b8db8;
-    box-shadow: 0 0 0 3px rgba(91, 141, 184, 0.15);
-    background-color: white;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-tint);
+    background-color: var(--color-text-inverse);
 }
 
 .form-group input::placeholder,
 .form-group textarea::placeholder {
-    color: #9ca3af;
+    color: var(--color-text-subtle);
 }
 
 /* Folder Selector */
@@ -510,25 +510,25 @@
 
 .folder-btn {
     padding: 0.5rem 0.875rem;
-    border: 2px solid #e5e7eb;
+    border: 2px solid var(--color-border);
     border-radius: 20px;
-    background: white;
+    background: var(--color-surface);
     font-size: 0.8125rem;
     font-weight: 500;
-    color: #374151;
+    color: var(--color-text);
     cursor: pointer;
     transition: all 0.15s;
 }
 
 .folder-btn:hover {
     border-color: var(--folder-color);
-    background-color: #f9fafb;
+    background-color: var(--color-surface);
 }
 
 .folder-btn.selected {
     border-color: var(--folder-color);
     background-color: var(--folder-color);
-    color: white;
+    color: var(--color-text-inverse);
 }
 
 /* File Input */
@@ -543,10 +543,10 @@
     gap: 0.5rem;
     width: 100%;
     padding: 1rem;
-    border: 2px dashed #d1d5db;
+    border: 2px dashed var(--color-border-strong);
     border-radius: 10px;
-    background: #f9fafb;
-    color: #6b7280;
+    background: var(--color-surface);
+    color: var(--color-text-muted);
     font-size: 0.9375rem;
     font-weight: 500;
     cursor: pointer;
@@ -554,9 +554,9 @@
 }
 
 .file-select-btn:hover {
-    border-color: #5b8db8;
-    color: #5b8db8;
-    background: white;
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: var(--color-surface);
 }
 
 .file-select-btn svg {
@@ -569,22 +569,22 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--color-border-strong);
     border-radius: 10px;
-    background: #f9fafb;
+    background: var(--color-surface);
 }
 
 .file-selected svg {
     width: 20px;
     height: 20px;
-    color: #5b8db8;
+    color: var(--color-primary);
     flex-shrink: 0;
 }
 
 .file-selected span {
     flex: 1;
     font-size: 0.9375rem;
-    color: #374151;
+    color: var(--color-text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -595,14 +595,14 @@
     border: none;
     padding: 0.25rem;
     cursor: pointer;
-    color: #9ca3af;
+    color: var(--color-text-subtle);
     border-radius: 4px;
     flex-shrink: 0;
 }
 
 .remove-file:hover {
-    color: #ef4444;
-    background-color: #fef2f2;
+    color: var(--color-danger);
+    background-color: var(--color-danger-soft);
 }
 
 .remove-file svg {
@@ -615,7 +615,7 @@
     display: flex;
     gap: 0.75rem;
     padding: 1rem 1.25rem 1.5rem;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid var(--color-border);
 }
 
 .modal-footer button {
@@ -629,49 +629,49 @@
 
 .delete-btn {
     background: none;
-    border: 1px solid #ef4444;
-    color: #ef4444;
+    border: 1px solid var(--color-danger);
+    color: var(--color-danger);
     margin-right: auto;
 }
 
 .delete-btn:hover {
-    background-color: #fef2f2;
+    background-color: var(--color-danger-soft);
 }
 
 .edit-btn {
-    background: #f3f4f6;
+    background: var(--color-surface-muted);
     border: none;
-    color: #374151;
+    color: var(--color-text);
     flex: 1;
 }
 
 .edit-btn:hover {
-    background-color: #e5e7eb;
+    background-color: var(--color-border);
 }
 
 .cancel-btn {
-    background: #f3f4f6;
+    background: var(--color-surface-muted);
     border: none;
-    color: #374151;
+    color: var(--color-text);
 }
 
 .cancel-btn:hover {
-    background-color: #e5e7eb;
+    background-color: var(--color-border);
 }
 
 .save-btn {
-    background-color: #5b8db8;
+    background-color: var(--color-primary);
     border: none;
-    color: white;
+    color: var(--color-text-inverse);
     flex: 1;
 }
 
 .save-btn:hover:not(:disabled) {
-    background-color: #4a7a9e;
+    background-color: var(--color-primary-hover);
 }
 
 .save-btn:disabled {
-    background-color: #d1d5db;
+    background-color: var(--color-border-strong);
     cursor: not-allowed;
 }
 
@@ -699,17 +699,17 @@
     gap: 1rem;
     width: 100%;
     padding: 1rem;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     border-radius: 12px;
-    background: white;
+    background: var(--color-surface);
     cursor: pointer;
     transition: all 0.15s;
     text-align: left;
 }
 
 .source-option:hover {
-    border-color: #5b8db8;
-    background-color: #f8fafc;
+    border-color: var(--color-primary);
+    background-color: var(--color-surface-alt);
 }
 
 .source-option:active {
@@ -732,18 +732,18 @@
 }
 
 .source-icon.camera {
-    background-color: #dbeafe;
-    color: #2563eb;
+    background-color: var(--color-secondary-soft);
+    color: var(--color-secondary);
 }
 
 .source-icon.gallery {
-    background-color: #fce7f3;
-    color: #db2777;
+    background-color: var(--color-warning-soft);
+    color: var(--color-warning-dark);
 }
 
 .source-icon.files {
-    background-color: #d1fae5;
-    color: #059669;
+    background-color: var(--color-success-soft);
+    color: var(--color-success-strong);
 }
 
 .source-text {
@@ -755,12 +755,12 @@
 .source-title {
     font-size: 1rem;
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text);
 }
 
 .source-desc {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
 }
 
 /* File Preview Section */
@@ -769,7 +769,7 @@
     align-items: center;
     gap: 1rem;
     padding: 1rem;
-    background-color: #f9fafb;
+    background-color: var(--color-surface);
     border-radius: 12px;
     margin-bottom: 1.25rem;
 }
@@ -799,13 +799,13 @@
 .file-preview svg {
     width: 32px;
     height: 32px;
-    color: #5b8db8;
+    color: var(--color-primary);
     flex-shrink: 0;
 }
 
 .file-preview span {
     font-size: 0.9375rem;
-    color: #374151;
+    color: var(--color-text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -813,10 +813,10 @@
 
 .change-file-btn {
     padding: 0.5rem 1rem;
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--color-border-strong);
     border-radius: 8px;
-    background: white;
-    color: #6b7280;
+    background: var(--color-surface);
+    color: var(--color-text-muted);
     font-size: 0.875rem;
     font-weight: 500;
     cursor: pointer;
@@ -825,15 +825,15 @@
 }
 
 .change-file-btn:hover {
-    border-color: #5b8db8;
-    color: #5b8db8;
+    border-color: var(--color-primary);
+    color: var(--color-primary);
 }
 
 /* Empty State Hint */
 .empty-hint {
     display: block;
     font-size: 0.8125rem;
-    color: #9ca3af;
+    color: var(--color-text-subtle);
     margin-bottom: 0.5rem;
 }
 
@@ -860,20 +860,20 @@
 }
 
 .confirm-icon.delete-icon {
-    background-color: #fef2f2;
-    color: #ef4444;
+    background-color: var(--color-danger-soft);
+    color: var(--color-danger);
 }
 
 .confirm-title {
     font-size: 1.125rem;
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text);
     margin: 0 0 0.5rem;
 }
 
 .confirm-text {
     font-size: 0.9375rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
     margin: 0 0 1.5rem;
 }
 
@@ -893,11 +893,11 @@
 }
 
 .delete-confirm-btn {
-    background-color: #ef4444;
+    background-color: var(--color-danger);
     border: none;
-    color: white;
+    color: var(--color-text-inverse);
 }
 
 .delete-confirm-btn:hover {
-    background-color: #dc2626;
+    background-color: var(--color-danger-dark);
 }

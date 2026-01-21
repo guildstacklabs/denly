@@ -83,7 +83,7 @@
                     else if (entry.Expense != null)
                     {
                         <div class="expense-card @(entry.Expense.IsSettled ? "settled" : "")" @onclick="() => OpenEditExpenseModal(entry.Expense)">
-                            <div class="expense-color-bar" style="background-color: #3d85c6"></div>
+                            <div class="expense-color-bar" style="background-color: var(--color-secondary)"></div>
                             <div class="expense-content">
                                 <div class="expense-header">
                                     <div class="expense-description">

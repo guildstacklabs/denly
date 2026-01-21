@@ -6,13 +6,13 @@
     display: flex;
     justify-content: space-around;
     align-items: center;
-    background-color: white;
-    border-top: 1px solid #e0e0e0;
+    background-color: var(--color-text-inverse);
+    border-top: 1px solid var(--color-border);
     padding: 0.5rem 0;
     /* Try env() first (iOS), fall back to var() (Android), then 0px */
     padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, var(--safe-area-inset-bottom, 0px)));
     z-index: 100;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 -2px 8px var(--shadow-color-08);
 }
 
 .nav-tab {
@@ -21,18 +21,18 @@
     align-items: center;
     justify-content: center;
     padding: 0.5rem 1rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
     text-decoration: none;
     transition: color 0.2s ease;
     min-width: 70px;
 }
 
 .nav-tab:hover {
-    color: #5b8db8;
+    color: var(--color-primary);
 }
 
 .nav-tab.active {
-    color: #5b8db8;
+    color: var(--color-primary);
 }
 
 .nav-icon {
