@@ -95,6 +95,8 @@ The backlog in `docs/BACKLOG.md` contains pre-approved tasks with embedded promp
 - If Task B modifies files already changed by Task A, do them sequentially (A fully complete before B)
 - If tasks are independent (different files), you may work them in any order
 - Run `dotnet build` after completing the entire batch, not after each task
+- Run `dotnet test` after completing the entire batch (after `dotnet build`)
+- If tests fail, fix the issue before marking batch complete
 
 ### Status Flow
 ```
@@ -115,6 +117,14 @@ When you finish a task, fill in this section in BACKLOG.md under the task:
   - `Services/SupabaseStorageService.cs`
 - **Summary:** Added 10MB file size guard before upload
 - **Build:** ✅ Pass
+- **Tests:** ✅ Pass (or N/A if no tests exist for this area)
+- **Testable Behaviors:**
+  - Method returns empty list when no data exists
+  - Method throws ArgumentException for invalid input
+- **Edge Cases:**
+  - Null den ID handled gracefully
+- **Mocking Needs:**
+  - Requires ISupabaseClientWrapper mock for unit testing
 - **Notes:** None
 ```
 
@@ -136,11 +146,15 @@ FIRST: Read `docs/AGENTS.md` completely - it contains:
 - Project context and tech stack
 - Coding standards you must follow
 - Security guidelines (critical)
+- Testing requirements (critical)
 - Your workflow instructions
 
 THEN: Read `docs/BACKLOG.md` and find tasks assigned to you (Codex/Gemini) with Status: Ready.
 
 Follow the workflow in docs/AGENTS.md exactly. Work in batches by priority tier.
+
+After completing all tasks in a tier, run `dotnet test` to verify no tests were broken.
+Include testable behaviors in your Completion Report for Claude to create tests.
 ```
 
 ---
@@ -351,5 +365,27 @@ Platforms/           - iOS/Android specific (keep minimal)
 ## Known Constraints
 
 - **Offline Support**: Not implemented. Avoid decisions that block future offline-first refactoring.
-- **Testing**: No automated tests yet. Manual verification is critical.
+- **Testing**: Unit test project exists (`Denly.Tests`). Agents must follow testing requirements below.
 - **Single Developer**: Process should enable velocity, not create bureaucracy.
+
+---
+
+## Testing Requirements
+
+All agents must follow these testing practices to maintain code quality.
+
+### For All Agents
+- Run `dotnet test` after completing work (in addition to `dotnet build`)
+- If tests fail, fix them before marking task complete
+- Do not delete or skip existing tests
+
+### For Codex/Gemini: Test Documentation
+When completing a task, include testing information in your Completion Report:
+- **Testable behaviors:** List 2-3 key behaviors that should be tested
+- **Edge cases:** Note any edge cases discovered during implementation
+- **Mocking needs:** Identify any dependencies that need mocking
+
+### For Claude: Test Maintenance
+- Claude is responsible for writing/maintaining unit tests
+- When reviewing Codex/Gemini work, use their "Testable Behaviors" to write tests
+- Add tests for new functionality before approving PR

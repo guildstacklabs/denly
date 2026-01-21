@@ -5,6 +5,7 @@
 | ID | Feature | Delegate | Status |
 |----|---------|----------|--------|
 | P0-7 | App color scheme | Codex | Ready |
+| P0-8 | Unit test foundation | Claude | Ready |
 | P1-1 | Calendar reminders | Claude | Ready |
 | P1-2 | Exportable reports | Gemini | Ready |
 | P1-3 | Info Bank expansion | Gemini | Ready |
@@ -33,6 +34,7 @@
 | P0-5 | Onboarding flow | First-run experience, invite co-parent flow | Medium | In Progress |
 | P0-6 | Push notifications | Reliable notification system (OFW's #1 failure) | Medium | Not Started |
 | P0-7 | App color scheme | Update app UI colors to match Coral Reef palette: primary coral (#E07A5F), teal (#3D8B8B), seafoam (#81B29A), gold (#F2CC8F), warm background (#FFF9F0) | Low | Not Started |
+| P0-8 | Unit test foundation | Create test project, Supabase abstraction, initial service tests | Medium | Not Started |
 
 ---
 
@@ -128,6 +130,118 @@ DELIVERABLES:
 - [ ] Text is readable (contrast check)
 - [ ] Hover/focus states work properly
 - [ ] App looks visually cohesive
+
+#### Completion Report
+<!-- Agent fills in when done -->
+
+---
+
+### P0-8: Unit Test Foundation
+**Source:** Multi-agent quality assurance | **Effort:** Medium | **Risk:** Low
+
+> **Delegate:** Claude | **Status:** Ready
+> **Reason:** Complex architectural changes requiring careful refactoring of service dependencies while maintaining existing functionality
+
+**Problem:** Multiple LLM agents (Claude, Codex, Gemini) contribute code without automated verification. Bugs introduced by one agent may go undetected until manual testing, wasting significant debugging time. The codebase has zero automated tests.
+
+**Solution:**
+- Create `Denly.Tests` xUnit project
+- Add `ISupabaseClientWrapper` abstraction to enable mocking
+- Implement 3 initial high-value tests:
+  - Expense balance calculations
+  - Den guardrails (empty results when no den)
+  - Auth session restore (no-throw on missing storage)
+- Configure CI test step
+
+**Targets:**
+- `Denly.Tests/Denly.Tests.csproj` (new)
+- `Denly.Tests/Services/ExpenseServiceTests.cs` (new)
+- `Denly.Tests/Services/DenServiceTests.cs` (new)
+- `Denly.Tests/Services/AuthServiceTests.cs` (new)
+- `Denly.Tests/Mocks/MockSupabaseClient.cs` (new)
+- `Services/ISupabaseClientWrapper.cs` (new)
+- `Services/SupabaseClientWrapper.cs` (new)
+- `Services/SupabaseServiceBase.cs` (modify to use wrapper)
+- `MauiProgram.cs` (register wrapper)
+- `Denly.sln` (add test project)
+
+#### Delegation Prompt (Claude)
+```
+Create a unit test foundation for Denly, a .NET MAUI Blazor Hybrid co-parenting app.
+
+CONTEXT:
+- Currently zero automated tests
+- Multiple LLM agents (Codex, Gemini) contribute code that needs verification
+- Supabase client is accessed via IAuthService.GetSupabaseClient() - not mockable
+- Static dependencies (SecureStorage, WebAuthenticator) block testing
+- See docs/TESTING-strategy.md for full architecture analysis
+
+REQUIREMENTS:
+1. Create Denly.Tests project:
+   - xUnit test framework
+   - NSubstitute for mocking (preferred) or Moq
+   - Reference main Denly project
+   - Add to Denly.sln
+
+2. Create ISupabaseClientWrapper abstraction:
+   - Wrap the Supabase client operations used by services
+   - Methods: GetTable<T>(), From(tableName), Auth property
+   - Implement SupabaseClientWrapper that delegates to real client
+   - Register in MauiProgram.cs DI container
+
+3. Implement 3 initial test files:
+
+   ExpenseServiceTests.cs:
+   - Test balance calculation with various expense splits
+   - Test 50/50 split (default)
+   - Test custom splits (60/40, 70/30)
+   - Test empty expense list returns zero balance
+
+   DenServiceTests.cs:
+   - Test GetCurrentDen returns null when user has no den
+   - Test GetChildren returns empty list when no den
+   - Test den membership checks
+
+   AuthServiceTests.cs:
+   - Test session restore doesn't throw when SecureStorage is empty
+   - Test GetCurrentUser returns null when not authenticated
+   - Mock ISecureStorage for testability
+
+4. Update SupabaseServiceBase:
+   - Accept ISupabaseClientWrapper via constructor injection
+   - Maintain backward compatibility during transition
+
+CONSTRAINTS:
+- Do NOT break existing functionality
+- Do NOT modify Supabase table schemas
+- Tests must be deterministic (no flakiness)
+- Use structured logging in test helpers
+- Follow existing code style (file-scoped namespaces, nullable types)
+
+TEST PATTERNS:
+- Arrange-Act-Assert structure
+- Descriptive test names: MethodName_Scenario_ExpectedResult
+- One assertion per test (prefer)
+- Mock external dependencies, not internal logic
+
+DELIVERABLES:
+- Denly.Tests project with 3 test files
+- ISupabaseClientWrapper interface and implementation
+- Updated SupabaseServiceBase
+- Updated MauiProgram.cs registration
+- All tests pass: `dotnet test`
+- Build passes: `dotnet build`
+```
+
+#### Review Checklist
+- [ ] Test project builds successfully
+- [ ] All tests pass with `dotnet test`
+- [ ] ISupabaseClientWrapper properly abstracts Supabase operations
+- [ ] Existing app functionality unchanged
+- [ ] Tests are deterministic (no flakiness)
+- [ ] Test names clearly describe what's being tested
+- [ ] Mocks are properly configured
+- [ ] No hardcoded test data that could break
 
 #### Completion Report
 <!-- Agent fills in when done -->
@@ -1246,3 +1360,24 @@ HUMANS/CLAUDE: Review periodically, promote good ideas to proper backlog items, 
 -->
 
 *No suggestions yet.*
+
+### Make member removal X more prominent
+- **Suggested by:** Codex
+- **Date:** 2026-01-21
+- **Context:** Reviewing Den member removal UI visibility
+- **Idea:** Increase the visibility of the remove member X button so it is easier to discover and use.
+- **Potential files:** Components/Pages/Settings.razor, Components/Pages/Settings.razor.css
+
+### Make Family Vault filters fully visible
+- **Suggested by:** Codex
+- **Date:** 2026-01-21
+- **Context:** Reviewing Family Vault filter discoverability
+- **Idea:** Show all filters without horizontal scrolling so the "Other" option is always visible.
+- **Potential files:** Components/Pages/FamilyVault.razor, Components/Pages/FamilyVault.razor.css
+
+### Fix scheduler AM/PM saving and edit regression
+- **Suggested by:** Codex
+- **Date:** 2026-01-21
+- **Context:** Reviewing schedule time picker behavior
+- **Idea:** Resolve scheduler time selection so AM/PM persists correctly when saving and when editing existing items.
+- **Potential files:** Components/Pages/Calendar.razor, Services/IScheduleService.cs, Services/SupabaseScheduleService.cs
