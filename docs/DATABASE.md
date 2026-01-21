@@ -168,3 +168,13 @@ All tables have RLS enabled. Key policies:
 - **Providers:** Google, Email/Password
 - **Profile trigger:** Auto-creates `profiles` row on signup
 - **Session:** Stored locally, persists across app restarts
+
+---
+
+## Future: Immutable Messages
+
+For legal defensibility, messages will need:
+- SHA-256 hash of content stored at creation
+- No UPDATE or DELETE allowed via RLS
+- Audit trail with timestamps
+- Litigation hold capability
