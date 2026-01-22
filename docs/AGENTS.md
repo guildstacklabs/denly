@@ -75,7 +75,7 @@ Match process overhead to task complexity:
 
 ## Automated Task Pickup (Codex/Gemini)
 
-The backlog in `docs/BACKLOG.md` contains pre-approved tasks with embedded prompts. Agents can work through these autonomously.
+The backlog in `docs/BACKLOG.md` contains active tasks. Completed items are archived in `docs/BACKLOG_ARCHIVE.md`.
 
 ### For Codex/Gemini: How to Pick Up Work
 
@@ -83,9 +83,9 @@ The backlog in `docs/BACKLOG.md` contains pre-approved tasks with embedded promp
 2. **Find your tasks**: Search for `Delegate: Codex` or `Delegate: Gemini` with `Status: Ready`
 3. **Work in batches by priority tier** (complete all your P1 tasks, then P2, etc.)
 4. For each task in the current tier:
-   - Update status to `In Progress`
-   - Read and execute the Delegation Prompt
-   - Fill in the Completion Report
+   - Read the Problem/Solution/Review sections for your task
+   - Implement the solution, targeting the files listed
+   - Add a brief Completion Report
    - Update status to `Awaiting Review`
    - **Continue to next task in same tier** (don't wait for review)
 5. **Stop at tier boundary** - wait for Claude to review the batch before starting next tier
@@ -101,13 +101,23 @@ The backlog in `docs/BACKLOG.md` contains pre-approved tasks with embedded promp
 ### Status Flow
 ```
 Ready → In Progress → Awaiting Review ──┐
-Ready → In Progress → Awaiting Review ──┼─→ [Claude batch review] → Removed
+Ready → In Progress → Awaiting Review ──┼─→ [Claude review] → Archived
 Ready → In Progress → Awaiting Review ──┘
                    ↘ Blocked (if issues) → Ready (after Claude unblocks)
 ```
 
+### After Code Review (Claude Only)
+When Claude approves a completed task:
+1. Remove the item from `BACKLOG.md`
+2. Add a summary entry to `BACKLOG_ARCHIVE.md` with:
+   - Completion date
+   - Agent name
+   - Files modified
+   - Brief summary of changes
+3. This keeps the active backlog lean and saves tokens
+
 ### Completion Report Template
-When you finish a task, fill in this section in BACKLOG.md under the task:
+When you finish a task, add a brief completion report in BACKLOG.md (Claude will archive it after review):
 
 ```markdown
 #### Completion Report

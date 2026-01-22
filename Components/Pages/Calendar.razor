@@ -139,7 +139,10 @@
 
                 <div class="form-group">
                     <label>Date</label>
-                    <input type="date" @bind="EditingEventDate" />
+                    <div class="date-input-wrapper">
+                        <input type="text" class="date-display" value="@EditingEventDate.ToString("MMM d, yyyy")" readonly />
+                        <input type="date" class="date-input-native" @bind="EditingEventDate" />
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -247,13 +250,13 @@
     private bool ShowEventModal;
     private bool ShowDeleteModal;
     private bool ShowTimeError;
+    private bool _timeErrorTriggered;
     private bool IsEditing;
     private Event EditingEvent = new();
     private DateTime EditingEventDate;
     private int? EditingHour;
     private int? EditingMinute;
     private string? EditingAmPm;
-    private bool _timeFieldsTouched;
 
     private static readonly string[] DayNames = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 
@@ -386,18 +389,19 @@
         EditingMinute = null;
         EditingAmPm = null;
         ShowTimeError = false;
-        _timeFieldsTouched = false;
+        _timeErrorTriggered = false;
         ShowEventModal = true;
     }
 
     private void OpenEditEventModal(Event evt)
     {
         IsEditing = true;
+        var localStart = GetLocalStartTime(evt);
         EditingEvent = new Event
         {
             Id = evt.Id,
             Title = evt.Title,
-            StartsAt = evt.StartsAt,
+            StartsAt = localStart,
             EndsAt = evt.EndsAt,
             AllDay = evt.AllDay,
             Type = evt.Type,
@@ -405,16 +409,15 @@
             Notes = evt.Notes,
             CreatedAt = evt.CreatedAt
         };
-        EditingEventDate = evt.Date;
+        EditingEventDate = localStart.Date;
 
-        // Convert TimeSpan to hour/minute/ampm
+        // Convert local time to hour/minute/AM-PM for picker
         if (evt.Time.HasValue)
         {
-            var time = evt.Time.Value;
-            var hour24 = time.Hours;
-            EditingAmPm = hour24 >= 12 ? "PM" : "AM";
-            EditingHour = hour24 == 0 ? 12 : (hour24 > 12 ? hour24 - 12 : hour24);
-            EditingMinute = time.Minutes;
+            var (hour12, amPm) = ConvertTo12Hour(localStart.Hour);
+            EditingHour = hour12;
+            EditingMinute = localStart.Minute;
+            EditingAmPm = amPm;
         }
         else
         {
@@ -423,7 +426,7 @@
             EditingAmPm = null;
         }
         ShowTimeError = false;
-        _timeFieldsTouched = false;
+        _timeErrorTriggered = false;
         ShowEventModal = true;
     }
 
@@ -431,12 +434,12 @@
     {
         ShowEventModal = false;
         ShowTimeError = false;
-        _timeFieldsTouched = false;
+        _timeErrorTriggered = false;
         EditingEvent = new Event();
     }
 
     private bool HasValidTime => EditingHour.HasValue && EditingMinute.HasValue && !string.IsNullOrEmpty(EditingAmPm);
-    private bool ShowTimeSuccess => HasValidTime && _timeFieldsTouched;
+    private bool ShowTimeSuccess => HasValidTime && _timeErrorTriggered;
     private bool HasEventsForSelectedDay => SelectedDate.HasValue && MonthEvents.Any(e => e.Date.Date == SelectedDate.Value.Date);
 
     private bool HasPartialTime
@@ -462,6 +465,7 @@
         if (HasPartialTime)
         {
             ShowTimeError = true;
+            _timeErrorTriggered = true;
             return;
         }
 
@@ -472,27 +476,27 @@
         // Must explicitly specify Kind=Local since input bindings return Unspecified
         if (HasValidTime)
         {
-            // Convert 12-hour to 24-hour format
-            var hour24 = EditingHour!.Value;
-            if (EditingAmPm == "PM" && hour24 != 12) hour24 += 12;
-            if (EditingAmPm == "AM" && hour24 == 12) hour24 = 0;
+            var hour24 = ConvertTo24Hour(EditingHour!.Value, EditingAmPm);
+            var localDateTime = new DateTime(
+                EditingEventDate.Year,
+                EditingEventDate.Month,
+                EditingEventDate.Day,
+                hour24,
+                EditingMinute!.Value,
+                0,
+                DateTimeKind.Local);
 
-            var timeSpan = new TimeSpan(hour24, EditingMinute!.Value, 0);
-            var dt = EditingEventDate.Date.Add(timeSpan);
-            var localDateTime = DateTime.SpecifyKind(dt, DateTimeKind.Local);
-
-            EditingEvent.StartsAt = localDateTime.ToUniversalTime();
+            EditingEvent.StartsAt = localDateTime;
             EditingEvent.AllDay = false;
 
-            Logger.LogDebug("Event time converted to UTC");
+            Logger.LogDebug("Event time set (local)");
         }
         else
         {
-            // For all-day events, store as start of day in UTC
-            var localDate = DateTime.SpecifyKind(EditingEventDate.Date, DateTimeKind.Local);
-            EditingEvent.StartsAt = localDate.ToUniversalTime();
+            // For all-day events, store local date (service will convert to UTC)
+            EditingEvent.StartsAt = DateTime.SpecifyKind(EditingEventDate.Date, DateTimeKind.Local);
             EditingEvent.AllDay = true;
-            Logger.LogDebug("All-day event time set");
+            Logger.LogDebug("All-day event time set (local)");
         }
 
         await ScheduleService.SaveEventAsync(EditingEvent);
@@ -540,12 +544,16 @@
 
     private void OnTimeFieldChanged()
     {
-        _timeFieldsTouched = true;
         if (HasValidTime)
         {
             ShowTimeError = false;
         }
     }
+
+    // Time conversion methods delegated to TimeConversionHelper for testability
+    private static DateTime GetLocalStartTime(Event evt) => TimeConversionHelper.GetLocalStartTime(evt.StartsAt);
+    private static (int hour12, string amPm) ConvertTo12Hour(int hour24) => TimeConversionHelper.ConvertTo12Hour(hour24);
+    private static int ConvertTo24Hour(int hour12, string? amPm) => TimeConversionHelper.ConvertTo24Hour(hour12, amPm);
 
     private class CalendarDay
     {

@@ -763,4 +763,45 @@ public class SupabaseDenService : IDenService
         // Remove spaces, dashes, and convert to uppercase
         return code.Replace(" ", "").Replace("-", "").ToUpperInvariant();
     }
+
+    public async Task<List<Child>> GetChildrenAsync()
+    {
+        var denId = _currentDenId;
+        if (string.IsNullOrEmpty(denId))
+        {
+            return new List<Child>();
+        }
+
+        try
+        {
+            var response = await SupabaseClient!
+                .From<Child>()
+                .Select("id, den_id, name, birth_date, color, doctor_name, doctor_contact, allergies, school_name, clothing_size, shoe_size, created_at")
+                .Where(c => c.DenId == denId)
+                .Get();
+
+            return response.Models;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get children for den {DenId}", denId);
+            return new List<Child>();
+        }
+    }
+
+    public async Task UpdateChildAsync(Child child)
+    {
+        try
+        {
+            // Use Upsert to handle both create and update
+            await SupabaseClient!
+                .From<Child>()
+                .Upsert(child);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update child {ChildId}", child.Id);
+            // Optionally re-throw or handle
+        }
+    }
 }

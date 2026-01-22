@@ -47,7 +47,7 @@ The interface is designed to mimic a natural shelter—rounded, soft, and warm. 
 
 ## 3. Global CSS Variables
 
-Add this to `wwwroot/css/app.css` or `site.css`.
+Add this to `wwwroot/app.css` (or a shared CSS file imported there). Use these tokens everywhere; avoid raw hex values in component CSS.
 
 ```css
 :root {
@@ -58,6 +58,9 @@ Add this to `wwwroot/css/app.css` or `site.css`.
     --color-seafoam: #81B29A;
     --color-gold: #F2CC8F;
     --color-coral: #E07A5F;
+    --color-nook-bg: #FDFCF8;
+    --color-border-soft: rgba(62, 66, 75, 0.08);
+    --color-surface-glass: rgba(253, 252, 248, 0.7);
     
     /* --- Extended Earth Tones (For Users) --- */
     --color-user-sienna: #D4A373;
@@ -66,17 +69,35 @@ Add this to `wwwroot/css/app.css` or `site.css`.
     /* --- Typography --- */
     --font-heading: 'Nunito', sans-serif;
     --font-body: 'Inter', sans-serif;
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-md: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.5rem;
+    --text-2xl: 2rem;
 
     /* --- Dimensions --- */
     --radius-nook: 24px;
     --radius-pebble: 999px; /* Pill shape */
     --spacing-unit: 8px;
+    --tap-min: 44px;
+
+    /* --- Shadows & Motion --- */
+    --shadow-nook: inset 0 2px 6px rgba(242, 204, 143, 0.15), 0 4px 10px rgba(62, 66, 75, 0.05);
+    --shadow-pebble: 0 4px 12px rgba(61, 139, 139, 0.3);
+    --shadow-glow: 0 0 16px rgba(242, 204, 143, 0.45);
+    --motion-fast: 120ms;
+    --motion-base: 180ms;
+    --motion-slow: 240ms;
+    --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --focus-ring: 0 0 0 3px rgba(61, 139, 139, 0.35);
 }
 
 body {
     background-color: var(--color-warm-bg);
     color: var(--color-den-shadow);
     font-family: var(--font-body);
+    line-height: 1.4;
 }
 
 h1, h2, h3, h4 {
@@ -117,15 +138,13 @@ The standard container for the app. It uses an inset shadow to appear indented.
 
 ```css
 .nook {
-    background-color: #FDFCF8; /* Slightly lighter than bg for contrast */
+    background-color: var(--color-nook-bg);
     border-radius: var(--radius-nook);
     padding: 24px;
     margin-bottom: 20px;
     /* The "Indented" Effect */
-    box-shadow: 
-        inset 0 2px 6px rgba(242, 204, 143, 0.15), /* Warm inner glow */
-        0 4px 10px rgba(62, 66, 75, 0.05); /* Soft outer drop */
-    border: 1px solid rgba(255,255,255,0.6);
+    box-shadow: var(--shadow-nook);
+    border: 1px solid var(--color-border-soft);
 }
 
 .nook-header {
@@ -542,7 +561,7 @@ A pill-shaped button that "squishes" when pressed.
 .pebble-btn.primary {
     background-color: var(--color-teal);
     color: white;
-    box-shadow: 0 4px 12px rgba(61, 139, 139, 0.3);
+    box-shadow: var(--shadow-pebble);
 }
 
 .pebble-btn.secondary {
@@ -581,6 +600,8 @@ A pill-shaped button that "squishes" when pressed.
 > 3. **Vine:** Progress bars are curved/organic.
 > 4. **Calendar:** Stacked horizontal color strips for multi-user events.
 > 5. **Icons:** Monoline, thin stroke, organic shapes (twigs, leaves).
+> 6. **Spacing:** 8px scale; roomy padding (Nook 24px).
+> 7. **Motion:** Soft ease-out, 120-240ms durations.
 > 
 > 
 > **Typography:** Nunito (Headings) + Inter (Body).
@@ -609,7 +630,7 @@ To implement this, add a `[data-theme="dark"]` selector to your global CSS. This
 > **Note:** Ensure your Nook component CSS uses a variable for its background color (e.g., `--color-nook-bg`) instead of a hardcoded hex, so it can switch automatically.
 
 ```css
-/* Add to wwwroot/css/app.css */
+/* Add to wwwroot/app.css */
 
 /* 1. Define the Default Nook Color in Root (Light Mode) */
 :root {
@@ -632,6 +653,8 @@ To implement this, add a `[data-theme="dark"]` selector to your global CSS. This
 
     /* Adjust Shadows for Dark Mode (Glows instead of Shadows) */
     --shadow-nook: inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 4px 20px rgba(0,0,0,0.5);
+    --shadow-pebble: 0 6px 16px rgba(0,0,0,0.45);
+    --shadow-glow: 0 0 18px rgba(251, 191, 36, 0.35);
 }
 
 /* 3. Update Nook CSS to use the variable */
@@ -640,3 +663,101 @@ To implement this, add a `[data-theme="dark"]` selector to your global CSS. This
     /* ... rest of nook styles ... */
 }
 ```
+
+---
+
+## 7. Layout, Spacing, and Grid
+
+Use a calm, breathable layout with a consistent spacing scale. Favor generous vertical spacing and rounded groupings over tight grids.
+
+**Spacing scale:** `4, 8, 12, 16, 20, 24, 32, 40` (multiples of 4/8).
+
+**Page padding:**
+- Mobile: 20-24px horizontal.
+- Desktop: 32-40px with max content width ~720-960px for text-heavy views.
+
+**Stacking rhythm:**
+- Default vertical gap between Nooks: 16-20px.
+- Inside Nook: 12-16px between rows.
+
+**Safe area:**
+- Always respect device insets for bottom nav and top header.
+
+---
+
+## 8. Elevation, Surfaces, and Depth
+
+Depth should feel carved or cushioned, not glossy. Use a small set of surface styles:
+
+- **Nook (Inset):** inner shadow + light outer drop.
+- **Pebble (Floating):** soft drop shadow.
+- **Glass (Navigation):** translucent surface with subtle shadow; fallback to opaque surface on unsupported WebViews.
+
+**Rule:** Do not stack multiple shadows; use the single token per surface (`--shadow-nook`, `--shadow-pebble`, `--shadow-glow`).
+
+---
+
+## 9. Interaction, Motion, and Feedback
+
+Motion should be subtle and tactile, never bouncy.
+
+- **Press:** scale to 0.97 over `--motion-fast`.
+- **Hover (desktop):** 2-4% brightness shift.
+- **Reveal:** fade + translateY 6-10px over `--motion-slow`.
+- **Easing:** use `--ease-out`.
+
+Respect user preference:
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+```
+
+---
+
+## 10. Component States and Patterns
+
+Define explicit states so behavior is consistent:
+
+- **Buttons:** default, pressed, disabled, loading.
+- **Inputs:** default, focus, error, success (only after error recovery).
+- **Toggles:** off/on with subtle glow on "on".
+- **Badges/dots:** coral for urgent only.
+- **Empty states:** gentle, reassuring copy (e.g., "The den is quiet today.").
+
+Avoid color-only status. Pair color with icon or label.
+
+---
+
+## 11. Accessibility and Contrast
+
+Accessibility is part of the style system.
+
+- **Contrast:** minimum 4.5:1 for body text, 3:1 for large text (18px+).
+- **Tap targets:** at least `--tap-min` (44px) height/width.
+- **Focus:** visible focus ring using `--focus-ring`.
+- **Text sizing:** body not smaller than 14px; labels 12px only for secondary metadata.
+
+---
+
+## 12. Iconography and Illustration
+
+Icons should be monoline, organic, and friendly.
+
+- **Stroke:** 1.5-2px, round caps, round joins.
+- **Sizes:** 20px (inline), 24px (primary nav), 32px (feature icons).
+- **Color:** `--color-den-shadow` default; teal or gold only for active state.
+
+Illustrations (if used) should be soft, minimal, and abstract (leaves, vines, stones).
+
+---
+
+## 13. Platform Implementation Notes (MAUI Blazor)
+
+- Use CSS isolation for components (`.razor.css`) and global tokens in `wwwroot/app.css`.
+- Avoid raw hex values in component CSS; use variables.
+- `backdrop-filter` is inconsistent on Android WebView. Provide fallback:
+  - Fallback surface: `background-color: var(--color-surface-glass)` with a subtle border/shadow.
+- Prefer SVG for the vine progress arc to avoid heavy filters.
+- Fonts: bundle Nunito/Inter locally and register in `MauiProgram` (MAUI) or via `@font-face` in `wwwroot/app.css`.

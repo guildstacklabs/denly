@@ -1,0 +1,130 @@
+@page "/infobank"
+@using Denly.Models
+@using Denly.Services
+@inject IDenService DenService
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Info Bank</PageTitle>
+
+<div class="info-bank-container">
+    <h1>Info Bank</h1>
+    <p class="text-muted">Shared information for schools, doctors, and emergencies.</p>
+
+    @if (_isLoading)
+    {
+        <p>Loading...</p>
+    }
+    else if (_children == null || !_children.Any())
+    {
+        <p>No children found in this Den.</p>
+    }
+    else
+    {
+        <div class="tabs">
+            @foreach (var child in _children)
+            {
+                <button class="btn @(_selectedChild == child ? "btn-primary" : "btn-outline-secondary")" 
+                        style="margin-right: 8px;"
+                        @onclick="() => SelectChild(child)">
+                    @child.Name
+                </button>
+            }
+        </div>
+        <hr />
+
+        @if (_selectedChild != null)
+        {
+            <EditForm Model="_selectedChild" OnValidSubmit="SaveAsync">
+                <DataAnnotationsValidator />
+                
+                <div class="form-section mb-4">
+                    <h3>Medical</h3>
+                    <div class="mb-3">
+                        <label class="form-label">Doctor Name</label>
+                        <InputText @bind-Value="_selectedChild.DoctorName" class="form-control" placeholder="e.g. Dr. Smith" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Doctor Contact</label>
+                        <InputText @bind-Value="_selectedChild.DoctorContact" class="form-control" placeholder="Phone or Address" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Allergies / Meds</label>
+                        <InputTextArea @bind-Value="_selectedChild.Allergies" class="form-control" rows="3" />
+                    </div>
+                </div>
+
+                <div class="form-section mb-4">
+                    <h3>School & Sizes</h3>
+                    <div class="mb-3">
+                        <label class="form-label">School Name</label>
+                        <InputText @bind-Value="_selectedChild.SchoolName" class="form-control" />
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Clothing Size</label>
+                            <InputText @bind-Value="_selectedChild.ClothingSize" class="form-control" />
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Shoe Size</label>
+                            <InputText @bind-Value="_selectedChild.ShoeSize" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-success" disabled="@_isSaving">
+                    @(_isSaving ? "Saving..." : "Save Changes")
+                </button>
+            </EditForm>
+        }
+    }
+</div>
+
+@code {
+    private bool _isLoading = true;
+    private bool _isSaving = false;
+    private List<Child> _children = new();
+    private Child? _selectedChild;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (await AuthService.GetCurrentUserAsync() is not { } user)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        try
+        {
+            _children = await DenService.GetChildrenAsync();
+            _selectedChild = _children.FirstOrDefault();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void SelectChild(Child child)
+    {
+        _selectedChild = child;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_selectedChild == null) return;
+        _isSaving = true;
+        try
+        {
+            await DenService.UpdateChildAsync(_selectedChild);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[InfoBank] Error saving: {ex.Message}");
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+}

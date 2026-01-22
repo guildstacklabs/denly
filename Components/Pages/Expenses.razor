@@ -340,7 +340,7 @@
 
     private async Task LoadData()
     {
-        _expenses = await ExpenseService.GetAllExpensesAsync();
+        _expenses = await ExpenseService.GetExpensesAsync();
         _settlements = await ExpenseService.GetAllSettlementsAsync();
         _balances = await ExpenseService.GetBalancesAsync();
         _denMembers = await DenService.GetDenMembersAsync();
@@ -483,7 +483,16 @@
     {
         try
         {
-            var photo = await MediaPicker.Default.PickPhotoAsync();
+            var photos = await MediaPicker.Default.PickPhotosAsync();
+            FileResult? photo = null;
+            if (photos != null)
+            {
+                foreach (var item in photos)
+                {
+                    photo = item;
+                    break;
+                }
+            }
             if (photo != null)
             {
                 await SaveReceiptFromFile(photo);

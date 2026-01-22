@@ -29,6 +29,30 @@ public class Child : BaseModel
     [JsonProperty("color")]
     public string? Color { get; set; }
 
+    [Column("doctor_name")]
+    [JsonProperty("doctor_name")]
+    public string? DoctorName { get; set; }
+
+    [Column("doctor_contact")]
+    [JsonProperty("doctor_contact")]
+    public string? DoctorContact { get; set; }
+
+    [Column("allergies")]
+    [JsonProperty("allergies")]
+    public string? Allergies { get; set; }
+
+    [Column("school_name")]
+    [JsonProperty("school_name")]
+    public string? SchoolName { get; set; }
+
+    [Column("clothing_size")]
+    [JsonProperty("clothing_size")]
+    public string? ClothingSize { get; set; }
+
+    [Column("shoe_size")]
+    [JsonProperty("shoe_size")]
+    public string? ShoeSize { get; set; }
+
     [Column("created_at")]
     [JsonProperty("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

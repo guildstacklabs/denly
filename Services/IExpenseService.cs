@@ -4,7 +4,7 @@ namespace Denly.Services;
 
 public interface IExpenseService
 {
-    Task<List<Expense>> GetAllExpensesAsync(CancellationToken cancellationToken = default);
+    Task<List<Expense>> GetExpensesAsync(CancellationToken cancellationToken = default);
     Task<Expense?> GetExpenseByIdAsync(string id, CancellationToken cancellationToken = default);
     Task SaveExpenseAsync(Expense expense, CancellationToken cancellationToken = default);
     Task DeleteExpenseAsync(string id, CancellationToken cancellationToken = default);

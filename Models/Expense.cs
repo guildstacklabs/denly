@@ -60,6 +60,10 @@ public class Expense : BaseModel
     [Newtonsoft.Json.JsonConverter(typeof(NullableDateTimeOrArrayConverter))]
     public DateTime? SettledAt { get; set; }
 
+    [Column("split_percent")]
+    [JsonProperty("split_percent")]
+    public decimal? SplitPercent { get; set; }
+
     // Helper properties for UI
     [Newtonsoft.Json.JsonIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
@@ -68,6 +72,10 @@ public class Expense : BaseModel
     [Newtonsoft.Json.JsonIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     public string? PaidByName { get; set; } // Populated from profiles
+
+    [Newtonsoft.Json.JsonIgnore]
+    [System.Text.Json.Serialization.JsonIgnore]
+    public DateTime Date => CreatedAt;
 }
 
 [Table("settlements")]

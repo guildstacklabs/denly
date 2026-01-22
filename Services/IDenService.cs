@@ -33,6 +33,10 @@ public interface IDenService
 
     // Events
     event EventHandler<DenChangedEventArgs>? DenChanged;
+
+    // Children
+    Task<List<Child>> GetChildrenAsync();
+    Task UpdateChildAsync(Child child);
 }
 
 public record JoinDenResult(

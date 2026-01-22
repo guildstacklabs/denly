@@ -13,17 +13,32 @@ public class MainActivity : MauiAppCompatActivity
     {
         base.OnCreate(savedInstanceState);
 
+        var window = Window;
+        if (window == null)
+        {
+            return;
+        }
+
         // Enable edge-to-edge display
-        WindowCompat.SetDecorFitsSystemWindows(Window!, false);
+        WindowCompat.SetDecorFitsSystemWindows(window, false);
 
         // Allow content to render in display cutout area
-        if (Build.VERSION.SdkInt >= BuildVersionCodes.P)
+        if (OperatingSystem.IsAndroidVersionAtLeast(28))
         {
-            Window!.Attributes!.LayoutInDisplayCutoutMode = LayoutInDisplayCutoutMode.ShortEdges;
+            var attributes = window.Attributes;
+            if (attributes != null)
+            {
+                attributes.LayoutInDisplayCutoutMode = LayoutInDisplayCutoutMode.ShortEdges;
+                window.Attributes = attributes;
+            }
         }
 
         // Set up insets listener to inject safe area values into CSS
-        var rootView = Window!.DecorView.RootView;
+        var rootView = window.DecorView?.RootView;
+        if (rootView == null)
+        {
+            return;
+        }
         ViewCompat.SetOnApplyWindowInsetsListener(rootView, new SafeAreaInsetsListener(this));
     }
 
@@ -38,20 +53,29 @@ public class MainActivity : MauiAppCompatActivity
 
         public WindowInsetsCompat OnApplyWindowInsets(Android.Views.View? v, WindowInsetsCompat? insets)
         {
-            if (insets == null || v == null)
-                return insets ?? new WindowInsetsCompat.Builder().Build(); // Ensure non-null return
+            var safeInsets = (insets ?? new WindowInsetsCompat.Builder().Build())!;
+            if (v == null)
+            {
+                return safeInsets;
+            }
 
-            var systemBars = insets.GetInsets(WindowInsetsCompat.Type.SystemBars());
-            var displayCutout = insets.GetInsets(WindowInsetsCompat.Type.DisplayCutout());
+            var systemBars = safeInsets.GetInsets(WindowInsetsCompat.Type.SystemBars());
+            var displayCutout = safeInsets.GetInsets(WindowInsetsCompat.Type.DisplayCutout());
 
             // Use the maximum of system bars and display cutout
-            var top = Math.Max(systemBars.Top, displayCutout.Top);
-            var bottom = Math.Max(systemBars.Bottom, displayCutout.Bottom);
-            var left = Math.Max(systemBars.Left, displayCutout.Left);
-            var right = Math.Max(systemBars.Right, displayCutout.Right);
+            var top = Math.Max(systemBars?.Top ?? 0, displayCutout?.Top ?? 0);
+            var bottom = Math.Max(systemBars?.Bottom ?? 0, displayCutout?.Bottom ?? 0);
+            var left = Math.Max(systemBars?.Left ?? 0, displayCutout?.Left ?? 0);
+            var right = Math.Max(systemBars?.Right ?? 0, displayCutout?.Right ?? 0);
 
             // Convert pixels to CSS pixels (account for density)
-            var density = _activity.Resources!.DisplayMetrics!.Density;
+            var resources = _activity.Resources;
+            var displayMetrics = resources?.DisplayMetrics;
+            if (displayMetrics == null)
+            {
+                return ViewCompat.OnApplyWindowInsets(v, safeInsets) ?? safeInsets;
+            }
+            var density = displayMetrics.Density;
             var topDp = (int)(top / density);
             var bottomDp = (int)(bottom / density);
             var leftDp = (int)(left / density);
@@ -63,7 +87,7 @@ public class MainActivity : MauiAppCompatActivity
             SafeAreaInsets.Left = leftDp;
             SafeAreaInsets.Right = rightDp;
 
-            return ViewCompat.OnApplyWindowInsets(v, insets);
+            return ViewCompat.OnApplyWindowInsets(v, safeInsets) ?? safeInsets;
         }
     }
 }

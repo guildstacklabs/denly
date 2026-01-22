@@ -1,5 +1,6 @@
 using Denly.Models;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 
 namespace Denly.Services;
 
@@ -44,7 +45,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
                 .Get();
 
             var events = response.Models;
-            foreach (var evt in events) ConvertToLocal(evt);
+            foreach (var evt in events) NormalizeToLocal(evt);
             return events;
         }
         catch (OperationCanceledException)
@@ -96,7 +97,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
                 .Get();
 
             // Convert to Local Time immediately so filtering and UI display are correct
-            foreach (var evt in response.Models) ConvertToLocal(evt);
+            foreach (var evt in response.Models) NormalizeToLocal(evt);
 
             // Filter in memory with logging for diagnostics
             var filteredEvents = new List<Event>();
@@ -152,7 +153,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
                 .Get();
 
             var events = response.Models;
-            foreach (var evt in events) ConvertToLocal(evt);
+            foreach (var evt in events) NormalizeToLocal(evt);
             return events;
         }
         catch (OperationCanceledException)
@@ -183,7 +184,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
             var evt = response.Models.FirstOrDefault();
             if (evt != null)
             {
-                ConvertToLocal(evt);
+                NormalizeToLocal(evt);
             }
             return evt;
         }
@@ -227,6 +228,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
                 ? evt.EndsAt.Value
                 : DateTime.SpecifyKind(evt.EndsAt.Value, DateTimeKind.Local).ToUniversalTime())
             : (DateTime?)null;
+        var endUtcToken = endUtc.HasValue ? new JValue(endUtc.Value) : JValue.CreateNull();
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -240,7 +242,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
                     .Where(e => e.Id == evt.Id)
                     .Set(e => e.Title, evt.Title)
                     .Set(e => e.StartsAt, startUtc)
-                    .Set(e => e.EndsAtRaw!, endUtc)
+                    .Set(e => e.EndsAtRaw!, endUtcToken)
                     .Set(e => e.AllDay, evt.AllDay)
                     .Set(e => e.EventTypeString, evt.EventTypeString)
                     .Set(e => e.Location!, evt.Location)
@@ -319,20 +321,26 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         }
     }
 
-    private void ConvertToLocal(Event evt)
+    private void NormalizeToLocal(Event evt)
     {
-        // Supabase (via Newtonsoft) often converts to Local time automatically but leaves Kind as Unspecified.
-        // If we call ToLocalTime() on that, it subtracts the offset AGAIN (Double Conversion).
-        // Fix: Only convert if the Kind is explicitly UTC.
-        if (evt.StartsAt.Kind == DateTimeKind.Utc)
-        {
-            evt.StartsAt = evt.StartsAt.ToLocalTime();
-        }
+        // Supabase (via Newtonsoft) can return Local time with Kind=Unspecified.
+        // Normalize to Local without double-conversion.
+        evt.StartsAt = NormalizeDateTime(evt.StartsAt);
 
-        if (evt.EndsAt.HasValue && evt.EndsAt.Value.Kind == DateTimeKind.Utc)
+        if (evt.EndsAt.HasValue)
         {
-            evt.EndsAt = evt.EndsAt.Value.ToLocalTime();
+            evt.EndsAt = NormalizeDateTime(evt.EndsAt.Value);
         }
+    }
+
+    private static DateTime NormalizeDateTime(DateTime value)
+    {
+        return value.Kind switch
+        {
+            DateTimeKind.Utc => value.ToLocalTime(),
+            DateTimeKind.Local => value,
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Local)
+        };
     }
 
     public async Task<bool> HasUpcomingEventsAsync()

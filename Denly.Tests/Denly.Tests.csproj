@@ -21,6 +21,19 @@
   <!-- Link source files from main project for testability -->
   <ItemGroup>
     <Compile Include="..\Services\BalanceCalculator.cs" Link="LinkedSources\BalanceCalculator.cs" />
+    <Compile Include="..\Services\TimeConversionHelper.cs" Link="LinkedSources\TimeConversionHelper.cs" />
+    <Compile Include="..\Services\IReportService.cs" Link="LinkedSources\IReportService.cs" />
+    <Compile Include="..\Services\ReportService.cs" Link="LinkedSources\ReportService.cs" />
+    <Compile Include="..\Services\IExpenseService.cs" Link="LinkedSources\IExpenseService.cs" />
+    <Compile Include="..\Models\Expense.cs" Link="LinkedSources\Expense.cs" />
+    <Compile Include="..\Models\NullableDateTimeOrArrayConverter.cs" Link="LinkedSources\NullableDateTimeOrArrayConverter.cs" />
+  </ItemGroup>
+
+  <!-- Dependencies for linked source files -->
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" Version="3.116.1" />
+    <PackageReference Include="Supabase" Version="1.1.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
   <ItemGroup>

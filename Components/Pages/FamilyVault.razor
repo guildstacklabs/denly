@@ -1,6 +1,7 @@
 @page "/vault"
 @using Denly.Models
 @using Denly.Services
+@using SkiaSharp
 @inject IDocumentService DocumentService
 @inject IConnectivity Connectivity
 @implements IDisposable
@@ -319,13 +320,13 @@
             </div>
 
             <div class="modal-body">
-                @if (!string.IsNullOrEmpty(_pendingFilePath) || !string.IsNullOrEmpty(EditingDocument.FileUrl))
+                @if (_pendingFileContent != null || !string.IsNullOrEmpty(EditingDocument.FileUrl))
                 {
                     <div class="file-preview-section">
                         @if (IsImageFile(_pendingFileName ?? EditingDocument.FileName))
                         {
                             <div class="image-preview">
-                                <img src="@(_pendingFilePath ?? EditingDocument.FileUrl)" alt="Preview" />
+                                <img src="@(_pendingPreviewUrl ?? EditingDocument.FileUrl)" alt="Preview" />
                             </div>
                         }
                         else
@@ -361,7 +362,7 @@
                     </div>
                 </div>
 
-                @if (!IsEditing && string.IsNullOrEmpty(_pendingFilePath))
+                @if (!IsEditing && _pendingFileContent == null)
                 {
                     <div class="form-group">
                         <label>File (optional)</label>
@@ -411,8 +412,9 @@
     private Timer? _searchDebouncer;
 
     // Temporary file info before upload
-    private string? _pendingFilePath;
+    private byte[]? _pendingFileContent;
     private string? _pendingFileName;
+    private string? _pendingPreviewUrl;
 
     private bool IsValidDocument => !string.IsNullOrWhiteSpace(EditingDocument.Title);
 
@@ -506,8 +508,9 @@
         {
             Folder = SelectedFolder ?? DocumentFolder.Other
         };
-        _pendingFilePath = null;
+        _pendingFileContent = null;
         _pendingFileName = null;
+        _pendingPreviewUrl = null;
         ShowViewModal = false;
         ShowEditModal = false;
         ShowSourcePicker = true;
@@ -546,8 +549,9 @@
             ChildId = ViewingDocument.ChildId,
             CreatedAt = ViewingDocument.CreatedAt
         };
-        _pendingFilePath = null;
+        _pendingFileContent = null;
         _pendingFileName = null;
+        _pendingPreviewUrl = null;
         ShowViewModal = false;
         ShowEditModal = true;
     }
@@ -559,8 +563,9 @@
         ShowSourcePicker = false;
         ViewingDocument = null;
         EditingDocument = new Document();
-        _pendingFilePath = null;
+        _pendingFileContent = null;
         _pendingFileName = null;
+        _pendingPreviewUrl = null;
     }
 
     private async Task SaveDocument()
@@ -568,9 +573,9 @@
         if (!IsValidDocument)
             return;
 
-        if (!string.IsNullOrEmpty(_pendingFilePath))
+        if (_pendingFileContent != null)
         {
-             using var stream = File.OpenRead(_pendingFilePath);
+             using var stream = new MemoryStream(_pendingFileContent);
              var url = await DocumentService.UploadDocumentAsync(stream, _pendingFileName!);
              EditingDocument.FileUrl = url;
              // FileName is computed from FileUrl, no need to set it
@@ -605,6 +610,31 @@
         await LoadData();
     }
 
+    private async Task ProcessFileResult(FileResult? result)
+    {
+        if (result == null) return;
+
+        _pendingFileName = result.FileName;
+        using var stream = await result.OpenReadAsync();
+        using var memoryStream = new MemoryStream();
+        await stream.CopyToAsync(memoryStream);
+        _pendingFileContent = memoryStream.ToArray();
+
+        if (IsImageFile(_pendingFileName))
+        {
+            _pendingPreviewUrl = TryCreateImagePreview(_pendingFileContent)
+                ?? (!string.IsNullOrWhiteSpace(result.ContentType)
+                    ? $"data:{result.ContentType};base64,{Convert.ToBase64String(_pendingFileContent)}"
+                    : null);
+        }
+        else
+        {
+            _pendingPreviewUrl = null;
+        }
+
+        ShowEditModalWithFile();
+    }
+
     private async Task TakePhoto()
     {
         try
@@ -613,12 +643,7 @@
                 return;
 
             var photo = await MediaPicker.Default.CapturePhotoAsync();
-            if (photo != null)
-            {
-                _pendingFilePath = photo.FullPath;
-                _pendingFileName = photo.FileName;
-                ShowEditModalWithFile();
-            }
+            await ProcessFileResult(photo);
         }
         catch
         {
@@ -630,13 +655,17 @@
     {
         try
         {
-            var photo = await MediaPicker.Default.PickPhotoAsync();
-            if (photo != null)
+            var photos = await MediaPicker.Default.PickPhotosAsync();
+            FileResult? photo = null;
+            if (photos != null)
             {
-                _pendingFilePath = photo.FullPath;
-                _pendingFileName = photo.FileName;
-                ShowEditModalWithFile();
+                foreach (var item in photos)
+                {
+                    photo = item;
+                    break;
+                }
             }
+            await ProcessFileResult(photo);
         }
         catch
         {
@@ -652,13 +681,7 @@
             {
                 PickerTitle = "Select a document"
             });
-
-            if (result != null)
-            {
-                _pendingFilePath = result.FullPath;
-                _pendingFileName = result.FileName;
-                ShowEditModalWithFile();
-            }
+            await ProcessFileResult(result);
         }
         catch
         {
@@ -670,6 +693,25 @@
     {
         ShowEditModal = false;
         ShowSourcePicker = true;
+    }
+
+    private static string? TryCreateImagePreview(byte[] content)
+    {
+        using var bitmap = SKBitmap.Decode(content);
+        if (bitmap == null)
+        {
+            return null;
+        }
+
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Jpeg, 80);
+        if (data == null)
+        {
+            return null;
+        }
+
+        var base64 = Convert.ToBase64String(data.ToArray());
+        return $"data:image/jpeg;base64,{base64}";
     }
 
     private bool IsImageFile(string? fileName)

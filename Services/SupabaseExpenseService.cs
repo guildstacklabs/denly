@@ -34,7 +34,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         _logger.LogDebug("Balances cache invalidated");
     }
 
-    public async Task<List<Expense>> GetAllExpensesAsync(CancellationToken cancellationToken = default)
+    public async Task<List<Expense>> GetExpensesAsync(CancellationToken cancellationToken = default)
     {
         await EnsureInitializedAsync();
 
