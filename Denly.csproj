@@ -39,6 +39,14 @@
         <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
     </PropertyGroup>
 
+    <!-- Exclude test project from compilation -->
+    <ItemGroup>
+        <Compile Remove="Denly.Tests\**" />
+        <Content Remove="Denly.Tests\**" />
+        <EmbeddedResource Remove="Denly.Tests\**" />
+        <None Remove="Denly.Tests\**" />
+    </ItemGroup>
+
     <ItemGroup>
         <!-- App Icon (Light Mode) -->
         <MauiIcon Include="Resources\AppIcon\appicon.svg" />

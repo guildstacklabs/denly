@@ -42,6 +42,7 @@
 }
 
 .nav-label {
+    font-family: var(--font-body);
     font-size: 0.75rem;
     font-weight: 500;
 }

@@ -4,8 +4,7 @@
 
 | ID | Feature | Delegate | Status |
 |----|---------|----------|--------|
-| P0-7 | App color scheme | Codex | Ready |
-| P0-8 | Unit test foundation | Claude | Ready |
+| P0-9 | Scheduler AM/PM bug fix | Codex | Ready |
 | P1-1 | Calendar reminders | Claude | Ready |
 | P1-2 | Exportable reports | Gemini | Ready |
 | P1-3 | Info Bank expansion | Gemini | Ready |
@@ -18,8 +17,20 @@
 | P2-4 | Full data export | Gemini | Ready |
 | P2-5 | Daily agenda email | Codex | Ready |
 | P2-6 | Per-person calendar colors | Codex | Ready |
+| P2-7 | Member removal X visibility | Codex | Ready |
+| P2-8 | Family Vault filter visibility | Codex | Ready |
 | P2-10 | Message drafts auto-save | TBD | Blocked (messaging) |
 | P2-11 | Calendar "viewed" tracking | Codex | Ready |
+
+### Recently Completed
+| ID | Feature | Completed |
+|----|---------|-----------|
+| P0-1 | App icon + splash screen | — |
+| P0-3 | Supabase auth setup | 2026-01-21 |
+| P0-4 | Cloud sync | 2026-01-21 |
+| P0-5 | Onboarding flow | 2026-01-21 |
+| P0-7 | App color scheme | 2026-01-21 |
+| P0-8 | Unit test foundation | 2026-01-21 |
 
 ---
 
@@ -27,224 +38,29 @@
 
 | ID | Feature | Description | Complexity | Status |
 |----|---------|-------------|------------|--------|
-| P0-1 | App icon + splash screen | Coral Reef palette, brand identity | Low | ✅ Done |
-| P0-2 | Android testing | Full testing pass, bug fixes | Medium | In Progress |
-| P0-3 | Supabase auth setup | Email/password + Google auth | Medium | In Progress |
-| P0-4 | Cloud sync | Sync calendar, expenses, vault between co-parents | High | In Progress |
-| P0-5 | Onboarding flow | First-run experience, invite co-parent flow | Medium | In Progress |
 | P0-6 | Push notifications | Reliable notification system (OFW's #1 failure) | Medium | Not Started |
-| P0-7 | App color scheme | Update app UI colors to match Coral Reef palette: primary coral (#E07A5F), teal (#3D8B8B), seafoam (#81B29A), gold (#F2CC8F), warm background (#FFF9F0) | Low | Not Started |
-| P0-8 | Unit test foundation | Create test project, Supabase abstraction, initial service tests | Medium | Not Started |
+| P0-9 | Scheduler AM/PM bug fix | Fix AM/PM persistence when saving and editing calendar events | Low | Not Started |
 
 ---
 
-### P0-7: App Color Scheme
-**Source:** Brand identity | **Effort:** Low | **Risk:** Low
+### P0-9: Scheduler AM/PM Bug Fix
+**Source:** Agent suggestion (Codex) | **Effort:** Low | **Risk:** Low
 
 > **Delegate:** Codex | **Status:** Ready
-> **Reason:** Straightforward CSS/styling task with clear specifications
 
-**Problem:** The app UI doesn't yet reflect the Coral Reef brand palette established in P0-1 (app icon + splash screen). Colors need to be consistent across all UI elements.
+**Problem:** AM/PM selection doesn't persist correctly when saving/editing calendar events.
 
-**Solution:**
-- Define CSS custom properties for the Coral Reef palette
-- Update all UI components to use the new color variables
-- Ensure accessibility (contrast ratios meet WCAG AA)
-- Apply consistently across light mode (dark mode can follow later)
+**Reproduction:** Create event at 3:00 PM → may save as 3:00 AM. Edit event → picker shows wrong AM/PM.
 
-**Color Palette:**
-| Name | Hex | Usage |
-|------|-----|-------|
-| Coral (Primary) | #E07A5F | Primary buttons, links, accents |
-| Teal | #3D8B8B | Secondary actions, icons |
-| Seafoam | #81B29A | Success states, positive indicators |
-| Gold | #F2CC8F | Warnings, highlights, badges |
-| Warm Background | #FFF9F0 | Page backgrounds |
-| Text Dark | #2D3748 | Primary text |
-| Text Light | #718096 | Secondary text |
+**Solution:** Fix 12-hour ↔ 24-hour conversion in Calendar.razor time picker.
 
-**Targets:**
-- `wwwroot/css/app.css` (add CSS custom properties)
-- `Components/Layout/MainLayout.razor` (apply background)
-- `Components/Layout/NavMenu.razor` (nav styling)
-- All page components (buttons, links, badges)
-
-#### Delegation Prompt (Codex)
-```
-Update the Denly app to use the Coral Reef color palette consistently.
-
-CONTEXT:
-- .NET MAUI Blazor Hybrid app
-- CSS is in wwwroot/css/app.css
-- Components use standard Blazor patterns
-
-COLOR PALETTE:
-- Coral (Primary): #E07A5F - primary buttons, links, active states
-- Teal: #3D8B8B - secondary buttons, icons, nav highlights
-- Seafoam: #81B29A - success states, confirmations
-- Gold: #F2CC8F - warnings, pending states, badges
-- Warm Background: #FFF9F0 - page backgrounds
-- Text Dark: #2D3748 - primary text
-- Text Light: #718096 - secondary/muted text
-
-REQUIREMENTS:
-1. Add CSS custom properties in app.css:
-   --color-primary: #E07A5F;
-   --color-secondary: #3D8B8B;
-   --color-success: #81B29A;
-   --color-warning: #F2CC8F;
-   --color-background: #FFF9F0;
-   --color-text: #2D3748;
-   --color-text-muted: #718096;
-
-2. Update component styles to use these variables:
-   - Buttons: primary uses --color-primary, secondary uses --color-secondary
-   - Links: use --color-primary with hover state
-   - Page backgrounds: use --color-background
-   - Navigation: use --color-secondary for active states
-   - Badges/status indicators: use appropriate semantic colors
-
-3. Ensure accessibility:
-   - Text on backgrounds must meet WCAG AA (4.5:1 for normal text)
-   - Interactive elements must have visible focus states
-   - Add slight darkening on hover states
-
-CONSTRAINTS:
-- Do NOT change component structure, only styling
-- Do NOT add new CSS frameworks or libraries
-- Maintain existing responsive behavior
-- Use CSS custom properties (not hardcoded hex values)
-
-DELIVERABLES:
-- Updated wwwroot/css/app.css
-- Updated component .razor.css files as needed
-- Build must pass
-- Visual verification: app looks cohesive with Coral Reef palette
-```
+**Targets:** `Components/Pages/Calendar.razor`, `Services/SupabaseScheduleService.cs`
 
 #### Review Checklist
-- [ ] All CSS custom properties defined in app.css
-- [ ] No hardcoded color values in component styles
-- [ ] Primary buttons use coral color
-- [ ] Background is warm off-white (#FFF9F0)
-- [ ] Text is readable (contrast check)
-- [ ] Hover/focus states work properly
-- [ ] App looks visually cohesive
-
-#### Completion Report
-<!-- Agent fills in when done -->
-
----
-
-### P0-8: Unit Test Foundation
-**Source:** Multi-agent quality assurance | **Effort:** Medium | **Risk:** Low
-
-> **Delegate:** Claude | **Status:** Ready
-> **Reason:** Complex architectural changes requiring careful refactoring of service dependencies while maintaining existing functionality
-
-**Problem:** Multiple LLM agents (Claude, Codex, Gemini) contribute code without automated verification. Bugs introduced by one agent may go undetected until manual testing, wasting significant debugging time. The codebase has zero automated tests.
-
-**Solution:**
-- Create `Denly.Tests` xUnit project
-- Add `ISupabaseClientWrapper` abstraction to enable mocking
-- Implement 3 initial high-value tests:
-  - Expense balance calculations
-  - Den guardrails (empty results when no den)
-  - Auth session restore (no-throw on missing storage)
-- Configure CI test step
-
-**Targets:**
-- `Denly.Tests/Denly.Tests.csproj` (new)
-- `Denly.Tests/Services/ExpenseServiceTests.cs` (new)
-- `Denly.Tests/Services/DenServiceTests.cs` (new)
-- `Denly.Tests/Services/AuthServiceTests.cs` (new)
-- `Denly.Tests/Mocks/MockSupabaseClient.cs` (new)
-- `Services/ISupabaseClientWrapper.cs` (new)
-- `Services/SupabaseClientWrapper.cs` (new)
-- `Services/SupabaseServiceBase.cs` (modify to use wrapper)
-- `MauiProgram.cs` (register wrapper)
-- `Denly.sln` (add test project)
-
-#### Delegation Prompt (Claude)
-```
-Create a unit test foundation for Denly, a .NET MAUI Blazor Hybrid co-parenting app.
-
-CONTEXT:
-- Currently zero automated tests
-- Multiple LLM agents (Codex, Gemini) contribute code that needs verification
-- Supabase client is accessed via IAuthService.GetSupabaseClient() - not mockable
-- Static dependencies (SecureStorage, WebAuthenticator) block testing
-- See docs/TESTING-strategy.md for full architecture analysis
-
-REQUIREMENTS:
-1. Create Denly.Tests project:
-   - xUnit test framework
-   - NSubstitute for mocking (preferred) or Moq
-   - Reference main Denly project
-   - Add to Denly.sln
-
-2. Create ISupabaseClientWrapper abstraction:
-   - Wrap the Supabase client operations used by services
-   - Methods: GetTable<T>(), From(tableName), Auth property
-   - Implement SupabaseClientWrapper that delegates to real client
-   - Register in MauiProgram.cs DI container
-
-3. Implement 3 initial test files:
-
-   ExpenseServiceTests.cs:
-   - Test balance calculation with various expense splits
-   - Test 50/50 split (default)
-   - Test custom splits (60/40, 70/30)
-   - Test empty expense list returns zero balance
-
-   DenServiceTests.cs:
-   - Test GetCurrentDen returns null when user has no den
-   - Test GetChildren returns empty list when no den
-   - Test den membership checks
-
-   AuthServiceTests.cs:
-   - Test session restore doesn't throw when SecureStorage is empty
-   - Test GetCurrentUser returns null when not authenticated
-   - Mock ISecureStorage for testability
-
-4. Update SupabaseServiceBase:
-   - Accept ISupabaseClientWrapper via constructor injection
-   - Maintain backward compatibility during transition
-
-CONSTRAINTS:
-- Do NOT break existing functionality
-- Do NOT modify Supabase table schemas
-- Tests must be deterministic (no flakiness)
-- Use structured logging in test helpers
-- Follow existing code style (file-scoped namespaces, nullable types)
-
-TEST PATTERNS:
-- Arrange-Act-Assert structure
-- Descriptive test names: MethodName_Scenario_ExpectedResult
-- One assertion per test (prefer)
-- Mock external dependencies, not internal logic
-
-DELIVERABLES:
-- Denly.Tests project with 3 test files
-- ISupabaseClientWrapper interface and implementation
-- Updated SupabaseServiceBase
-- Updated MauiProgram.cs registration
-- All tests pass: `dotnet test`
-- Build passes: `dotnet build`
-```
-
-#### Review Checklist
-- [ ] Test project builds successfully
-- [ ] All tests pass with `dotnet test`
-- [ ] ISupabaseClientWrapper properly abstracts Supabase operations
-- [ ] Existing app functionality unchanged
-- [ ] Tests are deterministic (no flakiness)
-- [ ] Test names clearly describe what's being tested
-- [ ] Mocks are properly configured
-- [ ] No hardcoded test data that could break
-
-#### Completion Report
-<!-- Agent fills in when done -->
+- [ ] 3:00 PM saves as 15:00 UTC
+- [ ] 3:00 AM saves as 03:00 UTC
+- [ ] 12:00 AM/PM edge cases work
+- [ ] Edit mode shows correct AM/PM
 
 ---
 
@@ -254,78 +70,17 @@ DELIVERABLES:
 **Source:** OFW competitive analysis | **Effort:** Medium | **Risk:** Medium
 
 > **Delegate:** Claude | **Status:** Ready
-> **Reason:** Platform-specific notification APIs require careful architecture decisions; iOS/Android have different permission models
 
-**Problem:** Users miss important handoffs and appointments because there's no reminder system. OurFamilyWizard has this and it's a table-stakes feature for co-parenting apps.
+**Problem:** No reminder system for handoffs and appointments.
 
-**Solution:**
-- Create `INotificationService` interface with platform-agnostic API
-- Implement platform-specific notification scheduling (iOS: `UNUserNotificationCenter`, Android: `AlarmManager` + `NotificationCompat`)
-- Add reminder settings per event type (handoffs, appointments, general)
-- Store reminder preferences in user settings
-- Default: 1 hour before events, 1 day before handoffs
+**Solution:** Create `INotificationService` with platform-specific implementations (iOS: UNUserNotificationCenter, Android: AlarmManager).
 
-**Targets:**
-- `Services/INotificationService.cs` (new)
-- `Services/NotificationService.cs` (new - shared logic)
-- `Platforms/iOS/NotificationService.cs` (new)
-- `Platforms/Android/NotificationService.cs` (new)
-- `Components/Pages/Calendar.razor` (add reminder toggle to event creation)
-- `Components/Pages/Settings.razor` (add reminder preferences section)
-- `MauiProgram.cs` (register notification service)
-
-#### Delegation Prompt (Claude)
-```
-Implement calendar reminders for Denly, a .NET MAUI Blazor Hybrid co-parenting app.
-
-CONTEXT:
-- Events are stored in Supabase `events` table (see Models/Event.cs)
-- App targets iOS and Android
-- Follow existing service pattern: interface + platform implementations
-
-REQUIREMENTS:
-1. Create INotificationService interface:
-   - ScheduleReminder(Event event, TimeSpan beforeEvent)
-   - CancelReminder(string eventId)
-   - RequestPermissionAsync() -> bool
-   - CheckPermissionAsync() -> bool
-
-2. Implement platform-specific services:
-   - iOS: Use UNUserNotificationCenter
-   - Android: Use AlarmManager with NotificationCompat
-   - Handle app restart (reminders must persist)
-
-3. Add UI in Calendar.razor:
-   - Toggle "Remind me" when creating/editing events
-   - Dropdown for reminder time: 15min, 1hr, 1day, custom
-
-4. Add Settings section:
-   - Default reminder times per event type
-   - Master enable/disable toggle
-   - Permission status indicator
-
-CONSTRAINTS:
-- Do NOT modify Models/Event.cs (reminders are local, not synced)
-- Do NOT touch auth or Supabase services
-- Use structured logging (ILogger), never Console.WriteLine
-- Request notification permission only when user enables reminders
-
-DELIVERABLES:
-- All new/modified files listed above
-- Build must pass
-- Test manually: create event with reminder, verify notification fires
-```
+**Targets:** `Services/INotificationService.cs`, `Platforms/iOS/`, `Platforms/Android/`, `Calendar.razor`, `Settings.razor`
 
 #### Review Checklist
 - [ ] Permission request only triggers on user action
 - [ ] Reminders survive app restart
-- [ ] No PII in notification content (no child names in notification body)
-- [ ] Android: Notification channel created properly
-- [ ] iOS: Permission prompt text is user-friendly
-- [ ] Settings UI matches existing app style
-
-#### Completion Report
-<!-- Agent fills in when done -->
+- [ ] No PII in notification content
 
 ---
 
@@ -1196,6 +951,161 @@ DELIVERABLES:
 
 ---
 
+### P2-7: Member Removal X Visibility
+**Source:** Agent suggestion (Codex) | **Effort:** Low | **Risk:** Low
+
+> **Delegate:** Codex | **Status:** Ready
+> **Reason:** Simple CSS/UI change to improve discoverability
+
+**Problem:** The "X" button to remove a den member from the Settings page is difficult to discover. Users may not realize they can remove members, or they struggle to find the control when needed.
+
+**Solution:**
+- Increase visibility of the remove member button
+- Ensure the button is clearly visible without being intrusive
+- Consider hover states and mobile touch targets
+- Maintain visual consistency with the app's design system
+
+**Targets:**
+- `Components/Pages/Settings.razor` (member list UI)
+- `Components/Pages/Settings.razor.css` (button styling)
+
+#### Delegation Prompt (Codex)
+```
+Improve the visibility of the member removal X button in Denly Settings.
+
+CONTEXT:
+- .NET MAUI Blazor Hybrid app
+- Settings page shows a list of den members
+- Each member has an X button to remove them
+- Current button is hard to discover
+
+REQUIREMENTS:
+1. Audit current member list UI in Settings.razor:
+   - Find where members are displayed
+   - Find the remove button/icon
+
+2. Improve button visibility:
+   - Ensure adequate size (minimum 44x44px touch target on mobile)
+   - Use appropriate color from design system (--color-coral for destructive actions)
+   - Add hover/focus states
+   - Consider adding text label "Remove" alongside icon
+
+3. Maintain visual balance:
+   - Button should be discoverable but not overly prominent
+   - Should not dominate the member list
+   - Align with "Modern Sanctuary" design aesthetic
+
+4. Accessibility:
+   - Ensure proper ARIA label: "Remove [member name] from den"
+   - Adequate color contrast
+   - Visible focus state
+
+CONSTRAINTS:
+- Do NOT change member removal functionality, only styling
+- Follow existing design system (see docs/VISUAL-DESIGN.md)
+- Use CSS custom properties
+- Maintain mobile responsiveness
+
+DELIVERABLES:
+- Updated Settings.razor (if markup changes needed)
+- Updated Settings.razor.css
+- Build must pass
+- Visual verification: X button is clearly visible and accessible
+```
+
+#### Review Checklist
+- [ ] X button is clearly visible on desktop
+- [ ] X button is easily tappable on mobile (44x44px minimum)
+- [ ] Hover state provides visual feedback
+- [ ] Uses coral color for destructive action indication
+- [ ] ARIA label is descriptive
+- [ ] Doesn't dominate the UI or look alarming
+- [ ] Consistent with app design system
+
+#### Completion Report
+<!-- Agent fills in when done -->
+
+---
+
+### P2-8: Family Vault Filter Visibility
+**Source:** Agent suggestion (Codex) | **Effort:** Low | **Risk:** Low
+
+> **Delegate:** Codex | **Status:** Ready
+> **Reason:** Simple CSS/layout change to improve filter discoverability
+
+**Problem:** The Family Vault document filters require horizontal scrolling, which hides some options (particularly "Other") from view. Users may not discover all available filter categories.
+
+**Solution:**
+- Redesign filter layout to show all options without scrolling
+- Consider wrapping filters to multiple rows if needed
+- Ensure "Other" and all categories are visible on initial load
+- Maintain touch-friendly filter chips
+
+**Targets:**
+- `Components/Pages/FamilyVault.razor` (filter UI)
+- `Components/Pages/FamilyVault.razor.css` (filter layout styling)
+
+#### Delegation Prompt (Codex)
+```
+Make Family Vault filters fully visible without horizontal scrolling in Denly.
+
+CONTEXT:
+- .NET MAUI Blazor Hybrid app
+- Family Vault page shows document filters as chips/buttons
+- Currently filters scroll horizontally, hiding some options
+- "Other" category is often hidden off-screen
+
+REQUIREMENTS:
+1. Audit current filter implementation in FamilyVault.razor:
+   - Find the filter container/chips
+   - Identify current layout approach (likely flexbox with overflow-x: scroll)
+
+2. Redesign filter layout:
+   - Option A: Wrap filters to multiple rows (flex-wrap: wrap)
+   - Option B: Reduce filter chip size to fit all on one row
+   - Option C: Use a dropdown/expandable menu for filters
+   - Recommend Option A for discoverability
+
+3. Styling requirements:
+   - All filter options visible on initial page load
+   - "Other" category always visible
+   - Maintain filter chip styling (Pebble-like if applicable)
+   - Responsive: work on both narrow and wide screens
+   - Touch targets remain adequate (44px minimum height)
+
+4. Visual hierarchy:
+   - Active filter clearly indicated
+   - Inactive filters still visible and tappable
+   - Consider "All" filter at the start
+
+CONSTRAINTS:
+- Do NOT change filter functionality, only layout
+- Do NOT remove any existing filter categories
+- Follow design system (see docs/VISUAL-DESIGN.md)
+- Use CSS custom properties where applicable
+- Maintain mobile responsiveness
+
+DELIVERABLES:
+- Updated FamilyVault.razor (if markup changes needed)
+- Updated FamilyVault.razor.css
+- Build must pass
+- Visual verification: all filters visible without scrolling
+```
+
+#### Review Checklist
+- [ ] All filter categories visible without scrolling
+- [ ] "Other" category is visible on initial load
+- [ ] Filters wrap nicely on narrow screens
+- [ ] Active filter state is clear
+- [ ] Touch targets are adequate
+- [ ] Layout doesn't break on different screen sizes
+- [ ] Consistent with app design system
+
+#### Completion Report
+<!-- Agent fills in when done -->
+
+---
+
 ### P2-11: Calendar "Viewed" Tracking
 **Source:** OFW gap identified in reviews | **Effort:** Low | **Risk:** Low
 
@@ -1342,7 +1252,6 @@ Low-priority code quality improvements. Not assigned to agents—do opportunisti
 | Services | Extract common Supabase patterns to base class |
 | Models | Add data annotations for validation |
 | UI | Create shared form components (date picker, dropdown) |
-| Testing | Add unit test project, start with service tests |
 | Logging | Migrate remaining Console.WriteLine to ILogger |
 
 ---
@@ -1360,24 +1269,3 @@ HUMANS/CLAUDE: Review periodically, promote good ideas to proper backlog items, 
 -->
 
 *No suggestions yet.*
-
-### Make member removal X more prominent
-- **Suggested by:** Codex
-- **Date:** 2026-01-21
-- **Context:** Reviewing Den member removal UI visibility
-- **Idea:** Increase the visibility of the remove member X button so it is easier to discover and use.
-- **Potential files:** Components/Pages/Settings.razor, Components/Pages/Settings.razor.css
-
-### Make Family Vault filters fully visible
-- **Suggested by:** Codex
-- **Date:** 2026-01-21
-- **Context:** Reviewing Family Vault filter discoverability
-- **Idea:** Show all filters without horizontal scrolling so the "Other" option is always visible.
-- **Potential files:** Components/Pages/FamilyVault.razor, Components/Pages/FamilyVault.razor.css
-
-### Fix scheduler AM/PM saving and edit regression
-- **Suggested by:** Codex
-- **Date:** 2026-01-21
-- **Context:** Reviewing schedule time picker behavior
-- **Idea:** Resolve scheduler time selection so AM/PM persists correctly when saving and when editing existing items.
-- **Potential files:** Components/Pages/Calendar.razor, Services/IScheduleService.cs, Services/SupabaseScheduleService.cs

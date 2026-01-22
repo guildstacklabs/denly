@@ -1,18 +1,59 @@
 /* Denly - Co-parenting coordination app */
-/* Warm, family-friendly color scheme */
+/* Animal Den Design System - "Modern Sanctuary" / "Organic Minimalism" */
+/* Design philosophy: A digital burrow - safe, warm, rounded, and tactile */
 
 :root {
-    --color-primary: #E07A5F;
-    --color-primary-hover: #CF6A52;
-    --color-primary-active: #B85C46;
-    --color-primary-soft: rgba(224, 122, 95, 0.12);
-    --color-primary-tint: rgba(224, 122, 95, 0.15);
-    --color-primary-tint-strong: rgba(224, 122, 95, 0.25);
-    --color-secondary: #3D8B8B;
-    --color-secondary-hover: #337676;
-    --color-secondary-active: #2B6464;
-    --color-secondary-soft: #E1F1F1;
-    --color-secondary-soft-strong: #CFE6E6;
+    /* ============================================
+       ANIMAL DEN DESIGN SYSTEM
+       See docs/VISUAL-DESIGN.md for full spec
+       ============================================ */
+
+    /* --- Core Palette --- */
+    --color-warm-bg: #FFF9F0;           /* Canvas - main app background */
+    --color-den-shadow: #3E424B;        /* Text - primary text, headers (no pure black) */
+    --color-teal: #3D8B8B;              /* Action - primary buttons, active states */
+    --color-seafoam: #81B29A;           /* Secondary - backgrounds, tracks */
+    --color-gold: #F2CC8F;              /* Highlight - progress indicators, glows */
+    --color-coral: #E07A5F;             /* Alert - notifications, urgent items */
+
+    /* --- Extended Earth Tones (Calendar User Colors) --- */
+    --color-user-sienna: #D4A373;       /* User 4 */
+    --color-user-lavender: #A9AABC;     /* User 5 */
+
+    /* --- Typography --- */
+    --font-heading: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+    /* --- Dimensions --- */
+    --radius-nook: 24px;                /* Nook container corners */
+    --radius-pebble: 999px;             /* Pill-shaped buttons */
+    --spacing-unit: 8px;
+
+    /* --- Nook Component --- */
+    --color-nook-bg: #FDFCF8;           /* Slightly lighter than canvas for contrast */
+    --shadow-nook: inset 0 2px 6px rgba(242, 204, 143, 0.15), 0 4px 10px rgba(62, 66, 75, 0.05);
+
+    /* ============================================
+       SEMANTIC MAPPING (Updated for Animal Den)
+       Primary action = Teal, Alert = Coral
+       ============================================ */
+
+    /* Primary (Action - Teal) */
+    --color-primary: #3D8B8B;
+    --color-primary-hover: #337676;
+    --color-primary-active: #2B6464;
+    --color-primary-soft: rgba(61, 139, 139, 0.12);
+    --color-primary-tint: rgba(61, 139, 139, 0.15);
+    --color-primary-tint-strong: rgba(61, 139, 139, 0.25);
+
+    /* Secondary (Seafoam) */
+    --color-secondary: #81B29A;
+    --color-secondary-hover: #6FA388;
+    --color-secondary-active: #5F9378;
+    --color-secondary-soft: #DFF1EA;
+    --color-secondary-soft-strong: #C7E7DB;
+
+    /* Success (Seafoam - same as secondary in this system) */
     --color-success: #81B29A;
     --color-success-dark: #5F9B7E;
     --color-success-strong: #4F8C70;
@@ -20,28 +61,42 @@
     --color-success-soft-strong: #C7E7DB;
     --color-success-soft-alpha: rgba(129, 178, 154, 0.12);
     --color-success-tint: rgba(129, 178, 154, 0.08);
+
+    /* Warning (Gold) */
     --color-warning: #F2CC8F;
     --color-warning-dark: #D9B06E;
     --color-warning-soft: #FDF1DA;
-    --color-danger: #E53E3E;
-    --color-danger-dark: #C53030;
-    --color-danger-soft: #FEE2E2;
-    --color-danger-border: #FECACA;
-    --color-danger-tint: rgba(229, 62, 62, 0.1);
-    --color-danger-tint-strong: rgba(229, 62, 62, 0.15);
+
+    /* Danger/Alert (Coral - used for alerts and urgent items) */
+    --color-danger: #E07A5F;
+    --color-danger-dark: #CF6A52;
+    --color-danger-soft: #FCE8E4;
+    --color-danger-border: #F5C4BA;
+    --color-danger-tint: rgba(224, 122, 95, 0.1);
+    --color-danger-tint-strong: rgba(224, 122, 95, 0.15);
+
+    /* Backgrounds & Surfaces */
     --color-background: #FFF9F0;
     --color-surface: #FFFFFF;
     --color-surface-alt: #F9F4EA;
     --color-surface-muted: #F3EBDD;
     --color-surface-muted-strong: #EDE2D1;
+
+    /* Borders */
     --color-border: #E7DAC8;
     --color-border-strong: #D8C7B5;
-    --color-text: #2D3748;
-    --color-text-muted: #718096;
-    --color-text-subtle: #A0AEC0;
+
+    /* Text (Den Shadow based) */
+    --color-text: #3E424B;
+    --color-text-muted: #6B7280;
+    --color-text-subtle: #9CA3AF;
     --color-text-inverse: #FFFFFF;
-    --color-overlay-40: rgba(45, 55, 72, 0.4);
-    --color-overlay-50: rgba(45, 55, 72, 0.5);
+
+    /* Overlays */
+    --color-overlay-40: rgba(62, 66, 75, 0.4);
+    --color-overlay-50: rgba(62, 66, 75, 0.5);
+
+    /* Glass effects */
     --color-surface-glass-10: rgba(255, 255, 255, 0.1);
     --color-surface-glass-15: rgba(255, 255, 255, 0.15);
     --color-surface-glass-20: rgba(255, 255, 255, 0.2);
@@ -53,23 +108,37 @@
     --color-surface-glass-80: rgba(255, 255, 255, 0.8);
     --color-surface-glass-85: rgba(255, 255, 255, 0.85);
     --color-surface-glass-90: rgba(255, 255, 255, 0.9);
-    --shadow-color-04: rgba(45, 55, 72, 0.04);
-    --shadow-color-05: rgba(45, 55, 72, 0.05);
-    --shadow-color-06: rgba(45, 55, 72, 0.06);
-    --shadow-color-08: rgba(45, 55, 72, 0.08);
-    --shadow-color-10: rgba(45, 55, 72, 0.1);
-    --shadow-color-12: rgba(45, 55, 72, 0.12);
-    --shadow-color-15: rgba(45, 55, 72, 0.15);
-    --shadow-color-20: rgba(45, 55, 72, 0.2);
+
+    /* Shadows (Den Shadow based) */
+    --shadow-color-04: rgba(62, 66, 75, 0.04);
+    --shadow-color-05: rgba(62, 66, 75, 0.05);
+    --shadow-color-06: rgba(62, 66, 75, 0.06);
+    --shadow-color-08: rgba(62, 66, 75, 0.08);
+    --shadow-color-10: rgba(62, 66, 75, 0.1);
+    --shadow-color-12: rgba(62, 66, 75, 0.12);
+    --shadow-color-15: rgba(62, 66, 75, 0.15);
+    --shadow-color-20: rgba(62, 66, 75, 0.2);
 }
 
 html, body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    background-color: var(--color-background);
-    color: var(--color-text);
+    font-family: var(--font-body);
+    background-color: var(--color-warm-bg);
+    color: var(--color-den-shadow);
     margin: 0;
     padding: 0;
 }
+
+/* Animal Den Typography */
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    color: var(--color-den-shadow);
+    font-weight: 700;
+}
+
+h1 { font-size: 1.875rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.25rem; font-weight: 600; }
+h4 { font-size: 1.125rem; font-weight: 600; }
 
 a, .btn-link {
     color: var(--color-primary);
@@ -120,22 +189,25 @@ a:hover, a:focus, .btn-link:hover, .btn-link:focus {
     text-align: left;
 }
 
+/* Snapshot cards use Nook styling from Animal Den Design System */
 .snapshot-card {
-    background: var(--color-surface);
-    border-radius: 12px;
-    padding: 1rem 1.25rem;
-    box-shadow: 0 1px 3px var(--shadow-color-08);
-    border: 1px solid var(--color-border);
+    background: var(--color-nook-bg);
+    border-radius: var(--radius-nook);
+    padding: 1.25rem 1.5rem;
+    box-shadow: var(--shadow-nook);
+    border: 1px solid rgba(255, 255, 255, 0.6);
 }
 
 .snapshot-card h2 {
+    font-family: var(--font-heading);
     font-size: 1rem;
     font-weight: 600;
-    color: var(--color-text);
+    color: var(--color-den-shadow);
     margin: 0 0 0.5rem 0;
 }
 
 .snapshot-card p {
+    font-family: var(--font-body);
     font-size: 0.875rem;
     color: var(--color-text-muted);
     margin: 0;
@@ -202,6 +274,90 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+/* ============================================
+   ANIMAL DEN COMPONENT LIBRARY
+   ============================================ */
+
+/* Nook Container - "Carved into" background effect */
+.nook {
+    background-color: var(--color-nook-bg);
+    border-radius: var(--radius-nook);
+    padding: 24px;
+    margin-bottom: 20px;
+    /* The "Indented" Effect */
+    box-shadow: var(--shadow-nook);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.nook-header {
+    margin-top: 0;
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    font-weight: 700;
+    opacity: 0.9;
+}
+
+/* Pebble Button - Pill-shaped with squish effect */
+.pebble-btn {
+    border: none;
+    border-radius: var(--radius-pebble);
+    padding: 16px 32px;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.1s ease-in-out, box-shadow 0.15s ease;
+    width: 100%;
+    display: block;
+}
+
+.pebble-btn.primary,
+.pebble-btn-primary {
+    background-color: var(--color-teal);
+    color: var(--color-text-inverse);
+    box-shadow: 0 4px 12px rgba(61, 139, 139, 0.3);
+}
+
+.pebble-btn.primary:hover,
+.pebble-btn-primary:hover {
+    background-color: var(--color-primary-hover);
+    box-shadow: 0 6px 16px rgba(61, 139, 139, 0.35);
+}
+
+.pebble-btn.secondary,
+.pebble-btn-secondary {
+    background-color: transparent;
+    color: var(--color-seafoam);
+    border: 2px solid var(--color-seafoam);
+}
+
+.pebble-btn.secondary:hover,
+.pebble-btn-secondary:hover {
+    background-color: rgba(129, 178, 154, 0.1);
+}
+
+.pebble-btn:active {
+    transform: scale(0.97); /* The "Squish" effect */
+}
+
+/* Alert/Urgent styles using Coral */
+.alert-badge,
+.notification-dot {
+    background-color: var(--color-coral);
+    color: var(--color-text-inverse);
+}
+
+.alert-text {
+    color: var(--color-coral);
+}
+
+/* Calendar User Color Classes */
+.user-color-1 { background-color: var(--color-teal); }
+.user-color-2 { background-color: var(--color-coral); }
+.user-color-3 { background-color: var(--color-seafoam); }
+.user-color-4 { background-color: var(--color-user-sienna); }
+.user-color-5 { background-color: var(--color-user-lavender); }
 
 /* Safe area support for notches and rounded corners */
 /* Android sets --safe-area-inset-* via JavaScript, iOS uses native env() */
