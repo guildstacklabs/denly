@@ -90,6 +90,13 @@ The backlog in `docs/BACKLOG.md` contains active tasks. Completed items are arch
    - **Continue to next task in same tier** (don't wait for review)
 5. **Stop at tier boundary** - wait for Claude to review the batch before starting next tier
 
+### Work-in-Progress Limits
+- **Only 1 P0 and 1 P1 item may be active at any time**
+- "Active" means status is `In Progress` OR `Awaiting Review`
+- No new P0/P1 work starts until Claude validates and archives current active items
+- This prevents large changes from compounding errors
+- P2/P3 items can proceed in batches as before
+
 ### Batch Rules
 - Complete all your tasks within a priority tier before stopping
 - If Task B modifies files already changed by Task A, do them sequentially (A fully complete before B)
@@ -127,7 +134,7 @@ When you finish a task, add a brief completion report in BACKLOG.md (Claude will
   - `Services/SupabaseStorageService.cs`
 - **Summary:** Added 10MB file size guard before upload
 - **Build:** ✅ Pass
-- **Tests:** ✅ Pass (or N/A if no tests exist for this area)
+- **Tests:** ✅ Pass | ⚠️ Needs coverage (flags gap for Claude to address)
 - **Testable Behaviors:**
   - Method returns empty list when no data exists
   - Method throws ArgumentException for invalid input
@@ -175,8 +182,9 @@ When new improvements, bugs, or features are identified, add them to `docs/BACKL
 
 ### For Claude (or Human)
 1. Determine priority tier (P0-P3)
-2. Assess if delegatable (Codex/Gemini) or Claude-only
-3. Add item in the appropriate section with this template:
+2. Assess urgency and complexity (see Sorting Criteria below)
+3. Assess if delegatable (Codex/Gemini) or Claude-only
+4. Add item in the appropriate section with this template:
 
 ```markdown
 ### [Number]. [Title]
@@ -205,8 +213,29 @@ When new improvements, bugs, or features are identified, add them to `docs/BACKL
 <!-- Agent fills this in when done -->
 ```
 
-4. Update the "Quick Reference: Delegation Summary" table
-5. Increment task numbers as needed
+5. Insert item in correct position (see Sorting Criteria)
+6. Update the Active Work table
+
+### Sorting Criteria
+
+The backlog is sorted by **urgency first**, then **complexity** (simpler items first within each urgency tier).
+
+**Urgency levels:**
+| Level | Criteria |
+|-------|----------|
+| Critical | Blocks other features, security issue, or app unusable without it |
+| High | Core MVP functionality users expect, or significant pain point |
+| Medium | Improves trust/compliance/UX but app functional without it |
+| Low | Polish, nice-to-have, or can wait until post-launch |
+
+**Complexity levels:**
+| Level | Indicators |
+|-------|------------|
+| Low | 1-2 files, single component, CSS-only, no new interfaces |
+| Medium | 3-4 files, model + UI changes, modifications to existing services |
+| High | New services/interfaces, platform-specific code, external integrations, Edge Functions |
+
+**Why this order:** Urgency ensures critical work isn't buried. Within each urgency tier, simpler items come first so agents can deliver quick wins while complex items are in progress.
 
 ### Item Numbering
 - New P0/P1 items: Insert at correct priority position, renumber subsequent items
