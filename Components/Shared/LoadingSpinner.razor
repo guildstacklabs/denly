@@ -1,7 +1,11 @@
 @* Shared loading spinner component for consistent loading states *@
 
 <div class="loading-container @SizeClass">
-    <div class="spinner"></div>
+    <div class="loading-pebbles" role="status" aria-live="polite">
+        <span class="pebble" aria-hidden="true"></span>
+        <span class="pebble" aria-hidden="true"></span>
+        <span class="pebble" aria-hidden="true"></span>
+    </div>
     @if (!string.IsNullOrEmpty(Message))
     {
         <p class="loading-message">@Message</p>

@@ -63,6 +63,9 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin: 0 0 0.75rem 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .section-header .section-title {
@@ -255,6 +258,35 @@
     border-radius: 12px;
     padding: 1rem;
     margin-bottom: 0.75rem;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 0.875rem 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.row-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.row-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.row-subtitle {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
 }
 
 .account-email {

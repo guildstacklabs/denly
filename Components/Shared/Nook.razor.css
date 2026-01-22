@@ -1,0 +1,16 @@
+.nook {
+    background-color: var(--color-nook-bg);
+    border-radius: var(--radius-nook);
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-nook);
+    border: 1px solid var(--color-border-soft);
+}
+
+.nook-header {
+    margin-top: 0;
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    font-weight: 700;
+    opacity: 0.9;
+}

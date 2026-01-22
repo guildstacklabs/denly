@@ -66,31 +66,12 @@
 
 .code-input {
     padding: 1rem;
-    border: 1px solid var(--color-border);
-    border-radius: 12px;
     font-size: 1.25rem;
     font-weight: 600;
     font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
     letter-spacing: 0.15em;
     text-align: center;
     text-transform: uppercase;
-    color: var(--color-text);
-    background-color: var(--color-text-inverse);
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.code-input:focus {
-    outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px var(--color-primary-tint);
-}
-
-.code-input.error {
-    border-color: var(--color-danger);
-}
-
-.code-input.error:focus {
-    box-shadow: 0 0 0 3px var(--color-danger-tint-strong);
 }
 
 .code-input::placeholder {

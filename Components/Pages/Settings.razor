@@ -43,7 +43,13 @@
         <!-- Members Section -->
         <div class="settings-section">
             <div class="section-header">
-                <h2 class="section-title">Members</h2>
+                <h2 class="section-title">
+                    Members
+                    @if (_members.Count == 1 && _isOwner)
+                    {
+                        <span class="notification-dot" aria-hidden="true"></span>
+                    }
+                </h2>
                 @if (_isOwner)
                 {
                     <button class="invite-btn" @onclick="OpenInviteModal">
@@ -102,6 +108,17 @@
                     <div class="account-email">@_currentUser.Email</div>
                 }
             </div>
+
+            <div class="settings-row">
+                <div class="row-text">
+                    <span class="row-title">Notifications</span>
+                    <span class="row-subtitle">Coming soon</span>
+                </div>
+                <label class="den-toggle" aria-label="Notifications (coming soon)">
+                    <input type="checkbox" disabled />
+                    <span class="den-toggle-track"></span>
+                </label>
+            </div>
             <button class="signout-btn" @onclick="SignOut">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -122,6 +139,16 @@
                 {
                     <div class="account-email">@_currentUser.Email</div>
                 }
+            </div>
+            <div class="settings-row">
+                <div class="row-text">
+                    <span class="row-title">Notifications</span>
+                    <span class="row-subtitle">Coming soon</span>
+                </div>
+                <label class="den-toggle" aria-label="Notifications (coming soon)">
+                    <input type="checkbox" disabled />
+                    <span class="den-toggle-track"></span>
+                </label>
             </div>
             <button class="signout-btn" @onclick="SignOut">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

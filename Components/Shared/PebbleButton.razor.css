@@ -1,0 +1,44 @@
+.pebble-btn {
+    border: none;
+    border-radius: var(--radius-pebble);
+    padding: 16px 32px;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform var(--motion-fast) var(--ease-out), box-shadow var(--motion-base) var(--ease-out), background-color var(--motion-base) var(--ease-out);
+    width: 100%;
+    display: block;
+    min-height: var(--tap-min);
+}
+
+.pebble-btn.primary {
+    background-color: var(--color-teal);
+    color: var(--color-text-inverse);
+    box-shadow: var(--shadow-pebble);
+}
+
+.pebble-btn.primary:hover:not(:disabled) {
+    background-color: var(--color-primary-hover);
+    box-shadow: var(--shadow-pebble);
+}
+
+.pebble-btn.secondary {
+    background-color: transparent;
+    color: var(--color-seafoam);
+    border: 2px solid var(--color-seafoam);
+}
+
+.pebble-btn.secondary:hover:not(:disabled) {
+    background-color: var(--color-success-soft-alpha);
+}
+
+.pebble-btn:active:not(:disabled) {
+    transform: scale(0.97);
+}
+
+.pebble-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
+}

@@ -242,6 +242,11 @@ public class SupabaseAuthService : IAuthService
             if (session?.User == null)
                 return new AuthResult(false, "Invalid email or password");
 
+            if (!string.IsNullOrEmpty(session.AccessToken))
+            {
+                await _supabase.Auth.SetSession(session.AccessToken, session.RefreshToken ?? string.Empty);
+            }
+
             await PersistSessionAsync();
             return new AuthResult(true);
         }
@@ -331,6 +336,12 @@ public class SupabaseAuthService : IAuthService
         var denService = _serviceProvider.GetRequiredService<IDenService>();
         await denService.InitializeAsync();
         var denId = denService.GetCurrentDenId();
+        if (string.IsNullOrEmpty(denId))
+        {
+            await denService.ResetAsync();
+            await denService.InitializeAsync();
+            denId = denService.GetCurrentDenId();
+        }
         var hasDen = !string.IsNullOrEmpty(denId);
         _logger.LogDebug("HasDenAsync result: {HasDen}", hasDen);
         return hasDen;

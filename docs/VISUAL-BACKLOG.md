@@ -17,7 +17,7 @@ General constraints:
 ### V1. Design Tokens + Theme Scaffold
 **Source:** Design feedback | **Effort:** Medium | **Risk:** Medium
 
-> **Delegate:** Codex | **Status:** Ready
+> **Delegate:** Codex | **Status:** Awaiting Review
 
 **Problem:** Visual tokens are partially defined and not consistently applied.
 
@@ -37,7 +37,7 @@ Implement token updates and base styles in `wwwroot/app.css`. Do not change comp
 ### V2. Typography Scale + Utility Classes
 **Source:** Design feedback | **Effort:** Low | **Risk:** Low
 
-> **Delegate:** Codex | **Status:** Ready
+> **Delegate:** Codex | **Status:** Awaiting Review
 
 **Problem:** Typography sizes/weights are inconsistent across pages.
 
@@ -58,7 +58,7 @@ Add a minimal set of text utility classes and update global heading styles. Do n
 ### V3. Nook Container Component
 **Source:** Visual design system | **Effort:** Medium | **Risk:** Low
 
-> **Delegate:** Codex | **Status:** Ready
+> **Delegate:** Codex | **Status:** Awaiting Review
 
 **Problem:** The core "Nook" container does not exist as a reusable component.
 
@@ -73,12 +73,19 @@ Add a minimal set of text utility classes and update global heading styles. Do n
 #### Delegation Prompt (Codex)
 Create the Nook component per `docs/VISUAL-DESIGN.md` with CSS isolation. No functional changes beyond layout and styling.
 
+#### Completion Report
+- **Status:** Awaiting Review
+- **Files Modified:**
+  - `Components/Shared/Nook.razor`
+  - `Components/Shared/Nook.razor.css`
+- **Summary:** Added reusable Nook container with title slot and token-based styling.
+
 ---
 
 ### V4. Pebble Button Component
 **Source:** Visual design system | **Effort:** Medium | **Risk:** Low
 
-> **Delegate:** Codex | **Status:** Ready
+> **Delegate:** Codex | **Status:** Awaiting Review
 
 **Problem:** Primary/secondary button styles are inconsistent.
 
@@ -93,12 +100,19 @@ Create the Nook component per `docs/VISUAL-DESIGN.md` with CSS isolation. No fun
 #### Delegation Prompt (Codex)
 Build a button component with variants and a pressed state using tokens. Do not change navigation or click handlers.
 
+#### Completion Report
+- **Status:** Awaiting Review
+- **Files Modified:**
+  - `Components/Shared/PebbleButton.razor`
+  - `Components/Shared/PebbleButton.razor.css`
+- **Summary:** Added a reusable Pebble button component with primary/secondary styles and squish interaction using design tokens.
+
 ---
 
 ### V5. Input Field + Validation States
 **Source:** Visual design system | **Effort:** Medium | **Risk:** Medium
 
-> **Delegate:** Codex | **Status:** Ready
+> **Delegate:** Codex | **Status:** Awaiting Review
 
 **Problem:** Inputs lack a consistent visual style and validation feedback.
 
@@ -116,12 +130,26 @@ Build a button component with variants and a pressed state using tokens. Do not 
 #### Delegation Prompt (Codex)
 Add shared input styles and update auth/den forms to use them. Keep markup changes minimal; no logic changes.
 
+#### Completion Report
+- **Status:** Awaiting Review
+- **Files Modified:**
+  - `wwwroot/app.css`
+  - `Components/Pages/Login.razor`
+  - `Components/Pages/Login.razor.css`
+  - `Components/Pages/Signup.razor`
+  - `Components/Pages/Signup.razor.css`
+  - `Components/Pages/JoinDen.razor`
+  - `Components/Pages/JoinDen.razor.css`
+  - `Components/Pages/CreateDen.razor`
+  - `Components/Pages/CreateDen.razor.css`
+- **Summary:** Added shared input styles in app.css and applied the `den-input` class across auth/den forms; simplified per-page input overrides.
+
 ---
 
 ### V6. Toggle Switch + Alert Dot
 **Source:** Visual design system | **Effort:** Low | **Risk:** Low
 
-> **Delegate:** Codex | **Status:** Ready
+> **Delegate:** Codex | **Status:** Awaiting Review
 
 **Problem:** Toggles and alert indicators vary across screens.
 
@@ -135,6 +163,14 @@ Add shared input styles and update auth/den forms to use them. Keep markup chang
 
 #### Delegation Prompt (Codex)
 Create shared CSS patterns for toggles and alert dots; apply them in Settings.
+
+#### Completion Report
+- **Status:** Awaiting Review
+- **Files Modified:**
+  - `wwwroot/app.css`
+  - `Components/Pages/Settings.razor`
+  - `Components/Pages/Settings.razor.css`
+- **Summary:** Added shared toggle + alert-dot styles and applied them to Settings (notifications row + members alert dot).
 
 ---
 
@@ -158,6 +194,12 @@ Create shared CSS patterns for toggles and alert dots; apply them in Settings.
 #### Delegation Prompt (Codex)
 Update nav styling only. Do not change routing or menu structure.
 
+#### Completion Report
+- **Status:** Awaiting Review
+- **Files Modified:**
+  - `Components/Layout/NavMenu.razor.css`
+- **Summary:** Restyled bottom nav with frosted glass surface, rounded container, active glow, and a fallback for non-supporting WebViews.
+
 ---
 
 ### V8. Organic "Vine" Progress Component
@@ -178,6 +220,13 @@ Update nav styling only. Do not change routing or menu structure.
 
 #### Delegation Prompt (Codex)
 Implement the component visually; keep the API simple (value + label). No data wiring needed.
+
+#### Completion Report
+- **Status:** Awaiting Review
+- **Files Modified:**
+  - `Components/Shared/VineProgress.razor`
+  - `Components/Shared/VineProgress.razor.css`
+- **Summary:** Added a flat, modern vine progress component with SVG arc, percent label, and gold leaf accent aligned to the HomePage1 reference.
 
 ---
 
