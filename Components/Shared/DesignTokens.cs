@@ -7,15 +7,16 @@ public static class DesignTokens
 {
     public static class Colors
     {
-        public static readonly Color WarmBackground = new(1f, 0.976f, 0.941f, 1f); // #FFF9F0
-        public static readonly Color DenShadow = new(0.243f, 0.259f, 0.294f, 1f);   // #3E424B
-        public static readonly Color Teal = new(0.239f, 0.545f, 0.545f, 1f);        // #3D8B8B
-        public static readonly Color Seafoam = new(0.506f, 0.698f, 0.604f, 1f);     // #81B29A
-        public static readonly Color Gold = new(0.949f, 0.800f, 0.561f, 1f);        // #F2CC8F
-        public static readonly Color Coral = new(0.878f, 0.478f, 0.373f, 1f);       // #E07A5F
-        public static readonly Color NookBackground = new(0.992f, 0.988f, 0.973f, 1f); // #FDFCF8
-        public static readonly Color BorderSoft = new(0.243f, 0.259f, 0.294f, 0.08f);   // DenShadow @ 8%
-        public static readonly Color SurfaceGlass = new(0.992f, 0.988f, 0.973f, 0.70f);
+        // Quiet Glass Palette
+        public static readonly Color WarmBackground = new(0.976f, 0.976f, 0.976f, 1f); // #F9F9F9
+        public static readonly Color DenShadow = new(0.102f, 0.102f, 0.102f, 1f);   // #1A1A1A
+        public static readonly Color Teal = new(0.290f, 0.290f, 0.290f, 1f);        // #4A4A4A (Dark Grey)
+        public static readonly Color Seafoam = new(0.878f, 0.878f, 0.878f, 1f);     // #E0E0E0 (Light Grey)
+        public static readonly Color Gold = new(0.831f, 0.831f, 0.831f, 1f);        // #D4D4D4 (Silver)
+        public static readonly Color Coral = new(0.878f, 0.478f, 0.373f, 1f);       // #E07A5F (Kept)
+        public static readonly Color NookBackground = new(1f, 1f, 1f, 1f);          // #FFFFFF
+        public static readonly Color BorderSoft = new(0f, 0f, 0f, 0.05f);           // Black @ 5%
+        public static readonly Color SurfaceGlass = new(1f, 1f, 1f, 0.85f);         // White @ 85%
         public static readonly Color UserSienna = new(0.831f, 0.639f, 0.451f, 1f);  // #D4A373
         public static readonly Color UserLavender = new(0.663f, 0.667f, 0.737f, 1f); // #A9AABC
     }
@@ -43,8 +44,8 @@ public static class DesignTokens
 
     public static class Typography
     {
-        public const string FontHeading = "Nunito";
-        public const string FontBody = "Inter";
+        public const string FontHeading = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+        public const string FontBody = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 
         public static double SizeXs => 12;
         public static double SizeSm => 14;
@@ -61,9 +62,9 @@ public static class DesignTokens
 
     public static class Shadows
     {
-        public const string Nook = "inset 0 2px 6px rgba(242, 204, 143, 0.15), 0 4px 10px rgba(62, 66, 75, 0.05)";
-        public const string Pebble = "0 4px 12px rgba(61, 139, 139, 0.3)";
-        public const string Glow = "0 0 16px rgba(242, 204, 143, 0.45)";
+        public const string Nook = "0 4px 20px rgba(0, 0, 0, 0.03)";
+        public const string Pebble = "0 4px 12px rgba(0, 0, 0, 0.08)";
+        public const string Glow = "0 0 16px rgba(0, 0, 0, 0.1)";
     }
 
     public static class Opacity

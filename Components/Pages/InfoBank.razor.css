@@ -1,0 +1,116 @@
+.info-page {
+    padding: 1rem 1.5rem;
+    background-color: var(--color-background);
+    min-height: 100vh;
+    padding-bottom: 100px;
+}
+
+.info-header h1 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: var(--color-text);
+}
+
+.child-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.child-tab {
+    padding: 0.5rem 1.25rem;
+    border-radius: 20px;
+    background: var(--color-primary-soft);
+    color: var(--color-text-muted);
+    font-weight: 500;
+    border: none;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+
+.child-tab.active {
+    background: var(--color-primary);
+    color: var(--color-text-inverse);
+}
+
+.info-card {
+    background: var(--color-surface);
+    border-radius: 24px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+    margin-bottom: 1.5rem;
+}
+
+.card-section h3 {
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-subtle);
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    font-size: 0.9375rem;
+}
+
+.info-row .label {
+    color: var(--color-text-muted);
+}
+
+.info-row .value {
+    color: var(--color-text);
+    font-weight: 500;
+    text-align: right;
+}
+
+.card-divider {
+    height: 1px;
+    background: var(--color-border-soft);
+    margin: 1.5rem 0;
+}
+
+.sizes-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.size-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.size-item .label {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.size-item .value {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+.edit-btn {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    padding: 1rem;
+    border-radius: 12px;
+    color: var(--color-text);
+    font-weight: 500;
+}
+
+.empty-state {
+    color: var(--color-text-subtle);
+    text-align: center;
+    margin-top: 2rem;
+}
