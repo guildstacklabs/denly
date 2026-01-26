@@ -1,309 +1,303 @@
-@page "/schedule"
+@page "/calendar"
 @using Denly.Models
 @using Denly.Services
-@using Microsoft.Extensions.Logging
+@using Denly.Components.Shared
 @inject IScheduleService ScheduleService
 @inject IConnectivity Connectivity
-@inject ILogger<Calendar> Logger
-@implements IDisposable
 
-<div class="schedule-page">
-    <!-- Month Navigation -->
-    <div class="month-nav">
-        <button class="nav-btn" @onclick="PreviousMonth" disabled="@_isLoadingMonth">
+<div class="calendar-page">
+    <div class="calendar-header-area">
+        <button class="nav-btn" @onclick="PreviousMonth">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="15 18 9 12 15 6"></polyline>
             </svg>
         </button>
-        <h2 class="month-title">@CurrentDate.ToString("MMMM yyyy")</h2>
-        <button class="nav-btn" @onclick="NextMonth" disabled="@_isLoadingMonth">
+        <h2 class="calendar-title">@CurrentDate.ToString("MMMM yyyy")</h2>
+        <button class="nav-btn" @onclick="NextMonth">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="9 18 15 12 9 6"></polyline>
             </svg>
         </button>
     </div>
 
-    @if (_isLoading)
-    {
-        <LoadingSpinner Message="Loading calendar..." Size="LoadingSize.Large" />
-    }
-    else
-    {
     <!-- Calendar Grid -->
-    <div class="calendar-container @(_isLoadingMonth ? "loading-overlay" : "")">
-        <div class="calendar-header">
+    <div class="calendar-grid-card">
+        <div class="week-days-header">
             @foreach (var day in DayNames)
             {
-                <div class="day-name">@day</div>
+                <span class="week-day">@day.Substring(0, 1)</span>
             }
         </div>
-        <div class="calendar-grid">
+        
+        <div class="days-grid">
             @foreach (var day in CalendarDays)
             {
-                <div class="calendar-day @(day.IsCurrentMonth ? "" : "other-month") @(day.IsToday ? "today" : "") @(day.Date == SelectedDate ? "selected" : "")"
+                <div class="grid-day @(day.IsCurrentMonth ? "" : "other-month") @(day.IsToday ? "today" : "") @(day.Date == SelectedDate ? "selected" : "")"
                      @onclick="() => SelectDay(day.Date)">
-                    <span class="day-number">@day.Date.Day</span>
+                    <span class="day-num">@day.Date.Day</span>
                     @if (day.Events.Any())
                     {
-                        <div class="event-dots">
-                            @foreach (var evt in day.Events.Take(3))
-                            {
-                                <span class="event-dot" style="background-color: @evt.Type.GetColor()"></span>
-                            }
-                        </div>
+                        <div class="dot-indicator"></div>
                     }
                 </div>
             }
         </div>
     </div>
 
-    <!-- Selected Day Events -->
-    @if (SelectedDate.HasValue)
-    {
-        <div class="day-events">
-            <div class="day-events-header">
-                <h3>@SelectedDate.Value.ToString("dddd, MMM d")</h3>
-                <button class="add-btn" @onclick="OpenAddEventModal" disabled="@(!_isOnline)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    Add
-                </button>
-            </div>
+    <!-- Agenda Below Cal -->
+    <div class="agenda-container">
+        <div class="agenda-header">
+            <span class="agenda-date">
+                @(SelectedDate.HasValue ? SelectedDate.Value.ToString("dddd, MMM d") : "Select a day")
+            </span>
+            <span class="agenda-date-secondary">
+                @(SelectedDate.HasValue ? SelectedDate.Value.ToString("MMM d") : "")
+            </span>
+        </div>
 
-            @if (_isLoadingDay && HasEventsForSelectedDay)
+        <div class="agenda-items">
+            @if (SelectedDayEvents.Any())
             {
-                <div class="events-skeleton">
-                    <div class="event-skeleton"></div>
-                    <div class="event-skeleton"></div>
-                    <div class="event-skeleton"></div>
-                </div>
-            }
-            else if (SelectedDayEvents.Any())
-            {
-                <div class="events-list">
-                    @foreach (var evt in SelectedDayEvents)
-                    {
-                        <div class="event-card" @onclick="() => OpenEditEventModal(evt)">
-                            <div class="event-color-bar" style="background-color: @evt.Type.GetColor()"></div>
-                            <div class="event-content">
-                                <div class="event-title">@evt.Title</div>
-                                <div class="event-meta">
-                                    <span class="event-type">@evt.Type.GetDisplayName()</span>
-                                    @if (evt.Time.HasValue)
-                                    {
-                                        <span class="event-time">@FormatTime(evt.Time.Value)</span>
-                                    }
-                                </div>
-                            </div>
-                            <svg class="event-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="9 18 15 12 9 6"></polyline>
-                            </svg>
+                @foreach (var evt in SelectedDayEvents)
+                {
+                    <div class="sanctuary-event-row">
+                        <div class="event-time">@FormatEventTime(evt)</div>
+                        <div class="event-details">
+                            <span class="event-title">@evt.Title</span>
+                            <span class="event-location">@evt.Location</span>
                         </div>
-                    }
-                </div>
+                    </div>
+                }
+                
+                @if (SelectedDayEvents.Count > 3)
+                {
+                    <div class="more-items-pill">+@(SelectedDayEvents.Count - 3) more items</div>
+                }
             }
             else
             {
-                <div class="no-events">
-                    <p>No events scheduled for this day</p>
-                    <span class="empty-hint">Tap + to add your first one</span>
-                </div>
+                <div class="empty-state">No events</div>
             }
         </div>
-    }
-    } @* end else !_isLoading *@
+    </div>
 </div>
 
-<!-- Event Modal -->
-@if (ShowEventModal)
-{
-    <div class="modal-overlay" @onclick="CloseModal">
-        <div class="modal-content" @onclick:stopPropagation="true">
-            <div class="modal-header">
-                <h3>@(IsEditing ? "Edit Event" : "New Event")</h3>
-                <button class="close-btn" @onclick="CloseModal">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
-            </div>
+<style>
+    .calendar-page {
+        padding: 1rem 1.5rem;
+        background-color: #f9f9f9;
+        min-height: 100vh;
+        padding-bottom: 100px;
+    }
 
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>Title</label>
-                    <input type="text" @bind="EditingEvent.Title" placeholder="Event title" />
-                </div>
+    .calendar-header-area {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
 
-                <div class="form-group">
-                    <label>Date</label>
-                    <div class="date-input-wrapper">
-                        <input type="text" class="date-display" value="@EditingEventDate.ToString("MMM d, yyyy")" readonly />
-                        <input type="date" class="date-input-native" @bind="EditingEventDate" />
-                    </div>
-                </div>
+    .calendar-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin: 0;
+    }
 
-                <div class="form-group">
-                    <label>Time (optional)</label>
-                    <div class="time-picker-native @(ShowTimeError ? "time-picker-error" : "") @(ShowTimeSuccess ? "time-picker-success" : "")">
-                        <div class="time-picker-wheel">
-                            <select @bind="EditingHour" @bind:after="OnTimeFieldChanged" class="wheel-select @(ShowTimeError && !EditingHour.HasValue ? "wheel-select-error" : "") @(ShowTimeSuccess ? "wheel-select-success" : "")">
-                                <option value="">--</option>
-                                <option value="12">12</option>
-                                @for (int h = 1; h <= 11; h++)
-                                {
-                                    <option value="@h">@h</option>
-                                }
-                            </select>
-                        </div>
-                        <div class="time-picker-wheel">
-                            <select @bind="EditingMinute" @bind:after="OnTimeFieldChanged" class="wheel-select @(ShowTimeError && !EditingMinute.HasValue ? "wheel-select-error" : "") @(ShowTimeSuccess ? "wheel-select-success" : "")">
-                                <option value="">--</option>
-                                <option value="0">00</option>
-                                <option value="15">15</option>
-                                <option value="30">30</option>
-                                <option value="45">45</option>
-                            </select>
-                        </div>
-                        <div class="time-picker-wheel">
-                            <select @bind="EditingAmPm" @bind:after="OnTimeFieldChanged" class="wheel-select @(ShowTimeError && string.IsNullOrEmpty(EditingAmPm) ? "wheel-select-error" : "") @(ShowTimeSuccess ? "wheel-select-success" : "")">
-                                <option value="">--</option>
-                                <option value="AM">AM</option>
-                                <option value="PM">PM</option>
-                            </select>
-                        </div>
-                    </div>
-                    @if (ShowTimeError && !HasValidTime)
-                    {
-                        <span class="time-error-message">Please select hour, minute, and AM/PM</span>
-                    }
-                    else if (ShowTimeSuccess)
-                    {
-                        <span class="time-success-message">Time set</span>
-                    }
-                </div>
+    .nav-btn {
+        background: none;
+        border: none;
+        padding: 8px;
+        color: #666;
+    }
+    
+    .nav-btn svg {
+        width: 20px;
+        height: 20px;
+    }
 
-                <div class="form-group">
-                    <label>Type</label>
-                    <div class="type-selector">
-                        @foreach (EventType type in Enum.GetValues<EventType>())
-                        {
-                            <button class="type-btn @(EditingEvent.Type == type ? "selected" : "")"
-                                    style="--type-color: @type.GetColor()"
-                                    @onclick="() => EditingEvent.Type = type">
-                                @type.GetDisplayName()
-                            </button>
-                        }
-                    </div>
-                </div>
-            </div>
+    .calendar-grid-card {
+        background: #fff; /* Plain white, clean */
+        border-radius: 0; /* Or minimal radius if desired, guide says "Month view" */
+        /* Let's make it look like the image: clean grid, no borders */
+        margin-bottom: 2rem;
+    }
 
-            <div class="modal-footer">
-                @if (IsEditing)
-                {
-                    <button class="delete-btn" @onclick="ShowDeleteConfirmation" disabled="@(!_isOnline)">Delete</button>
-                }
-                <button class="cancel-btn" @onclick="CloseModal">Cancel</button>
-                <button class="save-btn" @onclick="SaveEvent" disabled="@(string.IsNullOrWhiteSpace(EditingEvent.Title) || !_isOnline)">
-                    @(IsEditing ? "Save" : "Add Event")
-                </button>
-            </div>
-        </div>
-    </div>
-}
+    .week-days-header {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        text-align: center;
+        margin-bottom: 0.5rem;
+    }
 
-<!-- Delete Confirmation Modal -->
-@if (ShowDeleteModal)
-{
-    <div class="modal-overlay" @onclick="CancelDelete">
-        <div class="modal-content confirm-modal" @onclick:stopPropagation="true">
-            <div class="confirm-icon delete-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-            </div>
-            <h3 class="confirm-title">Delete this event?</h3>
-            <p class="confirm-text">This can't be undone.</p>
-            <div class="confirm-actions">
-                <button class="cancel-btn" @onclick="CancelDelete">Cancel</button>
-                <button class="delete-confirm-btn" @onclick="ConfirmDelete" disabled="@(!_isOnline)">Delete</button>
-            </div>
-        </div>
-    </div>
-}
+    .week-day {
+        font-size: 0.75rem;
+        color: #999;
+        font-weight: 500;
+        padding: 0.5rem 0;
+    }
+
+    .days-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        row-gap: 0.5rem;
+    }
+
+    .grid-day {
+        aspect-ratio: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-size: 0.9375rem;
+        color: #1a1a1a;
+        cursor: pointer;
+        position: relative;
+    }
+
+    .grid-day.other-month {
+        color: #ccc;
+    }
+    
+    .grid-day.today {
+        /* Not selected, just today */
+        font-weight: 600;
+    }
+
+    .grid-day.selected {
+        background-color: #333; /* Dark/Black selected state per image? Or soft grey? Image shows dark selection */
+        color: #fff;
+    }
+    
+    .dot-indicator {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background-color: #999; /* Neutral dot */
+        position: absolute;
+        bottom: 6px;
+    }
+    
+    .grid-day.selected .dot-indicator {
+        background-color: rgba(255,255,255,0.5);
+    }
+    
+    /* Agenda Styles (Reused from Home roughly) */
+    .agenda-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 1rem;
+        padding: 0 0.5rem;
+    }
+    
+    .agenda-date {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1a1a1a;
+    }
+    
+    .agenda-date-secondary {
+        font-size: 0.875rem;
+        color: #888;
+    }
+    
+    .agenda-items {
+        background: rgba(255,255,255,0.6);
+        border-radius: 20px;
+        padding: 1rem;
+        backdrop-filter: blur(8px);
+    }
+    
+    .sanctuary-event-row {
+        display: flex;
+        gap: 1rem;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(0,0,0,0.03);
+    }
+    
+    .event-time {
+        font-size: 0.875rem;
+        color: #666;
+        width: 4.5rem;
+        flex-shrink: 0;
+        text-align: right;
+    }
+
+    .event-details {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .event-title {
+        font-size: 0.9375rem;
+        color: #1a1a1a;
+        font-weight: 500;
+    }
+    
+    .event-location {
+        font-size: 0.75rem;
+        color: #888;
+    }
+    
+    .more-items-pill {
+        background: #f0f0f0;
+        border-radius: 12px;
+        padding: 0.5rem;
+        text-align: center;
+        font-size: 0.8125rem;
+        color: #666;
+        margin-top: 0.5rem;
+    }
+    
+    .empty-state {
+        text-align: center;
+        color: #999;
+        padding: 1rem;
+        font-style: italic;
+    }
+</style>
 
 @code {
     private DateTime CurrentDate = DateTime.Today;
-    private DateTime? SelectedDate;
+    private DateTime? SelectedDate = DateTime.Today;
     private List<CalendarDay> CalendarDays = new();
     private List<Event> MonthEvents = new();
     private List<Event> SelectedDayEvents = new();
-
-    private bool _isLoading = true;
-    private bool _isLoadingMonth;
-    private bool _isLoadingDay;
-    private bool _isOnline = true;
-
-    private bool ShowEventModal;
-    private bool ShowDeleteModal;
-    private bool ShowTimeError;
-    private bool _timeErrorTriggered;
-    private bool IsEditing;
-    private Event EditingEvent = new();
-    private DateTime EditingEventDate;
-    private int? EditingHour;
-    private int? EditingMinute;
-    private string? EditingAmPm;
-
     private static readonly string[] DayNames = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 
     protected override async Task OnInitializedAsync()
     {
-        SelectedDate = DateTime.Today;
-        try
-        {
-            Connectivity.ConnectivityChanged += OnConnectivityChanged;
-            _isOnline = Connectivity.NetworkAccess == NetworkAccess.Internet;
-            await LoadMonthData();
-        }
-        finally
-        {
-            _isLoading = false;
-        }
-    }
-
-    private void OnConnectivityChanged(object? sender, ConnectivityChangedEventArgs e)
-    {
-        _isOnline = e.NetworkAccess == NetworkAccess.Internet;
-        InvokeAsync(StateHasChanged);
+        await LoadMonthData();
     }
 
     private async Task LoadMonthData()
     {
-        MonthEvents = await ScheduleService.GetEventsByMonthAsync(CurrentDate.Year, CurrentDate.Month);
+        // Simple mock or load logic
+        var startDate = new DateTime(CurrentDate.Year, CurrentDate.Month, 1);
+        var endDate = startDate.AddMonths(1).AddDays(-1);
+        
+        // Assuming ScheduleService exists and works
+        MonthEvents = await ScheduleService.GetEventsByRangeAsync(startDate, endDate);
         BuildCalendarDays();
-
+        
         if (SelectedDate.HasValue)
         {
-            await LoadSelectedDayEvents();
+            SelectedDayEvents = MonthEvents.Where(e => e.Date.Date == SelectedDate.Value.Date).ToList();
         }
     }
 
     private void BuildCalendarDays()
     {
         CalendarDays.Clear();
-
         var firstOfMonth = new DateTime(CurrentDate.Year, CurrentDate.Month, 1);
         var startDate = firstOfMonth.AddDays(-(int)firstOfMonth.DayOfWeek);
 
-        for (int i = 0; i < 42; i++)
+        for (int i = 0; i < 42; i++) // 6 weeks
         {
             var date = startDate.AddDays(i);
             var dayEvents = MonthEvents.Where(e => e.Date.Date == date.Date).ToList();
-
             CalendarDays.Add(new CalendarDay
             {
                 Date = date,
@@ -314,246 +308,40 @@
         }
     }
 
-    private async Task LoadSelectedDayEvents()
-    {
-        if (SelectedDate.HasValue)
-        {
-            _isLoadingDay = true;
-            SelectedDayEvents = new List<Event>();
-            StateHasChanged();
-            try
-            {
-                SelectedDayEvents = await ScheduleService.GetEventsByDateAsync(SelectedDate.Value);
-            }
-            finally
-            {
-                _isLoadingDay = false;
-            }
-        }
-    }
-
-    private async Task SelectDay(DateTime date)
+    private void SelectDay(DateTime date)
     {
         SelectedDate = date;
-
+        SelectedDayEvents = MonthEvents.Where(e => e.Date.Date == date.Date).ToList();
+        
         if (date.Month != CurrentDate.Month)
         {
             CurrentDate = new DateTime(date.Year, date.Month, 1);
-            await LoadMonthData();
-        }
-        else
-        {
-            await LoadSelectedDayEvents();
+            // Ideally reload month data here too
+            _ = LoadMonthData();
         }
     }
 
     private async Task PreviousMonth()
     {
-        _isLoadingMonth = true;
-        try
-        {
-            CurrentDate = CurrentDate.AddMonths(-1);
-            await LoadMonthData();
-        }
-        finally
-        {
-            _isLoadingMonth = false;
-        }
+        CurrentDate = CurrentDate.AddMonths(-1);
+        await LoadMonthData();
     }
 
     private async Task NextMonth()
     {
-        _isLoadingMonth = true;
-        try
-        {
-            CurrentDate = CurrentDate.AddMonths(1);
-            await LoadMonthData();
-        }
-        finally
-        {
-            _isLoadingMonth = false;
-        }
+        CurrentDate = CurrentDate.AddMonths(1);
+        await LoadMonthData();
     }
 
-    private void OpenAddEventModal()
+    private string FormatEventTime(Event evt)
     {
-        IsEditing = false;
-        EditingEvent = new Event
-        {
-            Type = EventType.Other,
-            AllDay = true
-        };
-        // Use the selected date directly (it's already local time)
-        EditingEventDate = SelectedDate ?? DateTime.Today;
-        EditingHour = null;
-        EditingMinute = null;
-        EditingAmPm = null;
-        ShowTimeError = false;
-        _timeErrorTriggered = false;
-        ShowEventModal = true;
-    }
-
-    private void OpenEditEventModal(Event evt)
-    {
-        IsEditing = true;
-        var localStart = GetLocalStartTime(evt);
-        EditingEvent = new Event
-        {
-            Id = evt.Id,
-            Title = evt.Title,
-            StartsAt = localStart,
-            EndsAt = evt.EndsAt,
-            AllDay = evt.AllDay,
-            Type = evt.Type,
-            Location = evt.Location,
-            Notes = evt.Notes,
-            CreatedAt = evt.CreatedAt
-        };
-        EditingEventDate = localStart.Date;
-
-        // Convert local time to hour/minute/AM-PM for picker
+        if (evt.AllDay) return "All day";
         if (evt.Time.HasValue)
         {
-            var (hour12, amPm) = ConvertTo12Hour(localStart.Hour);
-            EditingHour = hour12;
-            EditingMinute = localStart.Minute;
-            EditingAmPm = amPm;
+            return DateTime.Today.Add(evt.Time.Value).ToString("h:mm tt");
         }
-        else
-        {
-            EditingHour = null;
-            EditingMinute = null;
-            EditingAmPm = null;
-        }
-        ShowTimeError = false;
-        _timeErrorTriggered = false;
-        ShowEventModal = true;
+        return "";
     }
-
-    private void CloseModal()
-    {
-        ShowEventModal = false;
-        ShowTimeError = false;
-        _timeErrorTriggered = false;
-        EditingEvent = new Event();
-    }
-
-    private bool HasValidTime => EditingHour.HasValue && EditingMinute.HasValue && !string.IsNullOrEmpty(EditingAmPm);
-    private bool ShowTimeSuccess => HasValidTime && _timeErrorTriggered;
-    private bool HasEventsForSelectedDay => SelectedDate.HasValue && MonthEvents.Any(e => e.Date.Date == SelectedDate.Value.Date);
-
-    private bool HasPartialTime
-    {
-        get
-        {
-            var hasHour = EditingHour.HasValue;
-            var hasMinute = EditingMinute.HasValue;
-            var hasAmPm = !string.IsNullOrEmpty(EditingAmPm);
-            var selectedCount = (hasHour ? 1 : 0) + (hasMinute ? 1 : 0) + (hasAmPm ? 1 : 0);
-            // Partial if 1 or 2 values selected (not 0 and not all 3)
-            return selectedCount > 0 && selectedCount < 3;
-        }
-    }
-
-    private async Task SaveEvent()
-    {
-        if (string.IsNullOrWhiteSpace(EditingEvent.Title))
-            return;
-
-        Logger.LogDebug("SaveEvent starting");
-
-        if (HasPartialTime)
-        {
-            ShowTimeError = true;
-            _timeErrorTriggered = true;
-            return;
-        }
-
-        ShowTimeError = false;
-
-        // Set StartsAt based on date and optional time
-        // Convert local time to UTC for storage
-        // Must explicitly specify Kind=Local since input bindings return Unspecified
-        if (HasValidTime)
-        {
-            var hour24 = ConvertTo24Hour(EditingHour!.Value, EditingAmPm);
-            var localDateTime = new DateTime(
-                EditingEventDate.Year,
-                EditingEventDate.Month,
-                EditingEventDate.Day,
-                hour24,
-                EditingMinute!.Value,
-                0,
-                DateTimeKind.Local);
-
-            EditingEvent.StartsAt = localDateTime;
-            EditingEvent.AllDay = false;
-
-            Logger.LogDebug("Event time set (local)");
-        }
-        else
-        {
-            // For all-day events, store local date (service will convert to UTC)
-            EditingEvent.StartsAt = DateTime.SpecifyKind(EditingEventDate.Date, DateTimeKind.Local);
-            EditingEvent.AllDay = true;
-            Logger.LogDebug("All-day event time set (local)");
-        }
-
-        await ScheduleService.SaveEventAsync(EditingEvent);
-        CloseModal();
-
-        if (EditingEventDate.Month != CurrentDate.Month || EditingEventDate.Year != CurrentDate.Year)
-        {
-            CurrentDate = new DateTime(EditingEventDate.Year, EditingEventDate.Month, 1);
-            SelectedDate = EditingEventDate;
-        }
-
-        await LoadMonthData();
-    }
-
-    private void ShowDeleteConfirmation()
-    {
-        ShowEventModal = false;
-        ShowDeleteModal = true;
-    }
-
-    private void CancelDelete()
-    {
-        ShowDeleteModal = false;
-        ShowEventModal = true;
-    }
-
-    private async Task ConfirmDelete()
-    {
-        await ScheduleService.DeleteEventAsync(EditingEvent.Id);
-        ShowDeleteModal = false;
-        CloseModal();
-        await LoadMonthData();
-    }
-
-    private string FormatTime(TimeSpan time)
-    {
-        var dt = DateTime.Today.Add(time);
-        return dt.ToString("h:mm tt");
-    }
-
-    public void Dispose()
-    {
-        Connectivity.ConnectivityChanged -= OnConnectivityChanged;
-    }
-
-    private void OnTimeFieldChanged()
-    {
-        if (HasValidTime)
-        {
-            ShowTimeError = false;
-        }
-    }
-
-    // Time conversion methods delegated to TimeConversionHelper for testability
-    private static DateTime GetLocalStartTime(Event evt) => TimeConversionHelper.GetLocalStartTime(evt.StartsAt);
-    private static (int hour12, string amPm) ConvertTo12Hour(int hour24) => TimeConversionHelper.ConvertTo12Hour(hour24);
-    private static int ConvertTo24Hour(int hour12, string? amPm) => TimeConversionHelper.ConvertTo24Hour(hour12, amPm);
 
     private class CalendarDay
     {

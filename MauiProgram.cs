@@ -42,15 +42,22 @@ public static class MauiProgram
 		builder.Services.AddSingleton<IDenService, SupabaseDenService>();
 		builder.Services.AddSingleton<IToastService, ToastService>();
 		builder.Services.AddSingleton<IStorageService, SupabaseStorageService>();
+		builder.Services.AddSingleton<IDenTimeService, DenTimeService>();
+		builder.Services.AddSingleton<ISeenStateService, SeenStateService>();
 
 		// Data services (Supabase)
 		builder.Services.AddSingleton<IScheduleService, SupabaseScheduleService>();
 		builder.Services.AddSingleton<IExpenseService, SupabaseExpenseService>();
 		builder.Services.AddSingleton<IDocumentService, SupabaseDocumentService>();
+		builder.Services.AddSingleton<IChildService, ChildService>();
 
 		// Platform services
 #if ANDROID
 		builder.Services.AddSingleton<ISafeAreaService, AndroidSafeAreaService>();
+		builder.Services.AddSingleton<IPushNotificationService, Denly.Platforms.Android.AndroidPushNotificationService>();
+#elif IOS
+		builder.Services.AddSingleton<ISafeAreaService, DefaultSafeAreaService>();
+		builder.Services.AddSingleton<IPushNotificationService, Denly.Platforms.iOS.iOSPushNotificationService>();
 #else
 		builder.Services.AddSingleton<ISafeAreaService, DefaultSafeAreaService>();
 #endif

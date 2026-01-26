@@ -168,7 +168,7 @@ public class SupabaseDenService : IDenService
         {
             var response = await SupabaseClient!
                 .From<Den>()
-                .Select("id, name, created_by, created_at")
+                .Select("id, name, created_by, created_at, time_zone")
                 .Where(d => d.Id == _currentDenId)
                 .Single();
 
@@ -206,7 +206,7 @@ public class SupabaseDenService : IDenService
 
             var dens = await SupabaseClient!
                 .From<Den>()
-                .Select("id, name, created_by, created_at")
+                .Select("id, name, created_by, created_at, time_zone")
                 .Filter("id", Supabase.Postgrest.Constants.Operator.In, denIds)
                 .Get();
 
@@ -604,7 +604,7 @@ public class SupabaseDenService : IDenService
             // Get den name for display
             var den = await SupabaseClient!
                 .From<Den>()
-                .Select("id, name, created_by, created_at")
+                .Select("id, name, created_by, created_at, time_zone")
                 .Where(d => d.Id == response.DenId)
                 .Single();
 
@@ -776,7 +776,7 @@ public class SupabaseDenService : IDenService
         {
             var response = await SupabaseClient!
                 .From<Child>()
-                .Select("id, den_id, name, birth_date, color, doctor_name, doctor_contact, allergies, school_name, clothing_size, shoe_size, created_at")
+                .Select("id, den_id, first_name, middle_name, last_name, birth_date, color, doctor_name, doctor_contact, allergies, school_name, clothing_size, shoe_size, created_at, deactivated_at")
                 .Where(c => c.DenId == denId)
                 .Get();
 

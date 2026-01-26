@@ -1,268 +1,251 @@
 @page "/"
 @using Denly.Models
 @using Denly.Services
+@using Denly.Components.Shared
 @using Microsoft.Extensions.Logging
 @inject IScheduleService ScheduleService
 @inject IExpenseService ExpenseService
 @inject IDocumentService DocumentService
+@inject IDenTimeService DenTimeService
 @inject NavigationManager Navigation
 @inject ILogger<Home> Logger
 
-<div class="home-page">
-    <div class="page-header">
-        <h1>Denly</h1>
-        <span class="header-subtitle">Co-parenting made simple</span>
-    </div>
+<div class="home-sanctuary">
+    <SanctuaryHeader Title="Today" 
+                    Subtitle="@_lastUpdatedText" 
+                    IsCollapsed="@_isHeaderCollapsed" />
 
-    @if (_isLoading)
-    {
-        <LoadingSpinner Message="Loading your den..." Size="LoadingSize.Large" />
-    }
-    else if (_isNewUser)
-    {
-        <!-- Welcome Screen for New Users -->
-        <div class="welcome-section">
-            <div class="welcome-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                </svg>
-            </div>
-            <h2 class="welcome-title">Welcome to Denly</h2>
-            <p class="welcome-subtitle">Your shared family den</p>
-            <p class="welcome-text">A calm space to coordinate schedules, share costs, and keep important documents together.</p>
-
-            <div class="quick-actions">
-                <button class="quick-action-btn" @onclick='() => Navigation.NavigateTo("/schedule")'>
-                    <div class="quick-action-icon schedule-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                        </svg>
-                    </div>
-                    <span>Add Event</span>
-                </button>
-                <button class="quick-action-btn" @onclick='() => Navigation.NavigateTo("/costs")'>
-                    <div class="quick-action-icon balance-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="1" x2="12" y2="23"></line>
-                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                        </svg>
-                    </div>
-                    <span>Add Expense</span>
-                </button>
-                <button class="quick-action-btn" @onclick='() => Navigation.NavigateTo("/vault")'>
-                    <div class="quick-action-icon vault-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                        </svg>
-                    </div>
-                    <span>Add Document</span>
-                </button>
-            </div>
-        </div>
-    }
-    else
-    {
-        <!-- Coming Up Section -->
-        <div class="section-card">
-            <div class="section-header" @onclick='() => Navigation.NavigateTo("/schedule")'>
-                <div class="section-icon schedule-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                </div>
-                <h2>Coming Up</h2>
-                <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
-            </div>
-
-            <div class="section-content">
-                @if (_upcomingEvents.Any())
+    <div class="sanctuary-content">
+        <!-- 4-Day Schedule Spine -->
+        <div class="schedule-spine">
+            @if (_isLoading)
+            {
+                <LoadingSpinner Message="Opening your den..." Size="LoadingSize.Large" />
+            }
+            else
+            {
+                @foreach (var day in _scheduleDays)
                 {
-                    @foreach (var evt in _upcomingEvents)
-                    {
-                        <div class="event-item">
-                            <div class="event-dot" style="background-color: @evt.Type.GetColor()"></div>
-                            <div class="event-info">
-                                <span class="event-title">@evt.Title</span>
-                                <span class="event-date">@FormatEventDate(evt)</span>
-                            </div>
-                        </div>
-                    }
-                }
-                else
-                {
-                    <div class="section-empty">
-                        <p>No upcoming events scheduled</p>
-                        <span class="empty-hint">Tap to add your first event</span>
-                    </div>
-                }
-            </div>
-        </div>
-
-        <!-- Balance Section -->
-        <div class="section-card">
-            <div class="section-header" @onclick='() => Navigation.NavigateTo("/costs")'>
-                <div class="section-icon balance-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="12" y1="1" x2="12" y2="23"></line>
-                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                    </svg>
-                </div>
-                <h2>Shared Costs</h2>
-                <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
-            </div>
-
-            <div class="section-content">
-                @if (_hasExpenses)
-                {
-                    <div class="balance-display">
-                        @if (_totalOwed == 0)
+                    <DayCard DayName="@day.DayName" 
+                             DateText="@day.DateText" 
+                             OverflowCount="@day.OverflowCount">
+                        @if (day.Events.Any())
                         {
-                            <div class="balance-settled">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                                </svg>
-                                <span>All settled up</span>
-                            </div>
+                            @foreach (var evt in day.Events.Take(3))
+                            {
+                                <div class="sanctuary-event-row" @onclick="() => NavigateToEvent(evt)">
+                                    <div class="event-time">@FormatEventTime(evt)</div>
+                                    <div class="event-details">
+                                        <span class="event-title">@evt.Title</span>
+                                        @if (!string.IsNullOrEmpty(evt.Location))
+                                        {
+                                            <span class="event-location">@evt.Location</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
                         }
                         else
                         {
-                            <div class="balance-owed">
-                                <span class="balance-who">Outstanding balance</span>
-                                <span class="balance-amount">@_totalOwed.ToString("C")</span>
-                            </div>
+                            <div class="empty-day-hint">No items</div>
+                        }
+                    </DayCard>
+                }
+            }
+        </div>
+
+        <!-- Life Snapshot Cards -->
+        @if (!_isLoading)
+        {
+            <div class="snapshot-widgets">
+                <CompactCostsCard OnClick="@(() => Navigation.NavigateTo("/costs"))">
+                    <div class="cost-summary">
+                        @if (_totalOwed == 0)
+                        {
+                            <div class="cost-settled">Nothing to settle</div>
+                        }
+                        else
+                        {
+                            <div class="cost-balance">@_totalOwed.ToString("C")</div>
+                            <div class="cost-label">Outstanding</div>
                         }
                     </div>
-                }
-                else
-                {
-                    <div class="section-empty">
-                        <p>No shared expenses yet</p>
-                        <span class="empty-hint">Start tracking costs together</span>
-                    </div>
-                }
-            </div>
-        </div>
+                </CompactCostsCard>
 
-        <!-- Recent Documents Section -->
-        <div class="section-card">
-            <div class="section-header" @onclick='() => Navigation.NavigateTo("/vault")'>
-                <div class="section-icon vault-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                    </svg>
-                </div>
-                <h2>Family Vault</h2>
-                <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
+                <ChildInfoCard OnClick="@(() => Navigation.NavigateTo("/info"))">
+                     <span class="chip">School</span>
+                     <span class="chip">Care</span>
+                     <span class="chip">Health</span>
+                </ChildInfoCard>
             </div>
-
-            <div class="section-content">
-                @if (_recentDocuments.Any())
-                {
-                    @foreach (var doc in _recentDocuments)
-                    {
-                        <div class="document-item">
-                            <div class="document-dot" style="background-color: @doc.Folder.GetColor()"></div>
-                            <div class="document-info">
-                                <span class="document-name">@doc.Name</span>
-                                <span class="document-folder">@doc.Folder.GetDisplayName()</span>
-                            </div>
-                        </div>
-                    }
-                }
-                else
-                {
-                    <div class="section-empty">
-                        <p>Your vault is empty</p>
-                        <span class="empty-hint">Keep important family documents safe here</span>
-                    </div>
-                }
-            </div>
-        </div>
-    }
+            
+            <div class="spacer-bottom"></div>
+        }
+    </div>
 </div>
 
+<style>
+    .home-sanctuary {
+        padding-bottom: 80px; /* Space for bottom nav */
+        min-height: 100vh;
+        background-color: #f9f9f9; /* Soft background */
+    }
+
+    .sanctuary-content {
+        padding: 1rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .schedule-spine {
+        display: flex;
+        flex-direction: column;
+        gap: 0; /* Cards have margin-bottom */
+    }
+
+    .sanctuary-event-row {
+        display: flex;
+        gap: 1rem;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid rgba(0,0,0,0.03);
+        cursor: pointer;
+    }
+    
+    .sanctuary-event-row:last-child {
+        border-bottom: none;
+    }
+
+    .event-time {
+        font-size: 0.875rem;
+        color: #666;
+        width: 4.5rem;
+        flex-shrink: 0;
+        text-align: right;
+    }
+
+    .event-details {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .event-title {
+        font-size: 0.9375rem;
+        color: #1a1a1a;
+        font-weight: 500;
+    }
+    
+    .event-location {
+        font-size: 0.75rem;
+        color: #888;
+    }
+
+    .empty-day-hint {
+        font-size: 0.875rem;
+        color: #aaa;
+        font-style: italic;
+        padding: 0.5rem 0;
+    }
+
+    .snapshot-widgets {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .cost-summary {
+        text-align: center;
+        padding: 0.5rem 0;
+    }
+
+    .cost-balance {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1a1a1a;
+    }
+    
+    .cost-label {
+        font-size: 0.75rem;
+        color: #666;
+    }
+    
+    .cost-settled {
+        color: #666;
+        font-size: 0.875rem;
+    }
+
+    .chip {
+        background: #f0f0f0;
+        padding: 0.25rem 0.75rem;
+        border-radius: 100px;
+        font-size: 0.75rem;
+        color: #444;
+        display: inline-block;
+    }
+    
+    .spacer-bottom {
+        height: 40px;
+    }
+</style>
+
 @code {
-    private List<Event> _upcomingEvents = new();
-    private Dictionary<string, decimal> _balances = new();
-    private bool _hasExpenses;
-    private bool _hasUpcomingEvents;
-    private bool _hasDocuments;
-    private List<Document> _recentDocuments = new();
-    private bool _isNewUser;
     private bool _isLoading = true;
-    private decimal _totalOwed;
+    private bool _isHeaderCollapsed = false;
+    private string _lastUpdatedText = "Last updated a short while ago";
+    private List<DaySchedule> _scheduleDays = new();
+    private decimal _totalOwed = 0;
+    private TimeZoneInfo? _denTimeZone;
 
     protected override async Task OnInitializedAsync()
     {
-        Logger.LogDebug("OnInitializedAsync starting");
-        await LoadDashboardData();
-        Logger.LogDebug("OnInitializedAsync complete");
+        await LoadData();
     }
 
-    private async Task LoadDashboardData()
+    private async Task LoadData()
     {
         _isLoading = true;
-        StateHasChanged();
-        Logger.LogDebug("LoadDashboardData starting");
-
         try
         {
-            // Perform lightweight "has data" checks in parallel first
-            var hasExpensesTask = ExpenseService.HasExpensesAsync();
-            var hasEventsTask = ScheduleService.HasUpcomingEventsAsync();
-            var hasDocumentsTask = DocumentService.HasDocumentsAsync();
+            _denTimeZone = await DenTimeService.GetDenTimeZoneAsync();
+            var today = _denTimeZone == null 
+                ? DateTime.Today 
+                : DenTimeService.ConvertToDenTime(DateTime.UtcNow, _denTimeZone).Date;
 
-            await Task.WhenAll(hasExpensesTask, hasEventsTask, hasDocumentsTask);
+            // Load 4 days of schedule
+            var endDate = today.AddDays(3);
+            // Assuming GetEventsByRangeAsync takes inclusive dates
+            var events = await ScheduleService.GetEventsByRangeAsync(today, endDate);
 
-            _hasExpenses = hasExpensesTask.Result;
-            _hasUpcomingEvents = hasEventsTask.Result;
-            _hasDocuments = hasDocumentsTask.Result;
-
-            // Determine if this is a new user
-            _isNewUser = !_hasExpenses && !_hasUpcomingEvents && !_hasDocuments;
-            Logger.LogDebug("Is new user: {IsNewUser}", _isNewUser);
-
-            if (!_isNewUser)
+            _scheduleDays.Clear();
+            for (int i = 0; i < 4; i++)
             {
-                // If the user has data, fetch the specifics needed for the dashboard in parallel
-                var upcomingEventsTask = _hasUpcomingEvents ? ScheduleService.GetUpcomingEventsAsync(3) : Task.FromResult(new List<Event>());
-                var balancesTask = _hasExpenses ? ExpenseService.GetBalancesAsync() : Task.FromResult(new Dictionary<string, decimal>());
-                var recentDocumentsTask = _hasDocuments ? DocumentService.GetRecentDocumentsAsync(3) : Task.FromResult(new List<Document>());
-                
-                await Task.WhenAll(upcomingEventsTask, balancesTask, recentDocumentsTask);
+                var date = today.AddDays(i);
+                var dayEvents = events.Where(e => 
+                    (_denTimeZone == null ? e.Date.Date : DenTimeService.ConvertToDenTime(e.StartsAt, _denTimeZone).Date) == date
+                ).OrderBy(e => e.StartsAt).ToList();
 
-                _upcomingEvents = upcomingEventsTask.Result ?? new List<Event>();
-                _balances = balancesTask.Result ?? new Dictionary<string, decimal>();
-                _recentDocuments = recentDocumentsTask.Result ?? new List<Document>();
-
-                if (_hasExpenses)
+                _scheduleDays.Add(new DaySchedule
                 {
-                    _totalOwed = GetTotalOwed();
-                }
+                    Date = date,
+                    DayName = i == 0 ? "Today" : (i == 1 ? "Tomorrow" : date.ToString("dddd")),
+                    DateText = date.ToString("MMM d"),
+                    Events = dayEvents,
+                    OverflowCount = Math.Max(0, dayEvents.Count - 3)
+                });
+            }
 
-                Logger.LogDebug("Dashboard data loaded: {EventCount} events, {BalanceCount} balances, {DocCount} documents",
-                    _upcomingEvents.Count, _balances.Count, _recentDocuments.Count);
+            // Load Expenses Balance
+            var balances = await ExpenseService.GetBalancesAsync();
+            if (balances != null && balances.Any())
+            {
+                var max = balances.Values.Any() ? balances.Values.Max() : 0;
+                var min = balances.Values.Any() ? balances.Values.Min() : 0;
+                _totalOwed = Math.Max(Math.Abs(max), Math.Abs(min));
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to load dashboard data");
+            Logger.LogError(ex, "Error loading Home data");
         }
         finally
         {
@@ -270,32 +253,30 @@
         }
     }
 
-    private string FormatEventDate(Event evt)
+    private string FormatEventTime(Event evt)
     {
-        var dateStr = evt.Date.Date == DateTime.Today
-            ? "Today"
-            : evt.Date.Date == DateTime.Today.AddDays(1)
-                ? "Tomorrow"
-                : evt.Date.ToString("ddd, MMM d");
-
+        if (evt.AllDay) return "All Day";
         if (evt.Time.HasValue)
         {
-            var timeStr = DateTime.Today.Add(evt.Time.Value).ToString("h:mm tt");
-            return $"{dateStr} at {timeStr}";
+             var time = DateTime.Today.Add(evt.Time.Value);
+             return time.ToString("h:mm tt");
         }
-
-        return dateStr;
+        return "";
     }
 
-    private decimal GetTotalOwed()
+    private void NavigateToEvent(Event evt)
     {
-        Logger.LogDebug("GetTotalOwed called. _balances is {IsNull}", _balances == null ? "NULL" : "NOT NULL");
-        
-        // Return the maximum absolute balance (what someone owes)
-        if (_balances == null || _balances.Count == 0) return 0;
-        
-        var maxBalance = _balances.Values.Max();
-        var minBalance = _balances.Values.Min();
-        return Math.Max(Math.Abs(maxBalance), Math.Abs(minBalance));
+        // For now, navigate to calendar, ideally jump to date
+        // Simple implementation:
+        Navigation.NavigateTo("/calendar");
+    }
+
+    private class DaySchedule
+    {
+        public DateTime Date { get; set; }
+        public string DayName { get; set; } = "";
+        public string DateText { get; set; } = "";
+        public List<Event> Events { get; set; } = new();
+        public int OverflowCount { get; set; }
     }
 }

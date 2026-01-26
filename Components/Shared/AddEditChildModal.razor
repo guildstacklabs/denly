@@ -1,0 +1,238 @@
+@using Denly.Models
+@using Denly.Services
+
+<div class="modal-overlay" @onclick="HandleBackdropClick">
+    <div class="modal-content" @onclick:stopPropagation="true">
+        <div class="modal-header">
+            <h3>@(IsEditing ? "Edit Child" : "Add Child")</h3>
+            <button class="close-btn" @onclick="Cancel">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+
+        <div class="modal-body">
+            <div class="form-group">
+                <label>First Name <span class="required">*</span></label>
+                <input type="text"
+                       @bind="_firstName"
+                       @bind:event="oninput"
+                       placeholder="Required"
+                       class="@(string.IsNullOrWhiteSpace(_firstName) && _attemptedSubmit ? "invalid" : "")" />
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Middle Name</label>
+                    <input type="text"
+                           @bind="_middleName"
+                           @bind:event="oninput"
+                           placeholder="Optional" />
+                </div>
+
+                <div class="form-group">
+                    <label>Last Name</label>
+                    <input type="text"
+                           @bind="_lastName"
+                           @bind:event="oninput"
+                           placeholder="Optional" />
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Birth Date</label>
+                    <input type="date"
+                           @bind="_birthDate"
+                           max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                </div>
+
+                <div class="form-group">
+                    <label>Color</label>
+                    <div class="color-picker">
+                        @foreach (var color in _availableColors)
+                        {
+                            <button type="button"
+                                    class="color-option @(_selectedColor == color ? "selected" : "")"
+                                    style="background-color: @color"
+                                    @onclick="() => _selectedColor = color"
+                                    title="@color">
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <div class="validation-error">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    @_errorMessage
+                </div>
+            }
+
+            @if (_showPartialMatchWarning)
+            {
+                <div class="validation-warning">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    <span>@_warningMessage</span>
+                    <div class="warning-actions">
+                        <button type="button" class="btn-link" @onclick="ConfirmPartialMatch">Yes, different child</button>
+                        <button type="button" class="btn-link cancel" @onclick="CancelPartialMatch">Cancel</button>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-secondary" @onclick="Cancel" disabled="@_isSaving">
+                Cancel
+            </button>
+            <button class="btn-primary" @onclick="Save" disabled="@_isSaving">
+                @(_isSaving ? "Saving..." : (IsEditing ? "Save Changes" : "Add Child"))
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public Child? Child { get; set; }
+    [Parameter] public EventCallback<Child> OnSave { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public Func<Child, string?, Task<ChildNameValidationResult>>? ValidateNameAsync { get; set; }
+
+    private bool IsEditing => Child != null && !string.IsNullOrEmpty(Child.Id);
+
+    private string _firstName = string.Empty;
+    private string? _middleName;
+    private string? _lastName;
+    private DateTime? _birthDate;
+    private string? _selectedColor;
+
+    private string? _errorMessage;
+    private string? _warningMessage;
+    private bool _showPartialMatchWarning;
+    private bool _partialMatchConfirmed;
+    private bool _attemptedSubmit;
+    private bool _isSaving;
+
+    private readonly string[] _availableColors = new[]
+    {
+        "#E07A5F", // Coral
+        "#3D8B8B", // Teal
+        "#F4A261", // Orange
+        "#81B29A", // Green
+        "#E9C46A", // Yellow
+        "#7B68EE", // Purple
+        "#F08080", // Light coral
+        "#4682B4"  // Steel blue
+    };
+
+    protected override void OnParametersSet()
+    {
+        if (Child != null)
+        {
+            _firstName = Child.FirstName;
+            _middleName = Child.MiddleName;
+            _lastName = Child.LastName;
+            _birthDate = Child.BirthDate;
+            _selectedColor = Child.Color ?? _availableColors[0];
+        }
+        else
+        {
+            _firstName = string.Empty;
+            _middleName = null;
+            _lastName = null;
+            _birthDate = null;
+            _selectedColor = _availableColors[0];
+        }
+
+        _errorMessage = null;
+        _warningMessage = null;
+        _showPartialMatchWarning = false;
+        _partialMatchConfirmed = false;
+        _attemptedSubmit = false;
+    }
+
+    private async Task Save()
+    {
+        _attemptedSubmit = true;
+        _errorMessage = null;
+
+        // Validate required field
+        if (string.IsNullOrWhiteSpace(_firstName))
+        {
+            _errorMessage = "First name is required";
+            return;
+        }
+
+        // Build child object
+        var child = Child ?? new Child();
+        child.FirstName = _firstName.Trim();
+        child.MiddleName = string.IsNullOrWhiteSpace(_middleName) ? null : _middleName.Trim();
+        child.LastName = string.IsNullOrWhiteSpace(_lastName) ? null : _lastName.Trim();
+        child.BirthDate = _birthDate;
+        child.Color = _selectedColor;
+
+        // Validate name if validator provided
+        if (ValidateNameAsync != null && !_partialMatchConfirmed)
+        {
+            var result = await ValidateNameAsync(child, IsEditing ? Child?.Id : null);
+
+            if (!result.IsValid && result.ConflictType == NameConflictType.ExactMatch)
+            {
+                _errorMessage = $"A child with this name already exists: {result.ConflictingChildName}";
+                return;
+            }
+
+            if (result.ConflictType == NameConflictType.PartialMatch)
+            {
+                _warningMessage = $"A child named \"{result.ConflictingChildName}\" already exists. Are you sure this is a different child?";
+                _showPartialMatchWarning = true;
+                return;
+            }
+        }
+
+        _isSaving = true;
+        StateHasChanged();
+
+        await OnSave.InvokeAsync(child);
+
+        _isSaving = false;
+    }
+
+    private void ConfirmPartialMatch()
+    {
+        _partialMatchConfirmed = true;
+        _showPartialMatchWarning = false;
+        _ = Save();
+    }
+
+    private void CancelPartialMatch()
+    {
+        _showPartialMatchWarning = false;
+        _warningMessage = null;
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+
+    private void HandleBackdropClick()
+    {
+        if (!_isSaving)
+        {
+            _ = Cancel();
+        }
+    }
+}

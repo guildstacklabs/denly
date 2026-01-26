@@ -45,5 +45,10 @@
             <string>Editor</string>
         </dict>
     </array>
+    <!-- Push Notifications -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>remote-notification</string>
+    </array>
 </dict>
 </plist>

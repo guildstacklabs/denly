@@ -1,43 +1,42 @@
 /* Home Page - Dashboard Overview */
 
 .home-page {
-    padding: 0.5rem;
-    max-width: 500px;
+    padding: 1.25rem;
+    max-width: 560px;
     margin: 0 auto;
+}
+
+.home-page > .bz-hero {
+    margin-bottom: 1rem;
+}
+
+.home-page > .nook {
+    margin-top: 1rem;
 }
 
 /* Page Header */
 .page-header {
-    padding: 0.5rem 0 1.25rem;
-    text-align: center;
+    padding: 0.25rem 0 1rem;
 }
 
 .page-header h1 {
-    font-size: 1.75rem;
+    font-size: 1.9rem;
     font-weight: 700;
-    color: var(--color-text);
+    color: var(--color-den-shadow);
     margin: 0;
 }
 
 .header-subtitle {
-    font-size: 0.875rem;
+    font-size: 0.9rem;
     color: var(--color-text-muted);
 }
 
 /* Welcome Section for New Users */
-.welcome-section {
-    background: linear-gradient(135deg, var(--color-surface-alt) 0%, var(--color-surface-alt) 100%);
-    border-radius: 20px;
-    padding: 2rem 1.5rem;
-    text-align: center;
-    border: 1px solid var(--color-border);
-}
-
 .welcome-icon {
     width: 64px;
     height: 64px;
     margin: 0 auto 1rem;
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+    background: var(--color-primary-soft);
     border-radius: 16px;
     display: flex;
     align-items: center;
@@ -47,7 +46,7 @@
 .welcome-icon svg {
     width: 32px;
     height: 32px;
-    color: var(--color-text-inverse);
+    color: var(--color-primary);
 }
 
 .welcome-title {
@@ -58,8 +57,8 @@
 }
 
 .welcome-subtitle {
-    font-size: 1rem;
-    color: var(--color-primary);
+    font-size: 0.95rem;
+    color: var(--color-text-muted);
     font-weight: 500;
     margin: 0 0 1rem;
 }
@@ -71,79 +70,22 @@
     margin: 0 0 1.5rem;
 }
 
-.quick-actions {
-    display: flex;
+.welcome-actions {
+    display: grid;
     gap: 0.75rem;
-    justify-content: center;
-}
-
-.quick-action-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 1rem;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.15s;
-    flex: 1;
-    max-width: 100px;
-}
-
-.quick-action-btn:hover {
-    border-color: var(--color-primary);
-    box-shadow: 0 2px 8px var(--color-primary-tint);
-}
-
-.quick-action-btn:active {
-    transform: scale(0.98);
-}
-
-.quick-action-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.quick-action-icon svg {
-    width: 20px;
-    height: 20px;
-}
-
-.quick-action-btn span {
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--color-text);
-}
-
-/* Section Cards - Improved Visual Hierarchy */
-.section-card {
-    background: var(--color-surface);
-    border-radius: 16px;
-    margin-bottom: 1rem;
-    box-shadow: 0 1px 3px var(--shadow-color-06);
-    border: 1px solid var(--color-border);
-    overflow: hidden;
 }
 
 .section-header {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 1rem;
-    background: linear-gradient(135deg, var(--color-surface-alt) 0%, var(--color-surface-alt) 100%);
-    border-bottom: 1px solid var(--color-surface-muted);
+    padding: 0.25rem 0 0.75rem;
     cursor: pointer;
     transition: background-color 0.15s;
 }
 
 .section-header:hover {
-    background: linear-gradient(135deg, var(--color-surface-alt) 0%, var(--color-surface-alt) 100%);
+    color: var(--color-primary);
 }
 
 .section-header h2 {
@@ -175,12 +117,12 @@
 }
 
 .section-content {
-    padding: 1rem;
+    padding-top: 0.25rem;
 }
 
 .section-empty {
     text-align: center;
-    padding: 0.5rem;
+    padding: 0.5rem 0;
 }
 
 .section-empty p {
@@ -336,4 +278,8 @@
 .document-folder {
     font-size: 0.8125rem;
     color: var(--color-text-muted);
+}
+
+.home-cta {
+    margin: 1rem 0 2rem;
 }

@@ -1,0 +1,50 @@
+.sanctuary-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    padding: 1rem 1.5rem;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sanctuary-header.collapsed {
+    padding: 0.75rem 1.5rem;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+.header-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.header-title {
+    font-size: 1.75rem; /* ~28px */
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0;
+    letter-spacing: -0.02em;
+    transition: font-size 0.3s ease;
+}
+
+.sanctuary-header.collapsed .header-title {
+    font-size: 1.125rem; /* ~18px */
+}
+
+.header-subtitle {
+    font-size: 0.875rem; /* ~14px */
+    color: #666;
+    font-weight: 400;
+    opacity: 1;
+    transition: opacity 0.3s ease, height 0.3s ease;
+}
+
+.sanctuary-header.collapsed .header-subtitle {
+    opacity: 0;
+    height: 0;
+    overflow: hidden;
+}

@@ -17,9 +17,17 @@ public class Child : BaseModel
     [JsonProperty("den_id")]
     public string DenId { get; set; } = string.Empty;
 
-    [Column("name")]
-    [JsonProperty("name")]
-    public string Name { get; set; } = string.Empty;
+    [Column("first_name")]
+    [JsonProperty("first_name")]
+    public string FirstName { get; set; } = string.Empty;
+
+    [Column("middle_name")]
+    [JsonProperty("middle_name")]
+    public string? MiddleName { get; set; }
+
+    [Column("last_name")]
+    [JsonProperty("last_name")]
+    public string? LastName { get; set; }
 
     [Column("birth_date")]
     [JsonProperty("birth_date")]
@@ -57,10 +65,33 @@ public class Child : BaseModel
     [JsonProperty("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    [Column("deactivated_at")]
+    [JsonProperty("deactivated_at")]
+    public DateTime? DeactivatedAt { get; set; }
+
     // Helper property for age calculation
     [Newtonsoft.Json.JsonIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     public int? Age => BirthDate.HasValue
         ? (int)((DateTime.Today - BirthDate.Value).TotalDays / 365.25)
         : null;
+
+    // Helper property to check if child is active
+    [Newtonsoft.Json.JsonIgnore]
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsActive => DeactivatedAt == null;
+
+    // Helper property for full name (used for validation)
+    [Newtonsoft.Json.JsonIgnore]
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string FullName
+    {
+        get
+        {
+            var parts = new List<string> { FirstName };
+            if (!string.IsNullOrWhiteSpace(MiddleName)) parts.Add(MiddleName);
+            if (!string.IsNullOrWhiteSpace(LastName)) parts.Add(LastName);
+            return string.Join(" ", parts);
+        }
+    }
 }

@@ -169,3 +169,75 @@ Created Info Bank page for shared child information.
 - Uses existing Child model properties and IDenService.UpdateChildAsync()
 
 ---
+
+### P0-6: Push Notifications
+**Completed:** 2026-01-22 | **Agent:** Claude
+
+Implemented full push notification infrastructure with FCM (Android) and APNs (iOS) support.
+
+**Files Created:**
+- `supabase/migrations/20260122000000_create_device_tokens.sql` - Device tokens table with RLS
+- `Models/DeviceToken.cs` - Supabase model for device tokens
+- `Services/IPushNotificationService.cs` - Interface with NotificationType enum and NotificationPayload record
+- `Services/PushNotificationService.cs` - Shared base class with token registration via Supabase
+- `Platforms/Android/PushNotificationHandler.cs` - FCM implementation with FirebaseMessagingService
+- `Platforms/iOS/PushNotificationHandler.cs` - APNs implementation with UNUserNotificationCenterDelegate
+- `Platforms/iOS/Entitlements.plist` - Push notification entitlement
+- `supabase/functions/push-notify/index.ts` - Edge Function using FCM HTTP v1 API
+
+**Files Modified:**
+- `Platforms/iOS/AppDelegate.cs` - Register for remote notifications
+- `Platforms/iOS/Info.plist` - Added UIBackgroundModes with remote-notification
+- `Platforms/Android/AndroidManifest.xml` - Added POST_NOTIFICATIONS, VIBRATE, RECEIVE_BOOT_COMPLETED permissions
+- `MauiProgram.cs` - Platform-conditional DI registration for IPushNotificationService
+- `Denly.csproj` - Added Xamarin.Firebase.Messaging and Xamarin.Google.Dagger packages
+
+**Key Features:**
+- Token registration/unregistration with Supabase device_tokens table
+- Permission request APIs for Android 13+ and iOS
+- Foreground notification handling with local display
+- Deep linking support via NotificationTapped event
+- Edge Function fetches den members, excludes triggering user, sends to all registered devices
+- FCM HTTP v1 API with OAuth 2.0 service account authentication
+
+**Notes:**
+- APNs Edge Function implementation is a placeholder - full JWT signing needed for production
+- Requires Firebase project setup with google-services.json
+- Requires Supabase secrets: FIREBASE_PROJECT_ID, FIREBASE_SERVICE_ACCOUNT (base64 encoded)
+
+---
+
+### P0-7: Children Management
+**Completed:** 2026-01-23 | **Agent:** Claude
+
+Full CRUD for children with name validation, display name disambiguation, and soft-delete.
+
+**Files Created:**
+- `supabase/migrations/20260122100000_extend_children_table.sql` - Schema migration (first_name, middle_name, last_name, deactivated_at)
+- `Services/IChildService.cs` - Interface with CRUD, validation, display name methods
+- `Services/ChildService.cs` - Full implementation inheriting from SupabaseServiceBase
+- `Components/Shared/AddEditChildModal.razor` - Reusable modal with validation
+- `Components/Shared/AddEditChildModal.razor.css`
+- `Components/Shared/ChildSelector.razor` - Chip-based multi-select component
+- `Components/Shared/ChildSelector.razor.css`
+
+**Files Modified:**
+- `Models/Child.cs` - Name split into FirstName/MiddleName/LastName + DeactivatedAt
+- `Components/Pages/CreateDen.razor` - Two-step wizard requiring at least one child
+- `Components/Pages/CreateDen.razor.css` - Step 2 styles
+- `Components/Pages/Settings.razor` - Added Children management section
+- `Components/Pages/Settings.razor.css` - Children section styles
+- `Components/Pages/InfoBank.razor` - Updated to use FirstName
+- `Services/SupabaseDenService.cs` - Updated column names
+- `MauiProgram.cs` - Registered IChildService
+- `docs/DATABASE.md` - Updated schema documentation
+
+**Key Features:**
+- Name validation: exact match (first+middle+last) blocks, partial match (first+last) warns
+- Display name disambiguation: first name only → first + middle initial → first + last initial
+- Soft-delete via `deactivated_at` timestamp preserves historical records
+- CreateDen flow requires at least one child before completing
+- Color picker auto-selects next unused color for each child
+- Settings page has active/inactive children sections with deactivate/reactivate
+
+---

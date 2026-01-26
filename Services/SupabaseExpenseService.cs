@@ -47,7 +47,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         {
             var response = await GetClientOrThrow()
                 .From<Expense>()
-                .Select("id, den_id, child_id, description, amount, paid_by, receipt_url, created_by, created_at, settled_at")
+                .Select("id, den_id, child_id, description, amount, paid_by, receipt_url, created_by, created_at, settled_at, split_percent")
                 .Where(e => e.DenId == denId)
                 .Order("created_at", Supabase.Postgrest.Constants.Ordering.Descending)
                 .Get();
@@ -104,7 +104,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         {
             return await GetClientOrThrow()
                 .From<Expense>()
-                .Select("id, den_id, child_id, description, amount, paid_by, receipt_url, created_by, created_at, settled_at")
+                .Select("id, den_id, child_id, description, amount, paid_by, receipt_url, created_by, created_at, settled_at, split_percent")
                 .Where(e => e.Id == id)
                 .Single();
         }
@@ -244,9 +244,9 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
             // Get unsettled expenses (where settled_at is null)
             var expenseResponse = await GetClientOrThrow()
                 .From<Expense>()
-                .Select("id, den_id, child_id, description, amount, paid_by, receipt_url, created_by, created_at, settled_at")
+                .Select("id, den_id, child_id, description, amount, paid_by, receipt_url, created_by, created_at, settled_at, split_percent")
                 .Where(e => e.DenId == denId)
-                .Filter<DateTime?>("settled_at", Supabase.Postgrest.Constants.Operator.Is, null)
+                .Filter<DateTime?>("settled_at, split_percent", Supabase.Postgrest.Constants.Operator.Is, null)
                 .Get();
 
             var unsettledExpenses = expenseResponse.Models;
@@ -258,16 +258,21 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
             if (memberIds.Count < 2)
                 return balances;
 
-            // Calculate total and what each person paid
-            var totalExpenses = unsettledExpenses.Sum(e => e.Amount);
-            var fairShare = totalExpenses / memberIds.Count;
+            var expenseIds = unsettledExpenses.Select(e => e.Id).ToList();
+            var splits = await GetExpenseSplitsAsync(expenseIds, cancellationToken);
 
-            foreach (var memberId in memberIds)
-            {
-                var paid = unsettledExpenses.Where(e => e.PaidBy == memberId).Sum(e => e.Amount);
-                // Positive balance = owed money, negative = owes money
-                balances[memberId] = paid - fairShare;
-            }
+            var splitsByExpense = splits
+                .GroupBy(s => s.ExpenseId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => (IReadOnlyList<BalanceCalculator.ExpenseSplitShare>)g
+                        .Select(s => new BalanceCalculator.ExpenseSplitShare(s.UserId, s.Percent))
+                        .ToList());
+
+            balances = BalanceCalculator.CalculateBalancesWithExpenseSplits(
+                unsettledExpenses.Select(e => (e.Id, e.Amount, e.PaidBy)),
+                memberIds,
+                splitsByExpense);
 
             _balancesCache = balances;
             _balancesCacheDenId = denId;
@@ -284,6 +289,76 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         {
             _logger.LogError(ex, "Failed to get balances");
             return balances;
+        }
+    }
+
+    public async Task<List<ExpenseSplit>> GetExpenseSplitsAsync(IEnumerable<string> expenseIds, CancellationToken cancellationToken = default)
+    {
+        await EnsureInitializedAsync();
+
+        var denId = TryGetCurrentDenId();
+        if (denId == null) return new List<ExpenseSplit>();
+
+        var ids = expenseIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
+        if (ids.Count == 0) return new List<ExpenseSplit>();
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        try
+        {
+            var response = await GetClientOrThrow()
+                .From<ExpenseSplit>()
+                .Select("id, den_id, expense_id, user_id, percent, created_at")
+                .Where(s => s.DenId == denId)
+                .Filter("expense_id", Supabase.Postgrest.Constants.Operator.In, ids)
+                .Get();
+
+            return response.Models;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get expense splits");
+            return new List<ExpenseSplit>();
+        }
+    }
+
+    public async Task SaveExpenseSplitsAsync(string expenseId, IReadOnlyList<ExpenseSplit> splits, CancellationToken cancellationToken = default)
+    {
+        await EnsureInitializedAsync();
+
+        var denId = GetCurrentDenIdOrThrow();
+        cancellationToken.ThrowIfCancellationRequested();
+
+        try
+        {
+            await GetClientOrThrow()
+                .From<ExpenseSplit>()
+                .Where(s => s.ExpenseId == expenseId && s.DenId == denId)
+                .Delete();
+
+            if (splits.Count == 0) return;
+
+            foreach (var split in splits)
+            {
+                split.DenId = denId;
+                split.ExpenseId = expenseId;
+            }
+
+            await GetClientOrThrow()
+                .From<ExpenseSplit>()
+                .Insert(splits.ToList());
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save expense splits");
         }
     }
 
@@ -389,9 +464,9 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
             // Mark all unsettled expenses as settled
             var unsettled = await client
                 .From<Expense>()
-                .Select("id, den_id, child_id, description, amount, paid_by, receipt_url, created_by, created_at, settled_at")
+                .Select("id, den_id, child_id, description, amount, paid_by, receipt_url, created_by, created_at, settled_at, split_percent")
                 .Where(e => e.DenId == denId)
-                .Filter<DateTime?>("settled_at", Supabase.Postgrest.Constants.Operator.Is, null)
+                .Filter<DateTime?>("settled_at, split_percent", Supabase.Postgrest.Constants.Operator.Is, null)
                 .Get();
 
             var settledAt = DateTime.UtcNow;

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:shared="clr-namespace:Denly.Components.Shared"
+             x:Class="Denly.Components.Shared.DenChip">
+    <Frame Padding="8,4"
+           CornerRadius="{x:Static shared:DesignTokens+Dimensions.RadiusPebble}"
+           BackgroundColor="{Binding ChipColor, Source={RelativeSource AncestorType={x:Type ContentView}}}"
+           HasShadow="False">
+        <Label Text="{Binding Text, Source={RelativeSource AncestorType={x:Type ContentView}}}"
+               FontSize="{x:Static shared:DesignTokens+Typography.SizeSm}"
+               TextColor="{x:Static shared:DesignTokens+Colors.DenShadow}" />
+    </Frame>
+</ContentView>

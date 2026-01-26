@@ -24,4 +24,8 @@ public class Den : BaseModel
     [Column("created_at")]
     [JsonProperty("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    [Column("time_zone")]
+    [JsonProperty("time_zone")]
+    public string? TimeZone { get; set; }
 }

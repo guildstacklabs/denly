@@ -41,16 +41,27 @@ Junction table linking users to dens with roles.
 **Constraints:** UNIQUE(den_id, user_id)
 
 ### children
-Children belonging to a den.
+Children belonging to a den. Supports soft-delete via `deactivated_at`.
 
 | Column | Type | Nullable | Description |
 |--------|------|----------|-------------|
 | id | uuid | NO | PK, auto-generated |
 | den_id | uuid | NO | FK → dens.id (cascade delete) |
-| name | text | NO | Child's name |
+| first_name | text | NO | Child's first name |
+| middle_name | text | YES | Child's middle name |
+| last_name | text | YES | Child's last name |
 | birth_date | date | YES | Optional birthdate |
 | color | text | YES | UI color (hex or preset name) |
+| doctor_name | text | YES | Primary doctor's name |
+| doctor_contact | text | YES | Doctor's phone/email |
+| allergies | text | YES | Known allergies |
+| school_name | text | YES | School name |
+| clothing_size | text | YES | Current clothing size |
+| shoe_size | text | YES | Current shoe size |
 | created_at | timestamptz | YES | Default: now() |
+| deactivated_at | timestamptz | YES | Soft-delete timestamp (NULL = active) |
+
+**Indexes:** `idx_children_active` on (den_id) WHERE deactivated_at IS NULL
 
 ### events
 Calendar events (handoffs, appointments, activities, etc.)

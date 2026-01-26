@@ -93,4 +93,25 @@
         <PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="2.88.6" />
     </ItemGroup>
 
+    <!-- iOS Entitlements: Only apply for Release builds (device deployment) -->
+    <!-- Push notifications require valid certificates, so skip for Debug/Simulator -->
+    <!-- File renamed to Entitlements.Release.plist to prevent auto-discovery -->
+    <PropertyGroup Condition="$(TargetFramework.Contains('-ios')) AND '$(Configuration)' == 'Release'">
+        <CodesignEntitlements>Platforms\iOS\Entitlements.Release.plist</CodesignEntitlements>
+    </PropertyGroup>
+
+    <!-- Android-specific packages for FCM -->
+    <ItemGroup Condition="$(TargetFramework.Contains('-android'))">
+        <PackageReference Include="Xamarin.Firebase.Messaging" Version="124.0.3.1" />
+        <PackageReference Include="Xamarin.Google.Dagger" Version="2.51.1.1" />
+        <GoogleServicesJson Include="Platforms\Android\google-services.json" Condition="Exists('Platforms\Android\google-services.json')" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' != '' and !$(TargetFramework.Contains('-android'))">
+        <GoogleServicesJson Remove="Platforms\Android\google-services.json" />
+        <MauiAsset Remove="Platforms\Android\google-services.json" />
+        <Content Remove="Platforms\Android\google-services.json" />
+        <None Remove="Platforms\Android\google-services.json" />
+    </ItemGroup>
+
 </Project>

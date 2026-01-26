@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:shared="clr-namespace:Denly.Components.Shared"
+             x:Class="Denly.Components.Shared.EventRow">
+    <!-- EventRow layout: TimeLabel + details + UpdatedMark -->
+    <Grid ColumnDefinitions="Auto,*,Auto" Padding="8" ColumnSpacing="12">
+        <shared:TimeLabel Text="{Binding TimeText, Source={RelativeSource AncestorType={x:Type ContentView}}}" />
+        <VerticalStackLayout Grid.Column="1" Spacing="2">
+            <Label Text="{Binding Title, Source={RelativeSource AncestorType={x:Type ContentView}}}"
+                   FontSize="{x:Static shared:DesignTokens+Typography.SizeMd}"
+                   TextColor="{x:Static shared:DesignTokens+Colors.DenShadow}" />
+            <Label Text="{Binding Location, Source={RelativeSource AncestorType={x:Type ContentView}}}"
+                   FontSize="{x:Static shared:DesignTokens+Typography.SizeSm}"
+                   TextColor="{x:Static shared:DesignTokens+Colors.DenShadow}" />
+            <shared:ChildMark Text="{Binding ChildSummary, Source={RelativeSource AncestorType={x:Type ContentView}}}"
+                              AccentColor="{Binding ChildAccentColor, Source={RelativeSource AncestorType={x:Type ContentView}}}" />
+        </VerticalStackLayout>
+        <shared:UpdatedMark Grid.Column="2"
+                            IsVisible="{Binding IsUpdated, Source={RelativeSource AncestorType={x:Type ContentView}}}" />
+    </Grid>
+</ContentView>

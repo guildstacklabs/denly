@@ -37,7 +37,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
             var response = await GetClientOrThrow()
                 .From<Event>()
-                .Select("id, den_id, child_id, title, event_type, starts_at, ends_at, all_day, location, notes, created_by, created_at")
+                .Select("id, den_id, child_id, title, event_type, starts_at, ends_at, all_day, location, notes, created_by, created_at, updated_at")
                 .Where(e => e.DenId == denId)
                 .Filter("starts_at", Supabase.Postgrest.Constants.Operator.GreaterThanOrEqual, utcStart.ToString("O"))
                 .Filter("starts_at", Supabase.Postgrest.Constants.Operator.LessThan, utcEnd.ToString("O"))
@@ -90,7 +90,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
             var response = await GetClientOrThrow()
                 .From<Event>()
-                .Select("id, den_id, child_id, title, event_type, starts_at, ends_at, all_day, location, notes, created_by, created_at")
+                .Select("id, den_id, child_id, title, event_type, starts_at, ends_at, all_day, location, notes, created_by, created_at, updated_at")
                 .Where(e => e.DenId == denId)
                 .Filter("starts_at", Supabase.Postgrest.Constants.Operator.GreaterThanOrEqual, lookbackBuffer.ToString("O"))
                 .Filter("starts_at", Supabase.Postgrest.Constants.Operator.LessThanOrEqual, utcEndBuffer.ToString("O"))
@@ -145,7 +145,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
             var response = await GetClientOrThrow()
                 .From<Event>()
-                .Select("id, den_id, child_id, title, event_type, starts_at, ends_at, all_day, location, notes, created_by, created_at")
+                .Select("id, den_id, child_id, title, event_type, starts_at, ends_at, all_day, location, notes, created_by, created_at, updated_at")
                 .Where(e => e.DenId == denId)
                 .Filter("starts_at", Supabase.Postgrest.Constants.Operator.GreaterThanOrEqual, now.ToString("yyyy-MM-ddTHH:mm:ss"))
                 .Order("starts_at", Supabase.Postgrest.Constants.Ordering.Ascending)
@@ -176,7 +176,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         {
             var response = await GetClientOrThrow()
                 .From<Event>()
-                .Select("id, den_id, child_id, title, event_type, starts_at, ends_at, all_day, location, notes, created_by, created_at")
+                .Select("id, den_id, child_id, title, event_type, starts_at, ends_at, all_day, location, notes, created_by, created_at, updated_at")
                 .Where(e => e.Id == id)
                 .Limit(1)
                 .Get();
@@ -330,6 +330,48 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         if (evt.EndsAt.HasValue)
         {
             evt.EndsAt = NormalizeDateTime(evt.EndsAt.Value);
+        }
+    }
+
+    public async Task<List<Event>> GetEventsByRangeAsync(DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default)
+    {
+        await EnsureInitializedAsync();
+
+        var denId = TryGetCurrentDenId();
+        if (denId == null) return new List<Event>();
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        try
+        {
+            var localStart = startDate.Date;
+            var localEnd = endDate.Date.AddDays(1).AddTicks(-1);
+
+            var utcStart = DateTime.SpecifyKind(localStart, DateTimeKind.Local).ToUniversalTime();
+            var utcEnd = DateTime.SpecifyKind(localEnd, DateTimeKind.Local).ToUniversalTime();
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var response = await GetClientOrThrow()
+                .From<Event>()
+                .Select("id, den_id, child_id, title, event_type, starts_at, ends_at, all_day, location, notes, created_by, created_at, updated_at")
+                .Where(e => e.DenId == denId)
+                .Filter("starts_at", Supabase.Postgrest.Constants.Operator.GreaterThanOrEqual, utcStart.ToString("O"))
+                .Filter("starts_at", Supabase.Postgrest.Constants.Operator.LessThanOrEqual, utcEnd.ToString("O"))
+                .Get();
+
+            var events = response.Models;
+            foreach (var evt in events) NormalizeToLocal(evt);
+            return events.OrderBy(e => e.StartsAt).ToList();
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get events by range");
+            return new List<Event>();
         }
     }
 

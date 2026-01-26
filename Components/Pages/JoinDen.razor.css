@@ -19,10 +19,11 @@
     justify-content: center;
     width: 64px;
     height: 64px;
-    background: linear-gradient(135deg, var(--color-secondary-soft) 0%, var(--color-secondary-soft) 100%);
+    background: var(--color-primary-soft);
     border-radius: 16px;
     margin: 0 auto 1.25rem;
     color: var(--color-primary);
+    border: 1px solid var(--color-border-soft);
 }
 
 .den-icon svg {
@@ -33,7 +34,7 @@
 .join-den-header h1 {
     font-size: 1.5rem;
     font-weight: 600;
-    color: var(--color-text);
+    color: var(--color-den-shadow);
     margin: 0 0 0.5rem 0;
 }
 
@@ -45,7 +46,7 @@
 }
 
 /* Form Section */
-.form-section {
+.auth-nook {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
@@ -96,12 +97,12 @@
 
 .btn-primary {
     padding: 0.875rem 1.5rem;
-    background-color: var(--color-primary);
+    background-color: var(--color-teal);
     color: var(--color-text-inverse);
     border: none;
-    border-radius: 12px;
+    border-radius: 999px;
     font-size: 1rem;
-    font-weight: 500;
+    font-weight: 700;
     cursor: pointer;
     transition: background-color 0.2s, opacity 0.2s;
 }
@@ -134,18 +135,18 @@
 .btn-secondary {
     width: 100%;
     padding: 0.875rem 1.5rem;
-    background-color: var(--color-text-inverse);
-    color: var(--color-primary);
-    border: 1px solid var(--color-primary);
-    border-radius: 12px;
+    background-color: transparent;
+    color: var(--color-den-shadow);
+    border: 2px solid var(--color-border-soft);
+    border-radius: 999px;
     font-size: 1rem;
-    font-weight: 500;
+    font-weight: 700;
     cursor: pointer;
     transition: background-color 0.2s;
 }
 
 .btn-secondary:hover:not(:disabled) {
-    background-color: var(--color-secondary-soft);
+    background-color: var(--color-surface-glass-10);
 }
 
 .btn-secondary:disabled {
@@ -302,7 +303,7 @@
 .btn-link {
     background: none;
     border: none;
-    color: var(--color-surface-glass-70);
+    color: var(--color-text-subtle);
     font-size: 0.875rem;
     cursor: pointer;
     text-decoration: underline;
@@ -311,7 +312,7 @@
 }
 
 .btn-link:hover:not(:disabled) {
-    color: var(--color-text-inverse);
+    color: var(--color-den-shadow);
 }
 
 .btn-link:disabled {

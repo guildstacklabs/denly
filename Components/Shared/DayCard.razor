@@ -1,0 +1,22 @@
+@namespace Denly.Components.Shared
+
+<div class="day-card">
+    <div class="day-card-header">
+        <span class="day-name">@DayName</span>
+        <span class="day-date">@DateText</span>
+    </div>
+    <div class="day-card-body">
+        @ChildContent
+    </div>
+    @if (OverflowCount > 0)
+    {
+        <div class="day-overflow">+@OverflowCount more items</div>
+    }
+</div>
+
+@code {
+    [Parameter] public string DayName { get; set; } = string.Empty;
+    [Parameter] public string DateText { get; set; } = string.Empty;
+    [Parameter] public int OverflowCount { get; set; }
+    [Parameter] public RenderFragment ChildContent { get; set; }
+}

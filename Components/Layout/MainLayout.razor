@@ -36,26 +36,52 @@ else if (_isAuthenticated)
         <div class="status-bar-safe-area"></div>
 
         <header class="app-header">
-            @if (_userDens.Count > 1)
-            {
-                <select class="den-switcher" value="@_currentDenId" @onchange="OnDenChanged">
-                    @foreach (var den in _userDens)
-                    {
-                        <option value="@den.Id">@den.Name</option>
-                    }
-                </select>
-            }
-            else
-            {
-                <h1 class="app-title">Denly</h1>
-            }
-            <button class="profile-btn" @onclick="NavigateToSettings">
+            <button class="hamburger-btn" @onclick="ToggleSidebar" aria-label="Open menu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <div class="header-center">
+                @if (_userDens.Count > 1)
+                {
+                    <select class="den-switcher" value="@_currentDenId" @onchange="OnDenChanged">
+                        @foreach (var den in _userDens)
+                        {
+                            <option value="@den.Id">@den.Name</option>
+                        }
+                    </select>
+                }
+                else
+                {
+                    <h1 class="app-title">Denly</h1>
+                }
+            </div>
+            <button class="profile-btn" @onclick="NavigateToSettings" aria-label="Settings">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                     <circle cx="12" cy="7" r="4"></circle>
                 </svg>
             </button>
         </header>
+
+        @if (_isSidebarOpen)
+        {
+            <div class="sidebar-backdrop" @onclick="CloseSidebar"></div>
+        }
+        <div class="sidebar-panel @(_isSidebarOpen ? "open" : "")">
+            <div class="sidebar-header">
+                <span>Menu</span>
+                <button class="sidebar-close" @onclick="CloseSidebar" aria-label="Close menu">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <SidebarMenu OnNavigate="CloseSidebar" />
+        </div>
 
         <main class="main-content">
             <article class="content">
@@ -79,8 +105,6 @@ else if (_isAuthenticated)
             </article>
         </main>
 
-        <NavMenu />
-
         <OfflineBanner />
     </div>
 }
@@ -92,6 +116,7 @@ else if (_isAuthenticated)
     private string? _currentDenId;
     private List<Denly.Models.Den> _userDens = new();
     private string _loadingStatus = "Starting...";
+    private bool _isSidebarOpen;
 
     protected override async Task OnInitializedAsync()
     {
@@ -212,6 +237,16 @@ else if (_isAuthenticated)
     private void NavigateToSettings()
     {
         Navigation.NavigateTo("/settings");
+    }
+
+    private void ToggleSidebar()
+    {
+        _isSidebarOpen = !_isSidebarOpen;
+    }
+
+    private void CloseSidebar()
+    {
+        _isSidebarOpen = false;
     }
 
     public void Dispose()

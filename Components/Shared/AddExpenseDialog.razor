@@ -1,0 +1,161 @@
+@using System.ComponentModel.DataAnnotations
+
+@if (IsOpen)
+{
+    <div class="dialog-backdrop">
+        <div class="dialog-card" style="@CardStyle">
+            <h2 class="dialog-title" style="@TitleStyle">Add expense</h2>
+            <EditForm Model="Model" OnValidSubmit="HandleValidSubmit">
+                <DataAnnotationsValidator />
+
+                <div class="dialog-field">
+                    <label>Date</label>
+                    <InputDate @bind-Value="Model.Date" />
+                </div>
+
+                <div class="dialog-field">
+                    <label>Description</label>
+                    <InputText @bind-Value="Model.Description" placeholder="Expense description" />
+                </div>
+
+                <div class="dialog-field">
+                    <label>Amount</label>
+                    <InputNumber @bind-Value="Model.Amount" placeholder="0.00" />
+                </div>
+
+                <div class="dialog-field">
+                    <label>Payer</label>
+                    <InputSelect @bind-Value="Model.PayerId">
+                        <option value="">Select a caregiver</option>
+                        @foreach (var caregiver in Caregivers)
+                        {
+                            <option value="@caregiver.Id">@caregiver.Name</option>
+                        }
+                    </InputSelect>
+                </div>
+
+                <div class="dialog-field">
+                    <label>Child association (optional)</label>
+                    <InputSelect @bind-Value="Model.ChildId">
+                        <option value="">None</option>
+                        @foreach (var child in Children)
+                        {
+                            <option value="@child.Id">@child.Name</option>
+                        }
+                    </InputSelect>
+                </div>
+
+                <ValidationSummary />
+
+                <div class="dialog-actions">
+                    <button type="button" class="dialog-btn secondary" @onclick="OnCancel">Cancel</button>
+                    <button type="submit" class="dialog-btn primary">Save</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public AddExpenseInput Model { get; set; } = new();
+    [Parameter] public IReadOnlyList<CaregiverOption> Caregivers { get; set; } = Array.Empty<CaregiverOption>();
+    [Parameter] public IReadOnlyList<ChildOption> Children { get; set; } = Array.Empty<ChildOption>();
+    [Parameter] public string? CurrentUserId { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public EventCallback<AddExpenseInput> OnSave { get; set; }
+
+    private string CardStyle =>
+        $"background:{DesignTokens.CssRgba(DesignTokens.Colors.NookBackground)};" +
+        $"border-radius:{DesignTokens.Dimensions.RadiusNook}px;" +
+        $"padding:{DesignTokens.Spacing.Xxl}px;" +
+        $"box-shadow:{DesignTokens.Shadows.Nook};";
+
+    private string TitleStyle =>
+        $"font-family:{DesignTokens.Typography.FontHeading};" +
+        $"font-size:{DesignTokens.Typography.SizeXl}px;" +
+        $"margin-bottom:{DesignTokens.Spacing.Md}px;";
+
+
+    protected override void OnParametersSet()
+    {
+        if (Caregivers.Count == 0) return;
+
+        var existing = Model.Splits.ToDictionary(s => s.CaregiverId, s => s);
+        var updated = new List<SplitInput>();
+
+        var even = Math.Round(100m / Caregivers.Count, 2);
+        foreach (var caregiver in Caregivers)
+        {
+            if (existing.TryGetValue(caregiver.Id, out var split))
+            {
+                split.CaregiverName = caregiver.Name;
+                updated.Add(split);
+            }
+            else
+            {
+                updated.Add(new SplitInput
+                {
+                    CaregiverId = caregiver.Id,
+                    CaregiverName = caregiver.Name,
+                    Percent = even
+                });
+            }
+        }
+
+        Model.Splits = updated;
+
+        if (string.IsNullOrWhiteSpace(Model.PayerId))
+        {
+            var preferred = !string.IsNullOrWhiteSpace(CurrentUserId)
+                && Caregivers.Any(c => c.Id == CurrentUserId)
+                ? CurrentUserId
+                : Caregivers[0].Id;
+            Model.PayerId = preferred ?? string.Empty;
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        await OnSave.InvokeAsync(Model);
+    }
+
+    public class AddExpenseInput : IValidatableObject
+    {
+        [Required]
+        public DateTime Date { get; set; } = DateTime.Today;
+
+        [Required]
+        [MaxLength(140)]
+        public string Description { get; set; } = string.Empty;
+
+        [Range(0.01, 100000)]
+        public decimal Amount { get; set; }
+
+        [Required]
+        public string PayerId { get; set; } = string.Empty;
+
+        public List<SplitInput> Splits { get; set; } = new();
+
+        public string? ChildId { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            var total = Splits.Sum(s => s.Percent);
+            if (Math.Abs(total - 100m) > 0.01m)
+            {
+                yield return new ValidationResult("Split percentages must total 100%.", new[] { nameof(Splits) });
+            }
+        }
+
+    }
+
+    public class SplitInput
+    {
+        public string CaregiverId { get; set; } = string.Empty;
+        public string CaregiverName { get; set; } = string.Empty;
+        public decimal Percent { get; set; }
+    }
+
+
+}

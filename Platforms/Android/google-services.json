@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "240418338632",
+    "project_id": "denly-483618",
+    "storage_bucket": "denly-483618.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:240418338632:android:443e794b1ca38bb96aa57d",
+        "android_client_info": {
+          "package_name": "com.companyname.denly"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "240418338632-8h2k62niq9frfu0bfqtpoejnlkhvivgo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDqpWWfPSIWhK1n9pkCP5vDqfOUTTa_nxk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "240418338632-8h2k62niq9frfu0bfqtpoejnlkhvivgo.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,71 +1,252 @@
 @page "/create-den"
 @layout LoginLayout
+@using Denly.Models
 @using Denly.Services
 @using Microsoft.Extensions.Logging
 @inject IAuthService Auth
 @inject IDenService DenService
+@inject IChildService ChildService
 @inject NavigationManager Navigation
 @inject ILogger<CreateDen> Logger
 
 <div class="create-den-container">
-    <div class="create-den-header">
-        <div class="den-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                <polyline points="9 22 9 12 15 12 15 22"></polyline>
-            </svg>
-        </div>
-        <h1>Create Your Den</h1>
-        <p class="description">
-            A den is your shared family space for coordinating schedules, expenses, and documents with your co-parent.
-        </p>
-    </div>
-
-    <div class="form-section">
-        <div class="form-group">
-            <label>Den Name</label>
-            <input type="text"
-                   @bind="_denName"
-                   @bind:event="oninput"
-                   placeholder="e.g., Smith Family"
-                   class="den-input"
-                   disabled="@_isLoading" />
-            <span class="form-hint">Choose a name that works for both parents</span>
+    @if (_currentStep == 1)
+    {
+        <!-- Step 1: Name the Den -->
+        <div class="create-den-header">
+            <div class="den-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+            </div>
+            <h1>Create Your Den</h1>
+            <p class="description">
+                A den is your shared family space for coordinating schedules, expenses, and documents with your co-parent.
+            </p>
         </div>
 
-        @if (!string.IsNullOrEmpty(_errorMessage))
-        {
-            <div class="error-message">@_errorMessage</div>
-        }
+        <Nook CssClass="auth-nook">
+            <div class="form-group">
+                <label>Den Name</label>
+                <input type="text"
+                       @bind="_denName"
+                       @bind:event="oninput"
+                       placeholder="e.g., Smith Family"
+                       class="den-input"
+                       disabled="@_isLoading" />
+                <span class="form-hint">Choose a name that works for both parents</span>
+            </div>
 
-        <button class="btn-primary"
-                @onclick="HandleCreateDen"
-                disabled="@(!IsValidForm || _isLoading)">
-            @(_isLoading ? "Creating..." : "Create Den")
-        </button>
-    </div>
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <div class="error-message">@_errorMessage</div>
+            }
 
-    <div class="alternative-section">
-        <span class="divider-text">or</span>
-        <button class="btn-secondary" @onclick="GoToJoinDen" disabled="@_isLoading">
-            Join an Existing Den
-        </button>
-        <p class="join-hint">Have an invite code from your co-parent?</p>
-    </div>
+            <button class="btn-primary"
+                    @onclick="GoToStep2"
+                    disabled="@(!IsValidDenName || _isLoading)">
+                Continue
+            </button>
+        </Nook>
 
-    <div class="logout-section">
-        <button class="btn-link" @onclick="HandleLogout" disabled="@_isLoading">
-            Log out and use a different account
-        </button>
-    </div>
+        <div class="alternative-section">
+            <span class="divider-text">or</span>
+            <button class="btn-secondary" @onclick="GoToJoinDen" disabled="@_isLoading">
+                Join an Existing Den
+            </button>
+            <p class="join-hint">Have an invite code from your co-parent?</p>
+        </div>
+
+        <div class="logout-section">
+            <button class="btn-link" @onclick="HandleLogout" disabled="@_isLoading">
+                Log out and use a different account
+            </button>
+        </div>
+    }
+    else if (_currentStep == 2)
+    {
+        <!-- Step 2: Add Children -->
+        <div class="create-den-header">
+            <div class="step-indicator">
+                <span class="step completed">1</span>
+                <span class="step-line"></span>
+                <span class="step active">2</span>
+            </div>
+            <h1>Add Your Children</h1>
+            <p class="description">
+                Add the children you'll be co-parenting. You can always add more later.
+            </p>
+        </div>
+
+        <Nook CssClass="auth-nook children-nook">
+            @if (_children.Count > 0)
+            {
+                <div class="children-list">
+                    @foreach (var child in _children)
+                    {
+                        <div class="child-card-mini">
+                            <div class="child-color" style="background-color: @(child.Color ?? "#3D8B8B")"></div>
+                            <div class="child-info">
+                                <span class="child-name">@child.FirstName</span>
+                                @if (child.BirthDate.HasValue)
+                                {
+                                    <span class="child-age">@GetAge(child.BirthDate.Value)</span>
+                                }
+                            </div>
+                            <button class="remove-child-btn" @onclick="() => RemoveChild(child)" disabled="@_isLoading">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 6L6 18M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (_showAddChildForm)
+            {
+                <div class="add-child-form">
+                    <div class="form-group">
+                        <label>First Name <span class="required">*</span></label>
+                        <input type="text"
+                               @bind="_newChildFirstName"
+                               @bind:event="oninput"
+                               placeholder="Required"
+                               class="@(string.IsNullOrWhiteSpace(_newChildFirstName) && _attemptedAddChild ? "invalid" : "")"
+                               disabled="@_isLoading" />
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Middle Name</label>
+                            <input type="text"
+                                   @bind="_newChildMiddleName"
+                                   @bind:event="oninput"
+                                   placeholder="Optional"
+                                   disabled="@_isLoading" />
+                        </div>
+
+                        <div class="form-group">
+                            <label>Last Name</label>
+                            <input type="text"
+                                   @bind="_newChildLastName"
+                                   @bind:event="oninput"
+                                   placeholder="Optional"
+                                   disabled="@_isLoading" />
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Birth Date</label>
+                            <input type="date"
+                                   @bind="_newChildBirthDate"
+                                   max="@DateTime.Today.ToString("yyyy-MM-dd")"
+                                   disabled="@_isLoading" />
+                        </div>
+
+                        <div class="form-group">
+                            <label>Color</label>
+                            <div class="color-picker">
+                                @foreach (var color in _availableColors)
+                                {
+                                    <button type="button"
+                                            class="color-option @(_newChildColor == color ? "selected" : "")"
+                                            style="background-color: @color"
+                                            @onclick="() => _newChildColor = color"
+                                            disabled="@_isLoading">
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(_childErrorMessage))
+                    {
+                        <div class="error-message">@_childErrorMessage</div>
+                    }
+
+                    <div class="add-child-actions">
+                        <button class="btn-secondary-small" @onclick="CancelAddChild" disabled="@_isLoading">
+                            Cancel
+                        </button>
+                        <button class="btn-primary-small" @onclick="AddChild" disabled="@_isLoading">
+                            Add Child
+                        </button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <button class="btn-add-child" @onclick="ShowAddChildForm" disabled="@_isLoading">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="16"></line>
+                        <line x1="8" y1="12" x2="16" y2="12"></line>
+                    </svg>
+                    Add @(_children.Count == 0 ? "a" : "Another") Child
+                </button>
+            }
+
+            @if (_children.Count == 0 && !_showAddChildForm)
+            {
+                <p class="children-hint">Add at least one child to continue</p>
+            }
+
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <div class="error-message">@_errorMessage</div>
+            }
+        </Nook>
+
+        <div class="step-navigation">
+            <button class="btn-back" @onclick="GoToStep1" disabled="@_isLoading">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                Back
+            </button>
+            <button class="btn-primary"
+                    @onclick="HandleCreateDen"
+                    disabled="@(!CanCreateDen || _isLoading)">
+                @(_isLoading ? "Creating..." : "Create Den")
+            </button>
+        </div>
+    }
 </div>
 
 @code {
+    private int _currentStep = 1;
     private string _denName = string.Empty;
     private string? _errorMessage;
     private bool _isLoading;
 
-    private bool IsValidForm => !string.IsNullOrWhiteSpace(_denName) && _denName.Length >= 2;
+    // Children management
+    private List<Child> _children = new();
+    private bool _showAddChildForm;
+    private string _newChildFirstName = string.Empty;
+    private string? _newChildMiddleName;
+    private string? _newChildLastName;
+    private DateTime? _newChildBirthDate;
+    private string _newChildColor = "#E07A5F";
+    private string? _childErrorMessage;
+    private bool _attemptedAddChild;
+
+    private readonly string[] _availableColors = new[]
+    {
+        "#E07A5F", // Coral
+        "#3D8B8B", // Teal
+        "#F4A261", // Orange
+        "#81B29A", // Green
+        "#E9C46A", // Yellow
+        "#7B68EE", // Purple
+        "#F08080", // Light coral
+        "#4682B4"  // Steel blue
+    };
+
+    private bool IsValidDenName => !string.IsNullOrWhiteSpace(_denName) && _denName.Length >= 2;
+    private bool CanCreateDen => IsValidDenName && _children.Count > 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -85,9 +266,102 @@
         }
     }
 
+    private void GoToStep1()
+    {
+        _currentStep = 1;
+        _errorMessage = null;
+    }
+
+    private void GoToStep2()
+    {
+        if (!IsValidDenName) return;
+        _currentStep = 2;
+        _errorMessage = null;
+
+        // Auto-show add child form if no children yet
+        if (_children.Count == 0)
+        {
+            ShowAddChildForm();
+        }
+    }
+
+    private void ShowAddChildForm()
+    {
+        _showAddChildForm = true;
+        _newChildFirstName = string.Empty;
+        _newChildMiddleName = null;
+        _newChildLastName = null;
+        _newChildBirthDate = null;
+        _newChildColor = GetNextColor();
+        _childErrorMessage = null;
+        _attemptedAddChild = false;
+    }
+
+    private string GetNextColor()
+    {
+        // Pick a color that isn't already used
+        var usedColors = _children.Select(c => c.Color).ToHashSet();
+        return _availableColors.FirstOrDefault(c => !usedColors.Contains(c)) ?? _availableColors[0];
+    }
+
+    private void CancelAddChild()
+    {
+        _showAddChildForm = false;
+        _childErrorMessage = null;
+        _attemptedAddChild = false;
+    }
+
+    private void AddChild()
+    {
+        _attemptedAddChild = true;
+        _childErrorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(_newChildFirstName))
+        {
+            _childErrorMessage = "First name is required";
+            return;
+        }
+
+        var trimmedFirstName = _newChildFirstName.Trim();
+
+        // Check for duplicate first names in the local list
+        if (_children.Any(c => c.FirstName.Equals(trimmedFirstName, StringComparison.OrdinalIgnoreCase)))
+        {
+            _childErrorMessage = $"A child named \"{trimmedFirstName}\" is already in the list";
+            return;
+        }
+
+        var child = new Child
+        {
+            Id = Guid.NewGuid().ToString(), // Temporary local ID
+            FirstName = trimmedFirstName,
+            MiddleName = string.IsNullOrWhiteSpace(_newChildMiddleName) ? null : _newChildMiddleName.Trim(),
+            LastName = string.IsNullOrWhiteSpace(_newChildLastName) ? null : _newChildLastName.Trim(),
+            BirthDate = _newChildBirthDate,
+            Color = _newChildColor
+        };
+
+        _children.Add(child);
+        _showAddChildForm = false;
+        _attemptedAddChild = false;
+    }
+
+    private void RemoveChild(Child child)
+    {
+        _children.Remove(child);
+    }
+
+    private string GetAge(DateTime birthDate)
+    {
+        var today = DateTime.Today;
+        var age = today.Year - birthDate.Year;
+        if (birthDate.Date > today.AddYears(-age)) age--;
+        return age == 1 ? "1 year old" : $"{age} years old";
+    }
+
     private async Task HandleCreateDen()
     {
-        if (!IsValidForm) return;
+        if (!CanCreateDen) return;
 
         _isLoading = true;
         _errorMessage = null;
@@ -97,7 +371,16 @@
         {
             await DenService.InitializeAsync();
             var den = await DenService.CreateDenAsync(_denName.Trim());
-            Logger.LogInformation("Den created successfully");
+            Logger.LogInformation("Den created successfully: {DenId}", den.Id);
+
+            // Add all children to the newly created den
+            foreach (var child in _children)
+            {
+                await ChildService.AddChildAsync(child);
+                Logger.LogInformation("Child added: {ChildName}", child.FirstName);
+            }
+
+            Logger.LogInformation("All {Count} children added to den", _children.Count);
             Navigation.NavigateTo("/", forceLoad: true);
         }
         catch (Exception ex)

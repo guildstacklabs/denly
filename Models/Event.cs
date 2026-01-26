@@ -96,6 +96,10 @@ public class Event : BaseModel
     [JsonProperty("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    [Column("updated_at")]
+    [JsonProperty("updated_at")]
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
     // Helper properties for UI compatibility
     // Convert from UTC (stored) to local time for display
     // Note: Supabase/Newtonsoft might return Local time depending on configuration.

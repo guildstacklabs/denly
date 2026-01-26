@@ -248,6 +248,74 @@ public class BalanceCalculatorTests
 
     #endregion
 
+    #region Per-Expense Split Tests
+
+    [Fact]
+    public void CalculateBalancesWithExpenseSplits_UsesPerExpenseSplits()
+    {
+        // Arrange
+        var memberIds = new List<string> { "user-a", "user-b" };
+        var expenses = new List<(string ExpenseId, decimal Amount, string PaidBy)>
+        {
+            ("exp-1", 100m, "user-a"),
+            ("exp-2", 50m, "user-b")
+        };
+
+        var splitsByExpense = new Dictionary<string, IReadOnlyList<BalanceCalculator.ExpenseSplitShare>>
+        {
+            {
+                "exp-1",
+                new List<BalanceCalculator.ExpenseSplitShare>
+                {
+                    new("user-a", 60m),
+                    new("user-b", 40m)
+                }
+            },
+            {
+                "exp-2",
+                new List<BalanceCalculator.ExpenseSplitShare>
+                {
+                    new("user-a", 50m),
+                    new("user-b", 50m)
+                }
+            }
+        };
+
+        // Act
+        var balances = BalanceCalculator.CalculateBalancesWithExpenseSplits(expenses, memberIds, splitsByExpense);
+
+        // Assert
+        // exp-1: user-a paid 100, owes 60 -> +40; user-b owes 40 -> -40
+        // exp-2: user-b paid 50, owes 25 -> +25; user-a owes 25 -> -25
+        // totals: user-a +15, user-b -15
+        Assert.Equal(15m, balances["user-a"]);
+        Assert.Equal(-15m, balances["user-b"]);
+        Assert.Equal(0m, balances.Values.Sum());
+    }
+
+    [Fact]
+    public void CalculateBalancesWithExpenseSplits_FallsBackToEqualSplitWhenMissing()
+    {
+        // Arrange
+        var memberIds = new List<string> { "user-a", "user-b" };
+        var expenses = new List<(string ExpenseId, decimal Amount, string PaidBy)>
+        {
+            ("exp-1", 80m, "user-a")
+        };
+
+        var splitsByExpense = new Dictionary<string, IReadOnlyList<BalanceCalculator.ExpenseSplitShare>>();
+
+        // Act
+        var balances = BalanceCalculator.CalculateBalancesWithExpenseSplits(expenses, memberIds, splitsByExpense);
+
+        // Assert
+        // Equal split: each owes 40, user-a paid 80 -> +40, user-b -40
+        Assert.Equal(40m, balances["user-a"]);
+        Assert.Equal(-40m, balances["user-b"]);
+    }
+
+    #endregion
+
     #region Realistic Scenarios
 
     [Fact]

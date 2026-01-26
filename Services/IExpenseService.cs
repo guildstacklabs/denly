@@ -9,6 +9,8 @@ public interface IExpenseService
     Task SaveExpenseAsync(Expense expense, CancellationToken cancellationToken = default);
     Task DeleteExpenseAsync(string id, CancellationToken cancellationToken = default);
     Task<Dictionary<string, decimal>> GetBalancesAsync(CancellationToken cancellationToken = default);
+    Task<List<ExpenseSplit>> GetExpenseSplitsAsync(IEnumerable<string> expenseIds, CancellationToken cancellationToken = default);
+    Task SaveExpenseSplitsAsync(string expenseId, IReadOnlyList<ExpenseSplit> splits, CancellationToken cancellationToken = default);
     Task<List<Settlement>> GetAllSettlementsAsync(CancellationToken cancellationToken = default);
     Task<Settlement> CreateSettlementAsync(decimal amount, string fromUserId, string toUserId, string? note = null, CancellationToken cancellationToken = default);
     Task<string> SaveReceiptAsync(Stream imageStream, string fileName, CancellationToken cancellationToken = default);

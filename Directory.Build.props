@@ -4,11 +4,11 @@
       iOS Simulator Configuration
 
       To use a specific simulator, set _DeviceName:
-        dotnet build -f net10.0-ios -p:_DeviceName=":v2:udid=426A9347-1B25-4B7B-9449-DD9AB7CE90D3"
+        dotnet build -f net10.0-ios -p:_DeviceName=":v2:udid=706CE30A-62B4-4452-B387-10D1B61C787B"
 
       Or use the default below (iPhone 17 Pro Max)
     -->
-    <_DeviceName Condition="'$(_DeviceName)' == ''">:v2:udid=426A9347-1B25-4B7B-9449-DD9AB7CE90D3</_DeviceName>
+    <_DeviceName Condition="'$(_DeviceName)' == ''">:v2:udid=A2C4A996-EA79-40BD-98FB-1A523A9B8124</_DeviceName>
   </PropertyGroup>
 
   <!--

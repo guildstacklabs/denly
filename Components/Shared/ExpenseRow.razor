@@ -1,0 +1,38 @@
+@namespace Denly.Components.Shared
+
+<div class="expense-row">
+    <div class="expense-icon-area">
+        <div class="expense-icon">
+            <!-- Generic category icon based on random logic or type if available -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
+                <line x1="12" y1="18" x2="12" y2="22"></line>
+                <line x1="12" y1="2" x2="12" y2="6"></line>
+            </svg>
+        </div>
+    </div>
+    
+    <div class="expense-content">
+        <div class="expense-title">@Description</div>
+        <div class="expense-meta">
+            <span>@PayerName paid</span>
+            @if (!string.IsNullOrEmpty(SplitText))
+            {
+                <span class="split-info">@SplitText</span>
+            }
+        </div>
+    </div>
+    
+    <div class="expense-amount">
+        @Amount.ToString("C")
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Description { get; set; } = string.Empty;
+    [Parameter] public decimal Amount { get; set; }
+    [Parameter] public string PayerName { get; set; } = string.Empty;
+    [Parameter] public string SplitText { get; set; } = string.Empty;
+    [Parameter] public DateTime Date { get; set; }
+}

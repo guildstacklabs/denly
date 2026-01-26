@@ -1,5 +1,9 @@
 {
   "profiles": {
+    "iOS Simulator": {
+      "commandName": "Project",
+      "commandLineArgs": "-f net8.0-ios -p:_DeviceName=:v2:udid=706CE30A-62B4-4452-B387-10D1B61C787B"
+    },
     "Windows Machine": {
       "commandName": "Project",
       "nativeDebugging": false

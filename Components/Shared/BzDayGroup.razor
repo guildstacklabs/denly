@@ -1,0 +1,15 @@
+@namespace Denly.Components.Shared
+
+<div class="bz-day-group">
+    <div class="bz-day-header">
+        <h4>@DayHeader</h4>
+    </div>
+    <div class="bz-day-body">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    [Parameter] public string DayHeader { get; set; } = string.Empty;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

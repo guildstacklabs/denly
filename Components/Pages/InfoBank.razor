@@ -1,88 +1,203 @@
-@page "/infobank"
+@page "/info"
 @using Denly.Models
 @using Denly.Services
+@using Denly.Components.Shared
 @inject IDenService DenService
 @inject IAuthService AuthService
 @inject NavigationManager Navigation
 
-<PageTitle>Info Bank</PageTitle>
-
-<div class="info-bank-container">
-    <h1>Info Bank</h1>
-    <p class="text-muted">Shared information for schools, doctors, and emergencies.</p>
+<div class="info-page">
+    <header class="info-header">
+         <h1>Info</h1>
+    </header>
 
     @if (_isLoading)
     {
-        <p>Loading...</p>
+        <LoadingSpinner Message="Loading info..." Size="LoadingSize.Large" />
     }
     else if (_children == null || !_children.Any())
     {
-        <p>No children found in this Den.</p>
+         <div class="empty-state">
+            <p>No children profiles found.</p>
+        </div>
     }
     else
     {
-        <div class="tabs">
+        <!-- Child Selector Tabs -->
+        <div class="child-tabs">
             @foreach (var child in _children)
             {
-                <button class="btn @(_selectedChild == child ? "btn-primary" : "btn-outline-secondary")" 
-                        style="margin-right: 8px;"
+                <button class="child-tab @(_selectedChild == child ? "active" : "")" 
                         @onclick="() => SelectChild(child)">
-                    @child.Name
+                    @child.FirstName
                 </button>
             }
         </div>
-        <hr />
 
         @if (_selectedChild != null)
         {
-            <EditForm Model="_selectedChild" OnValidSubmit="SaveAsync">
-                <DataAnnotationsValidator />
-                
-                <div class="form-section mb-4">
-                    <h3>Medical</h3>
-                    <div class="mb-3">
-                        <label class="form-label">Doctor Name</label>
-                        <InputText @bind-Value="_selectedChild.DoctorName" class="form-control" placeholder="e.g. Dr. Smith" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Doctor Contact</label>
-                        <InputText @bind-Value="_selectedChild.DoctorContact" class="form-control" placeholder="Phone or Address" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Allergies / Meds</label>
-                        <InputTextArea @bind-Value="_selectedChild.Allergies" class="form-control" rows="3" />
-                    </div>
-                </div>
-
-                <div class="form-section mb-4">
-                    <h3>School & Sizes</h3>
-                    <div class="mb-3">
-                        <label class="form-label">School Name</label>
-                        <InputText @bind-Value="_selectedChild.SchoolName" class="form-control" />
-                    </div>
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label class="form-label">Clothing Size</label>
-                            <InputText @bind-Value="_selectedChild.ClothingSize" class="form-control" />
-                        </div>
-                        <div class="col-6 mb-3">
-                            <label class="form-label">Shoe Size</label>
-                            <InputText @bind-Value="_selectedChild.ShoeSize" class="form-control" />
-                        </div>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn btn-success" disabled="@_isSaving">
-                    @(_isSaving ? "Saving..." : "Save Changes")
-                </button>
-            </EditForm>
+             <div class="info-card">
+                 <div class="card-section">
+                     <h3>Medical</h3>
+                     <div class="info-row">
+                         <span class="label">Doctor</span>
+                         <span class="value">@(_selectedChild.DoctorName ?? "Not set")</span>
+                     </div>
+                      <div class="info-row">
+                         <span class="label">Contact</span>
+                         <span class="value">@(_selectedChild.DoctorContact ?? "--")</span>
+                     </div>
+                 </div>
+                 
+                 <div class="card-divider"></div>
+                 
+                 <div class="card-section">
+                     <h3>School & Sizes</h3>
+                      <div class="info-row">
+                         <span class="label">School</span>
+                         <span class="value">@(_selectedChild.SchoolName ?? "Not set")</span>
+                     </div>
+                     <div class="sizes-grid">
+                         <div class="size-item">
+                             <span class="label">Clothes</span>
+                             <span class="value">@(_selectedChild.ClothingSize ?? "--")</span>
+                         </div>
+                         <div class="size-item">
+                             <span class="label">Shoes</span>
+                             <span class="value">@(_selectedChild.ShoeSize ?? "--")</span>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+             
+             <button class="edit-btn" @onclick="EditChild">
+                 Edit Info
+             </button>
         }
     }
 </div>
 
+<style>
+    .info-page {
+        padding: 1rem 1.5rem;
+        background-color: #f9f9f9;
+        min-height: 100vh;
+        padding-bottom: 100px;
+    }
+    
+    .info-header h1 {
+        font-size: 1.75rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        color: #1a1a1a;
+    }
+    
+    .child-tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
+    
+    .child-tab {
+        padding: 0.5rem 1.25rem;
+        border-radius: 20px;
+        background: rgba(0,0,0,0.05);
+        color: #666;
+        font-weight: 500;
+        border: none;
+        white-space: nowrap;
+        transition: all 0.2s;
+    }
+    
+    .child-tab.active {
+        background: #1a1a1a;
+        color: #fff;
+    }
+    
+    .info-card {
+        background: #fff;
+        border-radius: 24px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+        margin-bottom: 1.5rem;
+    }
+    
+    .card-section h3 {
+        font-size: 0.8125rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #999;
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+    
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+        font-size: 0.9375rem;
+    }
+    
+    .info-row .label {
+        color: #666;
+    }
+    
+    .info-row .value {
+        color: #1a1a1a;
+        font-weight: 500;
+        text-align: right;
+    }
+    
+    .card-divider {
+        height: 1px;
+        background: rgba(0,0,0,0.05);
+        margin: 1.5rem 0;
+    }
+    
+    .sizes-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+    
+    .size-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .size-item .label {
+        font-size: 0.75rem;
+        color: #888;
+    }
+    
+    .size-item .value {
+        font-size: 1rem;
+        font-weight: 500;
+        color: #1a1a1a;
+    }
+    
+    .edit-btn {
+        width: 100%;
+        background: transparent;
+        border: 1px solid rgba(0,0,0,0.1);
+        padding: 1rem;
+        border-radius: 12px;
+        color: #1a1a1a;
+        font-weight: 500;
+    }
+    
+    .empty-state {
+        color: #999;
+        text-align: center;
+        margin-top: 2rem;
+    }
+</style>
+
 @code {
     private bool _isLoading = true;
-    private bool _isSaving = false;
     private List<Child> _children = new();
     private Child? _selectedChild;
 
@@ -109,22 +224,10 @@
     {
         _selectedChild = child;
     }
-
-    private async Task SaveAsync()
+    
+    private void EditChild()
     {
-        if (_selectedChild == null) return;
-        _isSaving = true;
-        try
-        {
-            await DenService.UpdateChildAsync(_selectedChild);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[InfoBank] Error saving: {ex.Message}");
-        }
-        finally
-        {
-            _isSaving = false;
-        }
+        // Logic to open edit modal or navigate to edit page
+        // For now, placeholder
     }
 }

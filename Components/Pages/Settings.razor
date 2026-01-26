@@ -3,6 +3,7 @@
 @using Denly.Services
 @using Microsoft.Extensions.Logging
 @inject IDenService DenService
+@inject IChildService ChildService
 @inject IAuthService Auth
 @inject NavigationManager Navigation
 @inject ILogger<Settings> Logger
@@ -24,8 +25,7 @@
     else if (_currentDen != null)
     {
         <!-- Den Section -->
-        <div class="settings-section">
-            <h2 class="section-title">Your Den</h2>
+        <Nook Title="Your Den" CssClass="settings-nook">
             <div class="den-card">
                 <div class="den-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -38,10 +38,10 @@
                     <span class="den-role">@(_isOwner ? "Owner" : "Co-parent")</span>
                 </div>
             </div>
-        </div>
+        </Nook>
 
         <!-- Members Section -->
-        <div class="settings-section">
+        <Nook CssClass="settings-nook">
             <div class="section-header">
                 <h2 class="section-title">
                     Members
@@ -97,11 +97,112 @@
                     </div>
                 }
             </div>
+        </Nook>
+
+        <!-- Children Section -->
+        <div class="settings-section">
+            <div class="section-header">
+                <h2 class="section-title">Children</h2>
+                <button class="invite-btn" @onclick="OpenAddChildModal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Add
+                </button>
+            </div>
+
+            @if (_activeChildren.Count == 0)
+            {
+                <div class="empty-children">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <p>No children added yet</p>
+                    <button class="add-child-prompt-btn" @onclick="OpenAddChildModal">Add Your First Child</button>
+                </div>
+            }
+            else
+            {
+                <div class="children-list">
+                    @foreach (var child in _activeChildren)
+                    {
+                        var displayName = ChildService.GetDisplayName(child, _activeChildren);
+                        <div class="child-card">
+                            <div class="child-avatar" style="@(child.Color != null ? $"background-color: {child.Color}" : "")">
+                                @(displayName.Length > 0 ? displayName[0].ToString().ToUpperInvariant() : "?")
+                            </div>
+                            <div class="child-info">
+                                <span class="child-name">@child.FullName</span>
+                                @if (child.Age.HasValue)
+                                {
+                                    <span class="child-age">@child.Age years old</span>
+                                }
+                            </div>
+                            <div class="child-actions">
+                                <button class="edit-child-btn" @onclick="() => OpenEditChildModal(child)" title="Edit">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </button>
+                                <button class="deactivate-child-btn" @onclick="() => ConfirmDeactivateChild(child)" title="Deactivate">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (_deactivatedChildren.Count > 0)
+            {
+                <div class="inactive-section">
+                    <button class="inactive-toggle" @onclick="ToggleInactiveSection">
+                        <svg class="@(_showInactiveChildren ? "expanded" : "")" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                        Inactive (@_deactivatedChildren.Count)
+                    </button>
+
+                    @if (_showInactiveChildren)
+                    {
+                        <div class="inactive-children-list">
+                            @foreach (var child in _deactivatedChildren)
+                            {
+                                <div class="child-card inactive">
+                                    <div class="child-avatar inactive-avatar">
+                                        @(child.FirstName.Length > 0 ? child.FirstName[0].ToString().ToUpperInvariant() : "?")
+                                    </div>
+                                    <div class="child-info">
+                                        <span class="child-name">@child.FullName</span>
+                                        <span class="child-status">Deactivated</span>
+                                    </div>
+                                    <button class="reactivate-btn" @onclick="() => ConfirmReactivateChild(child)" title="Reactivate">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M21 2v6h-6"></path>
+                                            <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+                                            <path d="M3 22v-6h6"></path>
+                                            <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+                                        </svg>
+                                        Reactivate
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
         </div>
 
         <!-- Account Section -->
-        <div class="settings-section">
-            <h2 class="section-title">Account</h2>
+        <Nook Title="Account" CssClass="settings-nook">
             <div class="account-info">
                 @if (_currentUser != null)
                 {
@@ -127,13 +228,12 @@
                 </svg>
                 Sign Out
             </button>
-        </div>
+        </Nook>
     }
     else if (!_isLoading)
     {
         <!-- No den - show account section only -->
-        <div class="settings-section">
-            <h2 class="section-title">Account</h2>
+        <Nook Title="Account" CssClass="settings-nook">
             <div class="account-info">
                 @if (_currentUser != null)
                 {
@@ -158,7 +258,7 @@
                 </svg>
                 Sign Out
             </button>
-        </div>
+        </Nook>
     }
 </div>
 
@@ -253,6 +353,59 @@
     </div>
 }
 
+<!-- Add/Edit Child Modal -->
+@if (_showChildModal)
+{
+    <AddEditChildModal Child="_childToEdit"
+                       OnSave="HandleSaveChild"
+                       OnCancel="CloseChildModal"
+                       ValidateNameAsync="ChildService.ValidateChildNameAsync" />
+}
+
+<!-- Deactivate Child Confirmation Modal -->
+@if (_showDeactivateModal && _childToDeactivate != null)
+{
+    <div class="modal-overlay" @onclick="CancelDeactivateChild">
+        <div class="modal-content confirm-modal" @onclick:stopPropagation="true">
+            <div class="confirm-icon warning-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                </svg>
+            </div>
+            <h3 class="confirm-title">Deactivate @_childToDeactivate.FirstName?</h3>
+            <p class="confirm-text">This will hide @_childToDeactivate.FirstName from all selectors. Historical records will be preserved.</p>
+            <div class="confirm-actions">
+                <button class="cancel-btn" @onclick="CancelDeactivateChild">Cancel</button>
+                <button class="delete-confirm-btn" @onclick="DeactivateChild">Deactivate</button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Reactivate Child Confirmation Modal -->
+@if (_showReactivateModal && _childToReactivate != null)
+{
+    <div class="modal-overlay" @onclick="CancelReactivateChild">
+        <div class="modal-content confirm-modal" @onclick:stopPropagation="true">
+            <div class="confirm-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 2v6h-6"></path>
+                    <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+                    <path d="M3 22v-6h6"></path>
+                    <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+                </svg>
+            </div>
+            <h3 class="confirm-title">Reactivate @_childToReactivate.FirstName?</h3>
+            <p class="confirm-text">@_childToReactivate.FirstName will be visible again in all selectors.</p>
+            <div class="confirm-actions">
+                <button class="cancel-btn" @onclick="CancelReactivateChild">Cancel</button>
+                <button class="btn-primary" @onclick="ReactivateChild">Reactivate</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private Den? _currentDen;
     private AppUser? _currentUser;
@@ -264,6 +417,17 @@
     private bool _isLoadingInvite;
     private DenInvite? _activeInvite;
     private DenMember? _memberToRemove;
+
+    // Children state
+    private List<Child> _activeChildren = new();
+    private List<Child> _deactivatedChildren = new();
+    private bool _showChildModal;
+    private bool _showDeactivateModal;
+    private bool _showReactivateModal;
+    private bool _showInactiveChildren;
+    private Child? _childToEdit;
+    private Child? _childToDeactivate;
+    private Child? _childToReactivate;
 
     protected override async Task OnInitializedAsync()
     {
@@ -285,14 +449,19 @@
 
         if (_currentDen != null)
         {
-            // Load members and owner status in parallel
+            // Load members, owner status, and children in parallel
             var membersTask = DenService.GetDenMembersAsync();
             var ownerTask = DenService.IsOwnerAsync();
+            var childrenTask = ChildService.GetAllChildrenAsync();
 
-            await Task.WhenAll(membersTask, ownerTask);
+            await Task.WhenAll(membersTask, ownerTask, childrenTask);
 
             _members = await membersTask;
             _isOwner = await ownerTask;
+
+            var allChildren = await childrenTask;
+            _activeChildren = allChildren.Where(c => c.IsActive).ToList();
+            _deactivatedChildren = allChildren.Where(c => !c.IsActive).ToList();
         }
 
         _isLoading = false;
@@ -444,5 +613,118 @@
         if (remaining.TotalMinutes >= 1)
             return $"{(int)remaining.TotalMinutes} minute{((int)remaining.TotalMinutes != 1 ? "s" : "")}";
         return "less than a minute";
+    }
+
+    // Child management methods
+    private void OpenAddChildModal()
+    {
+        _childToEdit = null;
+        _showChildModal = true;
+    }
+
+    private void OpenEditChildModal(Child child)
+    {
+        _childToEdit = child;
+        _showChildModal = true;
+    }
+
+    private void CloseChildModal()
+    {
+        _showChildModal = false;
+        _childToEdit = null;
+    }
+
+    private async Task HandleSaveChild(Child child)
+    {
+        try
+        {
+            if (_childToEdit != null)
+            {
+                // Update existing child
+                child.Id = _childToEdit.Id;
+                child.DenId = _childToEdit.DenId;
+                await ChildService.UpdateChildAsync(child);
+                Logger.LogInformation("Child updated successfully");
+            }
+            else
+            {
+                // Add new child
+                await ChildService.AddChildAsync(child);
+                Logger.LogInformation("Child added successfully");
+            }
+
+            _showChildModal = false;
+            _childToEdit = null;
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to save child");
+        }
+    }
+
+    private void ConfirmDeactivateChild(Child child)
+    {
+        _childToDeactivate = child;
+        _showDeactivateModal = true;
+    }
+
+    private void CancelDeactivateChild()
+    {
+        _showDeactivateModal = false;
+        _childToDeactivate = null;
+    }
+
+    private async Task DeactivateChild()
+    {
+        if (_childToDeactivate == null) return;
+
+        try
+        {
+            await ChildService.DeactivateChildAsync(_childToDeactivate.Id);
+            Logger.LogInformation("Child deactivated successfully");
+            _showDeactivateModal = false;
+            _childToDeactivate = null;
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to deactivate child");
+        }
+    }
+
+    private void ConfirmReactivateChild(Child child)
+    {
+        _childToReactivate = child;
+        _showReactivateModal = true;
+    }
+
+    private void CancelReactivateChild()
+    {
+        _showReactivateModal = false;
+        _childToReactivate = null;
+    }
+
+    private async Task ReactivateChild()
+    {
+        if (_childToReactivate == null) return;
+
+        try
+        {
+            await ChildService.ReactivateChildAsync(_childToReactivate.Id);
+            Logger.LogInformation("Child reactivated successfully");
+            _showReactivateModal = false;
+            _childToReactivate = null;
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to reactivate child");
+        }
+    }
+
+    private void ToggleInactiveSection()
+    {
+        _showInactiveChildren = !_showInactiveChildren;
     }
 }

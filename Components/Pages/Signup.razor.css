@@ -15,13 +15,14 @@
 .app-logo {
     width: 80px;
     height: 80px;
-    background: var(--color-surface);
+    background: var(--color-nook-bg);
     border-radius: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto 1rem;
-    box-shadow: 0 4px 12px var(--shadow-color-15);
+    box-shadow: var(--shadow-nook);
+    border: 1px solid var(--color-border-soft);
 }
 
 .app-logo svg {
@@ -31,14 +32,14 @@
 }
 
 .signup-header h1 {
-    color: var(--color-text-inverse);
+    color: var(--color-den-shadow);
     font-size: 1.75rem;
     font-weight: 700;
     margin: 0 0 0.5rem;
 }
 
 .tagline {
-    color: var(--color-surface-glass-85);
+    color: var(--color-text-muted);
     font-size: 0.9375rem;
     margin: 0;
 }
@@ -64,9 +65,9 @@
     flex-shrink: 0;
 }
 
-.auth-section {
+.auth-nook {
     width: 100%;
-    max-width: 340px;
+    max-width: 360px;
 }
 
 .btn-google {
@@ -75,16 +76,16 @@
     align-items: center;
     justify-content: center;
     gap: 0.75rem;
-    background: var(--color-surface);
-    border: none;
-    border-radius: 12px;
+    background: var(--color-nook-bg);
+    border: 1px solid var(--color-border-soft);
+    border-radius: 999px;
     padding: 0.875rem 1.25rem;
     font-size: 1rem;
     font-weight: 500;
     color: var(--color-text);
     cursor: pointer;
-    transition: transform 0.15s, box-shadow 0.15s;
-    box-shadow: 0 2px 8px var(--shadow-color-12);
+    transition: transform var(--motion-fast) var(--ease-out), box-shadow var(--motion-base) var(--ease-out);
+    box-shadow: var(--shadow-nook);
 }
 
 .btn-google:hover:not(:disabled) {
@@ -117,20 +118,19 @@
     content: '';
     flex: 1;
     height: 1px;
-    background: var(--color-surface-glass-30);
+    background: var(--color-border-soft);
 }
 
 .divider span {
     padding: 0 1rem;
-    color: var(--color-surface-glass-80);
+    color: var(--color-text-muted);
     font-size: 0.875rem;
 }
 
 .email-form {
-    background: var(--color-surface);
-    border-radius: 16px;
-    padding: 1.5rem;
-    box-shadow: 0 4px 12px var(--shadow-color-10);
+    background: transparent;
+    padding: 0.25rem 0 0;
+    box-shadow: none;
 }
 
 .form-group {
@@ -165,9 +165,9 @@
     border: none;
     color: var(--color-text-inverse);
     padding: 0.875rem 1.25rem;
-    border-radius: 10px;
+    border-radius: 999px;
     font-size: 1rem;
-    font-weight: 500;
+    font-weight: 700;
     cursor: pointer;
     transition: background-color 0.2s;
     margin-top: 0.75rem;
@@ -185,12 +185,12 @@
 .login-link {
     text-align: center;
     margin-top: 1.5rem;
-    color: var(--color-surface-glass-90);
+    color: var(--color-text-muted);
     font-size: 0.9375rem;
 }
 
 .login-link a {
-    color: var(--color-text-inverse);
+    color: var(--color-den-shadow);
     font-weight: 600;
     text-decoration: none;
     margin-left: 0.25rem;

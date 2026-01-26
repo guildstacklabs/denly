@@ -1,0 +1,17 @@
+<nav class="sidebar-menu">
+    <div class="sidebar-header">Denly</div>
+    <NavLink href="/" class="sidebar-link" @onclick="HandleNavigate">Home</NavLink>
+    <NavLink href="/schedule" class="sidebar-link" @onclick="HandleNavigate">Calendar</NavLink>
+    <NavLink href="/shared-costs" class="sidebar-link" @onclick="HandleNavigate">Shared Costs</NavLink>
+    <NavLink href="/infobank" class="sidebar-link" @onclick="HandleNavigate">Child Info</NavLink>
+    <NavLink href="/settings" class="sidebar-link" @onclick="HandleNavigate">Settings</NavLink>
+</nav>
+
+@code {
+    [Parameter] public EventCallback OnNavigate { get; set; }
+
+    private async Task HandleNavigate()
+    {
+        await OnNavigate.InvokeAsync();
+    }
+}
