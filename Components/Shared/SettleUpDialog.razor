@@ -3,48 +3,57 @@
 
 @if (IsOpen)
 {
-    <div class="dialog-backdrop">
-        <div class="dialog-card" style="@CardStyle">
-            <h2 class="dialog-title" style="@TitleStyle">Settle up</h2>
-            <div class="dialog-balance" style="@BalanceStyle">
-                Current balance: @Balance.ToString("C", CultureInfo.CurrentCulture)
+    <div class="modal-overlay" @onclick="OnCancel">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>Record settlement</h3>
+                <button class="close-btn" @onclick="OnCancel" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
             </div>
-
             <EditForm Model="Model" OnValidSubmit="HandleValidSubmit">
                 <DataAnnotationsValidator />
+                <div class="modal-body">
+                    <div class="dialog-balance" style="@BalanceStyle">
+                        Shared balance: @Balance.ToString("C", CultureInfo.CurrentCulture)
+                    </div>
 
-                <div class="dialog-field">
-                    <label>Settlement amount</label>
-                    <InputNumber @bind-Value="Model.Amount" />
+                    <div class="form-group">
+                        <label>Amount</label>
+                        <InputNumber @bind-Value="Model.Amount" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>From</label>
+                        <InputSelect @bind-Value="Model.PayerId">
+                            <option value="">Select a caregiver</option>
+                            @foreach (var caregiver in Caregivers)
+                            {
+                                <option value="@caregiver.Id">@caregiver.Name</option>
+                            }
+                        </InputSelect>
+                    </div>
+
+                    <div class="form-group">
+                        <label>To</label>
+                        <InputSelect @bind-Value="Model.ReceiverId">
+                            <option value="">Select a caregiver</option>
+                            @foreach (var caregiver in Caregivers)
+                            {
+                                <option value="@caregiver.Id">@caregiver.Name</option>
+                            }
+                        </InputSelect>
+                    </div>
+
+                    <ValidationSummary />
                 </div>
 
-                <div class="dialog-field">
-                    <label>Payer</label>
-                    <InputSelect @bind-Value="Model.PayerId">
-                        <option value="">Select a caregiver</option>
-                        @foreach (var caregiver in Caregivers)
-                        {
-                            <option value="@caregiver.Id">@caregiver.Name</option>
-                        }
-                    </InputSelect>
-                </div>
-
-                <div class="dialog-field">
-                    <label>Receiver</label>
-                    <InputSelect @bind-Value="Model.ReceiverId">
-                        <option value="">Select a caregiver</option>
-                        @foreach (var caregiver in Caregivers)
-                        {
-                            <option value="@caregiver.Id">@caregiver.Name</option>
-                        }
-                    </InputSelect>
-                </div>
-
-                <ValidationSummary />
-
-                <div class="dialog-actions">
-                    <button type="button" class="dialog-btn secondary" @onclick="OnCancel">Cancel</button>
-                    <button type="submit" class="dialog-btn primary">Save</button>
+                <div class="modal-footer">
+                    <button type="button" class="cancel-btn" @onclick="OnCancel">Cancel</button>
+                    <button type="submit" class="save-btn">Save item</button>
                 </div>
             </EditForm>
         </div>
@@ -58,17 +67,6 @@
     [Parameter] public IReadOnlyList<CaregiverOption> Caregivers { get; set; } = Array.Empty<CaregiverOption>();
     [Parameter] public EventCallback OnCancel { get; set; }
     [Parameter] public EventCallback<SettleUpInput> OnSave { get; set; }
-
-    private string CardStyle =>
-        $"background:{DesignTokens.CssRgba(DesignTokens.Colors.NookBackground)};" +
-        $"border-radius:{DesignTokens.Dimensions.RadiusNook}px;" +
-        $"padding:{DesignTokens.Spacing.Xxl}px;" +
-        $"box-shadow:{DesignTokens.Shadows.Nook};";
-
-    private string TitleStyle =>
-        $"font-family:{DesignTokens.Typography.FontHeading};" +
-        $"font-size:{DesignTokens.Typography.SizeXl}px;" +
-        $"margin-bottom:{DesignTokens.Spacing.Sm}px;";
 
     private string BalanceStyle =>
         $"font-size:{DesignTokens.Typography.SizeSm}px;" +

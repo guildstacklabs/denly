@@ -7,6 +7,14 @@
     border: 1px solid var(--color-border-soft);
 }
 
+.nook.nook--glass {
+    background: var(--color-surface-glass);
+    border: 1px solid var(--color-border-soft);
+    box-shadow: var(--shadow-pebble);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
 .nook-header {
     margin-top: 0;
     font-family: var(--font-heading);

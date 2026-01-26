@@ -3,23 +3,19 @@
 <div class="expense-row @(OnClick.HasDelegate ? "clickable" : "")" @onclick="HandleClick">
     <div class="expense-icon-area">
         <div class="expense-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
-                <line x1="12" y1="18" x2="12" y2="22"></line>
-                <line x1="12" y1="2" x2="12" y2="6"></line>
-            </svg>
+            <span class="expense-initials">@Initials</span>
         </div>
     </div>
     
     <div class="expense-content">
         <div class="expense-title">@Description</div>
         <div class="expense-meta">
-            <span>@PayerName paid</span>
+            <span>@PayerName added</span>
             @if (!string.IsNullOrEmpty(SplitText))
             {
-                <span class="split-info">@SplitText</span>
+                <span class="den-chip split-info">@SplitText</span>
             }
+            <span class="expense-date">@DateText</span>
         </div>
     </div>
     
@@ -34,7 +30,14 @@
     [Parameter] public string PayerName { get; set; } = string.Empty;
     [Parameter] public string SplitText { get; set; } = string.Empty;
     [Parameter] public DateTime Date { get; set; }
+    [Parameter] public string? PayerInitials { get; set; }
     [Parameter] public EventCallback OnClick { get; set; }
+
+    private string Initials => !string.IsNullOrWhiteSpace(PayerInitials)
+        ? PayerInitials!
+        : (!string.IsNullOrWhiteSpace(PayerName) ? PayerName.Trim()[0].ToString().ToUpperInvariant() : "•");
+
+    private string DateText => Date == default ? string.Empty : Date.ToString("MMM d");
 
     private async Task HandleClick()
     {

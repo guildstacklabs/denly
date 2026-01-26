@@ -65,7 +65,7 @@
     flex-shrink: 0;
 }
 
-.auth-nook {
+:deep(.auth-nook) {
     width: 100%;
     max-width: 360px;
 }

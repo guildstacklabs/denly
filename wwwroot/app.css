@@ -12,6 +12,8 @@
     --color-coral: #E07A5F;             /* Alert - kept for importance */
     --color-border-soft: rgba(0, 0, 0, 0.05);
     --color-surface-glass: rgba(255, 255, 255, 0.85);
+    --color-surface-glass-10: rgba(255, 255, 255, 0.6);
+    --color-overlay-50: rgba(12, 14, 18, 0.35);
 
     /* --- Extended Palette --- */
     --color-user-sienna: #D4A373;
@@ -108,6 +110,78 @@ h1, h2, h3, h4, h5, h6 {
 a, .btn-link {
     color: var(--color-primary);
     text-decoration: none;
+}
+
+/* Form controls */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+textarea,
+select {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-soft);
+    border-radius: 12px;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text);
+    font-family: var(--font-body);
+    box-sizing: border-box;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+input[type="time"]:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: var(--focus-ring);
+}
+
+input[type="date"],
+input[type="time"],
+select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image:
+        linear-gradient(45deg, transparent 50%, var(--color-text-muted) 50%),
+        linear-gradient(135deg, var(--color-text-muted) 50%, transparent 50%);
+    background-position:
+        calc(100% - 16px) 55%,
+        calc(100% - 11px) 55%;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    padding-right: 2rem;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+    opacity: 0;
+}
+
+/* Chips */
+.den-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-border-soft);
+    background: var(--color-surface-glass);
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.den-chip--active {
+    background: var(--color-primary-soft);
+    color: var(--color-text);
 }
 
 /* Auth Loading specific */

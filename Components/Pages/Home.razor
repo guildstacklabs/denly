@@ -11,9 +11,8 @@
 @inject ILogger<Home> Logger
 
 <div class="home-sanctuary">
-    <SanctuaryHeader Title="Today" 
-                    Subtitle="@_lastUpdatedText" 
-                    IsCollapsed="@_isHeaderCollapsed" />
+    <SanctuaryHeader Title="Today"
+                     Subtitle="@_lastUpdatedText" />
 
     <div class="sanctuary-content">
         <!-- 4-Day Schedule Spine -->
@@ -73,9 +72,9 @@
                 </CompactCostsCard>
 
                 <ChildInfoCard OnClick="@(() => Navigation.NavigateTo("/info"))">
-                     <span class="chip">School</span>
-                     <span class="chip">Care</span>
-                     <span class="chip">Health</span>
+                     <span class="den-chip">School</span>
+                     <span class="den-chip">Care</span>
+                     <span class="den-chip">Health</span>
                 </ChildInfoCard>
             </div>
             
@@ -88,7 +87,7 @@
     .home-sanctuary {
         padding-bottom: 80px; /* Space for bottom nav */
         min-height: 100vh;
-        background-color: #f9f9f9; /* Soft background */
+        background-color: var(--color-background);
     }
 
     .sanctuary-content {
@@ -108,7 +107,7 @@
         display: flex;
         gap: 1rem;
         padding: 0.5rem 0;
-        border-bottom: 1px solid rgba(0,0,0,0.03);
+        border-bottom: 1px solid var(--color-border-soft);
         cursor: pointer;
     }
     
@@ -118,7 +117,7 @@
 
     .event-time {
         font-size: 0.875rem;
-        color: #666;
+        color: var(--color-text-muted);
         width: 4.5rem;
         flex-shrink: 0;
         text-align: right;
@@ -131,18 +130,18 @@
 
     .event-title {
         font-size: 0.9375rem;
-        color: #1a1a1a;
+        color: var(--color-text);
         font-weight: 500;
     }
     
     .event-location {
         font-size: 0.75rem;
-        color: #888;
+        color: var(--color-text-muted);
     }
 
     .empty-day-hint {
         font-size: 0.875rem;
-        color: #aaa;
+        color: var(--color-text-subtle);
         font-style: italic;
         padding: 0.5rem 0;
     }
@@ -161,27 +160,19 @@
     .cost-balance {
         font-size: 1.25rem;
         font-weight: 600;
-        color: #1a1a1a;
+        color: var(--color-text);
     }
     
     .cost-label {
         font-size: 0.75rem;
-        color: #666;
+        color: var(--color-text-muted);
     }
     
     .cost-settled {
-        color: #666;
+        color: var(--color-text-muted);
         font-size: 0.875rem;
     }
 
-    .chip {
-        background: #f0f0f0;
-        padding: 0.25rem 0.75rem;
-        border-radius: 100px;
-        font-size: 0.75rem;
-        color: #444;
-        display: inline-block;
-    }
     
     .spacer-bottom {
         height: 40px;
@@ -190,7 +181,6 @@
 
 @code {
     private bool _isLoading = true;
-    private bool _isHeaderCollapsed = false;
     private string _lastUpdatedText = "Last updated a short while ago";
     private List<DaySchedule> _scheduleDays = new();
     private decimal _totalOwed = 0;

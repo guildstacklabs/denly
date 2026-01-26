@@ -10,6 +10,12 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.is-scrolled .sanctuary-header {
+    padding: 0.75rem 1.5rem;
+    background: var(--color-surface-glass);
+    box-shadow: var(--shadow-pebble);
+}
+
 .sanctuary-header.collapsed {
     padding: 0.75rem 1.5rem;
     background: var(--color-surface);
@@ -41,6 +47,16 @@
     font-weight: 400;
     opacity: 1;
     transition: opacity 0.3s ease, height 0.3s ease;
+}
+
+.is-scrolled .header-title {
+    font-size: 1.125rem;
+}
+
+.is-scrolled .header-subtitle {
+    opacity: 0;
+    height: 0;
+    overflow: hidden;
 }
 
 .sanctuary-header.collapsed .header-subtitle {

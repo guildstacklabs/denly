@@ -1,9 +1,12 @@
 .expense-row {
     display: flex;
     align-items: center;
-    padding: 1rem 0;
-    border-bottom: 1px solid var(--color-border-soft);
-    background: transparent;
+    padding: 0.75rem 0.75rem;
+    border: 1px solid var(--color-border-soft);
+    background: var(--color-surface-glass);
+    border-radius: 16px;
+    box-shadow: var(--shadow-pebble);
+    margin-bottom: 0.75rem;
 }
 
 .expense-row.clickable {
@@ -12,11 +15,11 @@
 }
 
 .expense-row.clickable:hover {
-    background-color: var(--color-surface-muted);
+    background-color: var(--color-surface-glass-10);
 }
 
 .expense-row:last-child {
-    border-bottom: none;
+    margin-bottom: 0;
 }
 
 .expense-icon-area {
@@ -26,17 +29,18 @@
 .expense-icon {
     width: 40px;
     height: 40px;
-    background: var(--color-surface-muted);
-    border-radius: 12px;
+    background: var(--color-primary-soft);
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--color-text-muted);
 }
 
-.expense-icon svg {
-    width: 20px;
-    height: 20px;
+.expense-initials {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text);
 }
 
 .expense-content {
@@ -56,11 +60,22 @@
     font-size: 0.75rem;
     color: var(--color-text-muted);
     display: flex;
-    gap: 8px;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.split-info {
+    font-size: 0.6875rem;
+    padding: 0.2rem 0.5rem;
+}
+
+.expense-date {
+    color: var(--color-text-subtle);
+    font-size: 0.6875rem;
 }
 
 .expense-amount {
     font-weight: 600;
     color: var(--color-text);
-    font-size: 1rem;
+    font-size: 0.95rem;
 }

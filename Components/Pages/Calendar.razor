@@ -3,6 +3,7 @@
 @using Denly.Services
 @using Denly.Components.Shared
 @inject IScheduleService ScheduleService
+@inject IDenTimeService DenTimeService
 @inject IConnectivity Connectivity
 
 <div class="calendar-page">
@@ -56,9 +57,9 @@
         </div>
 
         <div class="agenda-items">
-            @if (SelectedDayEvents.Any())
+            @if (DisplayedDayEvents.Any())
             {
-                @foreach (var evt in SelectedDayEvents)
+                @foreach (var evt in DisplayedDayEvents)
                 {
                     <div class="sanctuary-event-row" @onclick="() => OpenEditEventModal(evt)">
                         <div class="event-time">@FormatEventTime(evt)</div>
@@ -69,14 +70,14 @@
                     </div>
                 }
                 
-                @if (SelectedDayEvents.Count > 3)
+                @if (RemainingEventsCount > 0)
                 {
-                    <div class="more-items-pill">+@(SelectedDayEvents.Count - 3) more items</div>
+                    <div class="more-items-pill">+@RemainingEventsCount more items</div>
                 }
             }
             else
             {
-                <div class="empty-state">No events</div>
+                <div class="empty-state">No items</div>
             }
         </div>
     </div>
@@ -87,7 +88,7 @@
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
-        <span>Add</span>
+        <span>New item</span>
     </button>
 </div>
 
@@ -97,7 +98,7 @@
     <div class="modal-overlay" @onclick="CloseModal">
         <div class="modal-content" @onclick:stopPropagation="true">
             <div class="modal-header">
-                <h3>@(_editingEvent.Id == null || string.IsNullOrEmpty(_editingEvent.Title) ? "New Event" : "Edit Event")</h3>
+                <h3>@(_editingEvent.Id == null || string.IsNullOrEmpty(_editingEvent.Title) ? "New item" : "Edit item")</h3>
                 <button class="close-btn" @onclick="CloseModal">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -120,7 +121,7 @@
                 <div class="form-group">
                     <label class="checkbox-label">
                         <input type="checkbox" @bind="_editingEvent.AllDay" />
-                        All Day
+                        All day
                     </label>
                 </div>
 
@@ -137,7 +138,7 @@
                     <div class="type-selector">
                         @foreach (EventType type in Enum.GetValues(typeof(EventType)))
                         {
-                            <button class="type-btn @(_editingEvent.Type == type ? "selected" : "")"
+                            <button class="type-btn den-chip @(_editingEvent.Type == type ? "den-chip--active" : "")"
                                     style="--type-color: @type.GetColor()"
                                     @onclick="() => _editingEvent.Type = type">
                                 @type.GetDisplayName()
@@ -155,10 +156,10 @@
             <div class="modal-footer">
                 @if (!string.IsNullOrEmpty(_editingEvent.Id) && _isEditing)
                 {
-                    <button class="delete-btn" @onclick="DeleteEvent">Delete</button>
+                    <button class="delete-btn" @onclick="DeleteEvent">Remove</button>
                 }
                 <button class="cancel-btn" @onclick="CloseModal">Cancel</button>
-                <button class="save-btn" @onclick="SaveEvent">Save</button>
+                <button class="save-btn" @onclick="SaveEvent">Save item</button>
             </div>
         </div>
     </div>
@@ -170,6 +171,8 @@
     private List<CalendarDay> CalendarDays = new();
     private List<Event> MonthEvents = new();
     private List<Event> SelectedDayEvents = new();
+    private List<Event> DisplayedDayEvents = new();
+    private int RemainingEventsCount;
     private static readonly string[] DayNames = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 
     private bool _showEventModal;
@@ -177,6 +180,7 @@
     private DateTime _editingDate = DateTime.Today;
     private DateTime _editingTime = DateTime.Now;
     private bool _isEditing;
+    private TimeZoneInfo? _denTimeZone;
 
     protected override async Task OnInitializedAsync()
     {
@@ -185,6 +189,19 @@
 
     private async Task LoadMonthData()
     {
+        _denTimeZone ??= await DenTimeService.GetDenTimeZoneAsync();
+
+        var todayDen = DenTimeService.ConvertToDenTime(DateTime.Now, _denTimeZone).Date;
+        if (CurrentDate == DateTime.Today)
+        {
+            CurrentDate = todayDen;
+        }
+
+        if (SelectedDate == DateTime.Today)
+        {
+            SelectedDate = todayDen;
+        }
+
         // Simple mock or load logic
         var startDate = new DateTime(CurrentDate.Year, CurrentDate.Month, 1);
         var endDate = startDate.AddMonths(1).AddDays(-1);
@@ -194,7 +211,7 @@
         
         if (SelectedDate.HasValue)
         {
-            SelectedDayEvents = MonthEvents.Where(e => e.Date.Date == SelectedDate.Value.Date).ToList();
+            SetSelectedDayEvents(SelectedDate.Value);
         }
     }
 
@@ -207,26 +224,26 @@
         for (int i = 0; i < 42; i++) // 6 weeks
         {
             var date = startDate.AddDays(i);
-            var dayEvents = MonthEvents.Where(e => e.Date.Date == date.Date).ToList();
+            var dayEvents = MonthEvents.Where(e => EventOverlapsDate(e, date)).ToList();
             CalendarDays.Add(new CalendarDay
             {
                 Date = date,
                 IsCurrentMonth = date.Month == CurrentDate.Month,
-                IsToday = date.Date == DateTime.Today,
+                IsToday = date.Date == DenTimeService.ConvertToDenTime(DateTime.Now, _denTimeZone).Date,
                 Events = dayEvents
             });
         }
     }
 
-    private void SelectDay(DateTime date)
+    private async Task SelectDay(DateTime date)
     {
         SelectedDate = date;
-        SelectedDayEvents = MonthEvents.Where(e => e.Date.Date == date.Date).ToList();
+        SetSelectedDayEvents(date);
         
         if (date.Month != CurrentDate.Month)
         {
             CurrentDate = new DateTime(date.Year, date.Month, 1);
-            _ = LoadMonthData();
+            await LoadMonthData();
         }
     }
 
@@ -250,8 +267,8 @@
             Type = EventType.Other,
             AllDay = false
         };
-        _editingDate = SelectedDate ?? DateTime.Today;
-        _editingTime = DateTime.Now; // Default to now
+        _editingDate = SelectedDate ?? DenTimeService.ConvertToDenTime(DateTime.Now, _denTimeZone).Date;
+        _editingTime = DenTimeService.ConvertToDenTime(DateTime.Now, _denTimeZone); // Default to now
         _showEventModal = true;
     }
 
@@ -273,9 +290,8 @@
         };
         
         // Extract Local Date/Time
-        var localStart = evt.StartsAt.Kind == DateTimeKind.Utc ? evt.StartsAt.ToLocalTime() : evt.StartsAt;
-        _editingDate = localStart.Date;
-        _editingTime = localStart;
+        _editingDate = evt.StartsAt.Date;
+        _editingTime = evt.StartsAt;
         
         _showEventModal = true;
     }
@@ -296,7 +312,11 @@
             combinedStart = combinedStart.Add(_editingTime.TimeOfDay);
         }
         
-        _editingEvent.StartsAt = DateTime.SpecifyKind(combinedStart, DateTimeKind.Local);
+        _editingEvent.StartsAt = DateTime.SpecifyKind(combinedStart, DateTimeKind.Unspecified);
+        if (_editingEvent.EndsAt.HasValue)
+        {
+            _editingEvent.EndsAt = null;
+        }
         
         await ScheduleService.SaveEventAsync(_editingEvent);
         _showEventModal = false;
@@ -315,11 +335,27 @@
     private string FormatEventTime(Event evt)
     {
         if (evt.AllDay) return "All day";
-        if (evt.Time.HasValue)
-        {
-            return DateTime.Today.Add(evt.Time.Value).ToString("h:mm tt");
-        }
-        return "";
+        return evt.StartsAt.ToString("h:mm tt");
+    }
+
+    private void SetSelectedDayEvents(DateTime date)
+    {
+        SelectedDayEvents = MonthEvents
+            .Where(e => EventOverlapsDate(e, date))
+            .OrderBy(e => e.StartsAt)
+            .ToList();
+
+        DisplayedDayEvents = SelectedDayEvents.Take(3).ToList();
+        RemainingEventsCount = Math.Max(0, SelectedDayEvents.Count - DisplayedDayEvents.Count);
+    }
+
+    private bool EventOverlapsDate(Event evt, DateTime date)
+    {
+        var start = evt.StartsAt.Date;
+        var end = evt.EndsAt.HasValue
+            ? evt.EndsAt.Value.Date
+            : start;
+        return start <= date.Date && end >= date.Date;
     }
 
     private class CalendarDay

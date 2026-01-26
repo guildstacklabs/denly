@@ -2,21 +2,16 @@
 
 <div class="balance-summary-card">
     <div class="balance-header">
-        <span class="balance-title">Balance Summary</span>
+        <span class="balance-title">Shared balance</span>
         <svg class="balance-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="7 7 17 7 17 17"></polyline>
             <line x1="7" y1="17" x2="17" y2="7"></line>
         </svg>
     </div>
     
-    <div class="balance-amount">@BalanceText</div>
+    <div class="balance-amount @(Balance == 0 ? "balance-amount--settled" : "")">@BalanceText</div>
     
     <div class="balance-footer">
-        <div class="avatars">
-            <!-- Placeholder avatars/initials -->
-            <div class="avatar" style="background-color: #A0C4FF">G</div>
-            <div class="avatar" style="background-color: #FFADAD">J</div>
-        </div>
         <div class="details-link">
             <span>Details</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -30,6 +25,6 @@
     [Parameter] public decimal Balance { get; set; }
 
     private string BalanceText => Balance == 0 
-        ? "All settled" 
+        ? "All Settled Up" 
         : Balance.ToString("C");
 }

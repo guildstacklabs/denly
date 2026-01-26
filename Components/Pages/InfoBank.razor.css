@@ -41,7 +41,7 @@
 }
 
 .toggle-option.active {
-    background-color: var(--color-surface);
+    background-color: var(--color-surface-glass);
     color: var(--color-text);
     font-weight: 600;
     box-shadow: var(--shadow-pebble);
@@ -56,27 +56,13 @@
     padding-bottom: 4px;
 }
 
-.child-tab {
-    padding: 0.5rem 1.25rem;
-    border-radius: 20px;
-    background: var(--color-primary-soft);
-    color: var(--color-text-muted);
-    font-weight: 500;
-    border: none;
-    white-space: nowrap;
-    transition: all 0.2s;
-}
-
-.child-tab.active {
-    background: var(--color-primary);
-    color: var(--color-text-inverse);
-}
 
 .info-card {
-    background: var(--color-surface);
+    background: var(--color-surface-glass);
     border-radius: 24px;
     padding: 1.5rem;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+    box-shadow: var(--shadow-pebble);
+    border: 1px solid var(--color-border-soft);
     margin-bottom: 1.5rem;
 }
 
@@ -138,7 +124,7 @@
 .edit-btn {
     width: 100%;
     background: transparent;
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--color-border-soft);
     padding: 1rem;
     border-radius: 12px;
     color: var(--color-text);
@@ -154,24 +140,6 @@
     padding-bottom: 4px;
 }
 
-.filter-bubble {
-    padding: 0.5rem 1rem;
-    border-radius: 999px;
-    border: 1px solid var(--color-border);
-    background: var(--color-surface);
-    color: var(--color-text-muted);
-    font-size: 0.85rem;
-    font-weight: 500;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.2s;
-}
-
-.filter-bubble.active {
-    background: var(--color-text);
-    color: var(--color-text-inverse);
-    border-color: var(--color-text);
-}
 
 .documents-list {
     display: flex;
@@ -183,10 +151,11 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    background: var(--color-surface);
+    background: var(--color-surface-glass);
     padding: 1rem;
     border-radius: 16px;
-    box-shadow: 0 2px 8px var(--shadow-color-04);
+    box-shadow: var(--shadow-pebble);
+    border: 1px solid var(--color-border-soft);
 }
 
 .document-icon {
@@ -244,7 +213,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    box-shadow: var(--shadow-pebble);
     cursor: pointer;
     z-index: 900;
 }

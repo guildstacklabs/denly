@@ -45,7 +45,7 @@
 }
 
 /* Settings Section */
-.settings-nook {
+:deep(.settings-nook) {
     margin-bottom: 1rem;
 }
 
@@ -77,10 +77,11 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    background: var(--color-nook-bg);
+    background: var(--color-surface-glass);
     border: 1px solid var(--color-border-soft);
     border-radius: 12px;
     padding: 1rem;
+    box-shadow: var(--shadow-pebble);
 }
 
 .den-icon {
@@ -152,10 +153,11 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    background: var(--color-nook-bg);
+    background: var(--color-surface-glass);
     border: 1px solid var(--color-border-soft);
     border-radius: 12px;
     padding: 0.875rem 1rem;
+    box-shadow: var(--shadow-pebble);
 }
 
 .member-avatar {
@@ -223,10 +225,11 @@
     flex-direction: column;
     align-items: center;
     padding: 1.5rem;
-    background: var(--color-nook-bg);
+    background: var(--color-surface-glass);
     border: 1px dashed var(--color-border-soft);
     border-radius: 12px;
     text-align: center;
+    box-shadow: var(--shadow-pebble);
 }
 
 .invite-prompt p {
@@ -253,11 +256,12 @@
 
 /* Account Section */
 .account-info {
-    background: var(--color-nook-bg);
+    background: var(--color-surface-glass);
     border: 1px solid var(--color-border-soft);
     border-radius: 12px;
     padding: 1rem;
     margin-bottom: 0.75rem;
+    box-shadow: var(--shadow-pebble);
 }
 
 .settings-row {
@@ -265,11 +269,12 @@
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    background: var(--color-nook-bg);
+    background: var(--color-surface-glass);
     border: 1px solid var(--color-border-soft);
     border-radius: 12px;
     padding: 0.875rem 1rem;
     margin-bottom: 0.75rem;
+    box-shadow: var(--shadow-pebble);
 }
 
 .row-text {
@@ -429,11 +434,12 @@
     justify-content: center;
     gap: 0.5rem;
     padding: 0.75rem;
-    background-color: var(--color-surface);
+    background-color: var(--color-surface-glass);
     border-radius: 8px;
     font-size: 0.8125rem;
     color: var(--color-text-muted);
     margin-bottom: 1rem;
+    border: 1px solid var(--color-border-soft);
 }
 
 .invite-expiry svg {
@@ -472,13 +478,16 @@
 }
 
 .modal-content {
-    background: var(--color-surface);
+    background: var(--color-surface-glass);
     border-radius: 16px;
     width: 100%;
     max-width: 400px;
     max-height: 90vh;
     overflow-y: auto;
-    box-shadow: 0 20px 25px -5px var(--shadow-color-10), 0 10px 10px -5px var(--shadow-color-04);
+    box-shadow: var(--shadow-pebble);
+    border: 1px solid var(--color-border-soft);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 .modal-header {
@@ -486,7 +495,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 1rem 1.25rem;
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border-soft);
 }
 
 .modal-header h3 {
@@ -564,8 +573,8 @@
 .cancel-btn {
     flex: 1;
     padding: 0.75rem;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
+    background: var(--color-surface-glass);
+    border: 1px solid var(--color-border-soft);
     border-radius: 10px;
     font-size: 0.9375rem;
     font-weight: 500;
@@ -644,8 +653,10 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.75rem 1rem;
-    background-color: var(--color-surface);
+    background-color: var(--color-surface-glass);
     border-radius: 12px;
+    border: 1px solid var(--color-border-soft);
+    box-shadow: var(--shadow-pebble);
 }
 
 .child-card.inactive {

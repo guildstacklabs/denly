@@ -30,12 +30,12 @@
         @if (_totalOwed != 0)
         {
             <div class="settle-up-action">
-                <button class="settle-up-btn" @onclick="ShowSettleUp">Settle Up</button>
+                <button class="settle-up-btn" @onclick="ShowSettleUp">Record settlement</button>
             </div>
         }
 
         <div class="recent-expenses-section">
-            <h3 class="section-title">Recent expenses</h3>
+            <h3 class="section-title">Recent items</h3>
             
             <div class="expenses-list-card">
                 @if (_expenses.Count > 0)
@@ -45,6 +45,7 @@
                         <ExpenseRow Description="@expense.Description"
                                     Amount="@expense.Amount"
                                     PayerName="@expense.PayerName"
+                                    PayerInitials="@expense.PayerInitials"
                                     SplitText="@expense.SplitText"
                                     Date="@expense.Date" 
                                     OnClick="@(() => OpenEditExpense(expense))" />
@@ -62,7 +63,7 @@
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            <span>Add</span>
+            <span>New item</span>
         </button>
     }
 </div>
@@ -161,6 +162,7 @@
 
         _expenses = expenses.OrderByDescending(e => e.CreatedAt).Select(expense => {
              var payerName = members.FirstOrDefault(m => m.UserId == expense.PaidBy)?.DisplayName ?? "Someone";
+             var initials = GetInitials(payerName);
              
              // Determine split text
              string splitText = "split evenly";
@@ -177,7 +179,8 @@
                  Description = expense.Description,
                  Amount = expense.Amount,
                  PayerName = payerName,
-                 SplitText = splitText
+                 SplitText = splitText,
+                 PayerInitials = initials
              };
         }).ToList();
     }
@@ -195,34 +198,39 @@
         _isLoading = true; // Show loading while fetching details
         StateHasChanged();
 
-        var expense = await ExpenseService.GetExpenseByIdAsync(item.Id);
-        if (expense == null) 
+        try
+        {
+            var expense = await ExpenseService.GetExpenseByIdAsync(item.Id);
+            if (expense == null)
+            {
+                return;
+            }
+
+            var splits = await ExpenseService.GetExpenseSplitsAsync(new[] { item.Id });
+
+            _addExpenseModel = new AddExpenseDialog.AddExpenseInput
+            {
+                Id = expense.Id,
+                Date = expense.CreatedAt.Date,
+                Description = expense.Description,
+                Amount = expense.Amount,
+                PayerId = expense.PaidBy,
+                ChildId = expense.ChildId,
+                Splits = splits.Select(s => new AddExpenseDialog.SplitInput
+                {
+                    CaregiverId = s.UserId,
+                    Percent = s.Percent,
+                    CaregiverName = _caregivers.FirstOrDefault(c => c.Id == s.UserId)?.Name ?? "Unknown"
+                }).ToList()
+            };
+
+            _isEditing = true;
+            _showAddExpense = true;
+        }
+        finally
         {
             _isLoading = false;
-            return;
         }
-
-        var splits = await ExpenseService.GetExpenseSplitsAsync(new[] { item.Id });
-
-        _addExpenseModel = new AddExpenseDialog.AddExpenseInput
-        {
-            Id = expense.Id,
-            Date = expense.CreatedAt,
-            Description = expense.Description,
-            Amount = expense.Amount,
-            PayerId = expense.PaidBy,
-            ChildId = expense.ChildId,
-            Splits = splits.Select(s => new AddExpenseDialog.SplitInput
-            {
-                CaregiverId = s.UserId,
-                Percent = s.Percent,
-                CaregiverName = _caregivers.FirstOrDefault(c => c.Id == s.UserId)?.Name ?? "Unknown"
-            }).ToList()
-        };
-
-        _isEditing = true;
-        _isLoading = false;
-        _showAddExpense = true;
     }
 
     private void HideAddExpense()
@@ -232,14 +240,16 @@
 
     private async Task HandleAddExpense(AddExpenseDialog.AddExpenseInput input)
     {
+        var description = string.IsNullOrWhiteSpace(input.Description) ? "Expense" : input.Description;
+
         var expense = new Expense
         {
             Id = input.Id ?? Guid.NewGuid().ToString(), // Use existing ID if editing
-            Description = input.Description,
+            Description = description,
             Amount = input.Amount,
             PaidBy = input.PayerId,
             ChildId = input.ChildId,
-            CreatedAt = input.Date // Note: SaveExpenseAsync handles CreatedAt logic for new expenses
+            CreatedAt = input.Date.Date
         };
 
         await ExpenseService.SaveExpenseAsync(expense);
@@ -288,5 +298,15 @@
         await ExpenseService.CreateSettlementAsync(input.Amount, input.PayerId, input.ReceiverId);
         HideSettleUp();
         await LoadData();
+    }
+
+    private static string? GetInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return null;
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0].Substring(0, 1).ToUpperInvariant();
+        var first = parts[0].Substring(0, 1).ToUpperInvariant();
+        var last = parts[^1].Substring(0, 1).ToUpperInvariant();
+        return $"{first}{last}";
     }
 }

@@ -55,6 +55,38 @@
             document.documentElement.style.setProperty('--safe-area-inset-right', right + 'px');
         }
     </script>
+    <script>
+        (function () {
+            function applyScrollState(scroller) {
+                var isScrolled = scroller && scroller.scrollTop > 12;
+                document.body.classList.toggle('is-scrolled', !!isScrolled);
+            }
+
+            function attachScrollListener() {
+                var scroller = document.querySelector('.main-content');
+                if (!scroller) return false;
+                scroller.addEventListener('scroll', function () { applyScrollState(scroller); }, { passive: true });
+                applyScrollState(scroller);
+                return true;
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function () {
+                    if (!attachScrollListener()) {
+                        var observer = new MutationObserver(function () {
+                            if (attachScrollListener()) observer.disconnect();
+                        });
+                        observer.observe(document.body, { childList: true, subtree: true });
+                    }
+                });
+            } else if (!attachScrollListener()) {
+                var observer = new MutationObserver(function () {
+                    if (attachScrollListener()) observer.disconnect();
+                });
+                observer.observe(document.body, { childList: true, subtree: true });
+            }
+        })();
+    </script>
 
 </body>
 

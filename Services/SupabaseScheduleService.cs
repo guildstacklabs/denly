@@ -7,11 +7,13 @@ namespace Denly.Services;
 public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 {
     private readonly ILogger<SupabaseScheduleService> _logger;
+    private readonly IDenTimeService _denTimeService;
 
-    public SupabaseScheduleService(IDenService denService, IAuthService authService, ILogger<SupabaseScheduleService> logger)
+    public SupabaseScheduleService(IDenService denService, IAuthService authService, IDenTimeService denTimeService, ILogger<SupabaseScheduleService> logger)
         : base(denService, authService)
     {
         _logger = logger;
+        _denTimeService = denTimeService;
     }
 
     public async Task<List<Event>> GetEventsByMonthAsync(int year, int month, CancellationToken cancellationToken = default)
@@ -25,13 +27,14 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
         try
         {
+            var denTimeZone = await _denTimeService.GetDenTimeZoneAsync(cancellationToken);
             // Calculate the UTC range that covers the entire local month
             // We want everything from 00:00:00 on the 1st to 00:00:00 on the 1st of next month (Local Time)
-            var localStart = new DateTime(year, month, 1);
+            var localStart = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Unspecified);
             var localEnd = localStart.AddMonths(1);
 
-            var utcStart = DateTime.SpecifyKind(localStart, DateTimeKind.Local).ToUniversalTime();
-            var utcEnd = DateTime.SpecifyKind(localEnd, DateTimeKind.Local).ToUniversalTime();
+            var utcStart = TimeZoneInfo.ConvertTimeToUtc(localStart, denTimeZone);
+            var utcEnd = TimeZoneInfo.ConvertTimeToUtc(localEnd, denTimeZone);
 
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -45,7 +48,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
                 .Get();
 
             var events = response.Models;
-            foreach (var evt in events) NormalizeToLocal(evt);
+            foreach (var evt in events) NormalizeToDenTime(evt, denTimeZone);
             return events;
         }
         catch (OperationCanceledException)
@@ -70,12 +73,13 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
         try
         {
+            var denTimeZone = await _denTimeService.GetDenTimeZoneAsync(cancellationToken);
             // Convert local date range to UTC for database query
             // Start of day in local time, converted to UTC
             var localStartOfDay = date.Date;
             var localEndOfDay = date.Date.AddDays(1).AddTicks(-1);
-            var utcStart = localStartOfDay.ToUniversalTime();
-            var utcEnd = localEndOfDay.ToUniversalTime();
+            var utcStart = TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(localStartOfDay, DateTimeKind.Unspecified), denTimeZone);
+            var utcEnd = TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(localEndOfDay, DateTimeKind.Unspecified), denTimeZone);
 
             // Widen the upper bound of the DB query to ensure we catch events shifted by timezones.
             // We filter strictly in memory, so fetching a bit more data (e.g. next day's events) is safe.
@@ -97,16 +101,21 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
                 .Get();
 
             // Convert to Local Time immediately so filtering and UI display are correct
-            foreach (var evt in response.Models) NormalizeToLocal(evt);
+            foreach (var evt in response.Models) NormalizeToDenTime(evt, denTimeZone);
 
             // Filter in memory with logging for diagnostics
             var filteredEvents = new List<Event>();
             foreach (var evt in response.Models)
             {
+                var startDate = evt.StartsAt.Date;
+                var endDate = evt.EndsAt.HasValue
+                    ? evt.EndsAt.Value.Date
+                    : startDate;
+
                 // Check for single day match OR multi-day overlap
                 // Note: EndsAt is already Local thanks to ConvertToLocal above
-                var isMatch = evt.Date == date.Date ||
-                             (evt.EndsAt.HasValue && evt.EndsAt.Value.Date >= date.Date && evt.Date <= date.Date);
+                var isMatch = startDate == date.Date ||
+                             (endDate >= date.Date && startDate <= date.Date);
 
                 if (isMatch) filteredEvents.Add(evt);
             }
@@ -139,6 +148,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
         try
         {
+            var denTimeZone = await _denTimeService.GetDenTimeZoneAsync(cancellationToken);
             var now = DateTime.UtcNow;
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -153,7 +163,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
                 .Get();
 
             var events = response.Models;
-            foreach (var evt in events) NormalizeToLocal(evt);
+            foreach (var evt in events) NormalizeToDenTime(evt, denTimeZone);
             return events;
         }
         catch (OperationCanceledException)
@@ -174,6 +184,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
         try
         {
+            var denTimeZone = await _denTimeService.GetDenTimeZoneAsync(cancellationToken);
             var response = await GetClientOrThrow()
                 .From<Event>()
                 .Select("id, den_id, child_id, title, event_type, starts_at, ends_at, all_day, location, notes, created_by, created_at, updated_at")
@@ -184,7 +195,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
             var evt = response.Models.FirstOrDefault();
             if (evt != null)
             {
-                NormalizeToLocal(evt);
+                NormalizeToDenTime(evt, denTimeZone);
             }
             return evt;
         }
@@ -208,6 +219,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         var denId = GetCurrentDenIdOrThrow();
         var userId = GetAuthenticatedUserIdOrThrow();
         var client = GetClientOrThrow();
+        var denTimeZone = await _denTimeService.GetDenTimeZoneAsync(cancellationToken);
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -219,14 +231,11 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         // Prepare UTC times for storage
         // Handle Kind correctly: Utc stays Utc, Local/Unspecified converts to Utc
         // This prevents double-conversion if the input is already UTC
-        var startUtc = evt.StartsAt.Kind == DateTimeKind.Utc
-            ? evt.StartsAt
-            : DateTime.SpecifyKind(evt.StartsAt, DateTimeKind.Local).ToUniversalTime();
+        var startLocal = DateTime.SpecifyKind(evt.StartsAt, DateTimeKind.Unspecified);
+        var startUtc = TimeZoneInfo.ConvertTimeToUtc(startLocal, denTimeZone);
 
         var endUtc = evt.EndsAt.HasValue
-            ? (evt.EndsAt.Value.Kind == DateTimeKind.Utc
-                ? evt.EndsAt.Value
-                : DateTime.SpecifyKind(evt.EndsAt.Value, DateTimeKind.Local).ToUniversalTime())
+            ? TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(evt.EndsAt.Value, DateTimeKind.Unspecified), denTimeZone)
             : (DateTime?)null;
         var endUtcToken = endUtc.HasValue ? new JValue(endUtc.Value) : JValue.CreateNull();
 
@@ -321,15 +330,15 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         }
     }
 
-    private void NormalizeToLocal(Event evt)
+    private void NormalizeToDenTime(Event evt, TimeZoneInfo timeZone)
     {
         // Supabase (via Newtonsoft) can return Local time with Kind=Unspecified.
         // Normalize to Local without double-conversion.
-        evt.StartsAt = NormalizeDateTime(evt.StartsAt);
+        evt.StartsAt = NormalizeDateTime(evt.StartsAt, timeZone);
 
         if (evt.EndsAt.HasValue)
         {
-            evt.EndsAt = NormalizeDateTime(evt.EndsAt.Value);
+            evt.EndsAt = NormalizeDateTime(evt.EndsAt.Value, timeZone);
         }
     }
 
@@ -344,11 +353,13 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 
         try
         {
+            var denTimeZone = await _denTimeService.GetDenTimeZoneAsync(cancellationToken);
             var localStart = startDate.Date;
             var localEnd = endDate.Date.AddDays(1).AddTicks(-1);
 
-            var utcStart = DateTime.SpecifyKind(localStart, DateTimeKind.Local).ToUniversalTime();
-            var utcEnd = DateTime.SpecifyKind(localEnd, DateTimeKind.Local).ToUniversalTime();
+            var utcStart = TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(localStart, DateTimeKind.Unspecified), denTimeZone);
+            var utcEnd = TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(localEnd, DateTimeKind.Unspecified), denTimeZone);
+            var lookbackStart = utcStart.AddDays(-30);
 
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -356,13 +367,24 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
                 .From<Event>()
                 .Select("id, den_id, child_id, title, event_type, starts_at, ends_at, all_day, location, notes, created_by, created_at, updated_at")
                 .Where(e => e.DenId == denId)
-                .Filter("starts_at", Supabase.Postgrest.Constants.Operator.GreaterThanOrEqual, utcStart.ToString("O"))
+                .Filter("starts_at", Supabase.Postgrest.Constants.Operator.GreaterThanOrEqual, lookbackStart.ToString("O"))
                 .Filter("starts_at", Supabase.Postgrest.Constants.Operator.LessThanOrEqual, utcEnd.ToString("O"))
                 .Get();
 
             var events = response.Models;
-            foreach (var evt in events) NormalizeToLocal(evt);
-            return events.OrderBy(e => e.StartsAt).ToList();
+            foreach (var evt in events) NormalizeToDenTime(evt, denTimeZone);
+
+            var filtered = events
+                .Where(e =>
+                {
+                    var start = e.StartsAt.Date;
+                    var end = e.EndsAt?.Date ?? start;
+                    return start <= localEnd.Date && end >= localStart.Date;
+                })
+                .OrderBy(e => e.StartsAt)
+                .ToList();
+
+            return filtered;
         }
         catch (OperationCanceledException)
         {
@@ -375,14 +397,16 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         }
     }
 
-    private static DateTime NormalizeDateTime(DateTime value)
+    private static DateTime NormalizeDateTime(DateTime value, TimeZoneInfo timeZone)
     {
-        return value.Kind switch
+        var utcValue = value.Kind switch
         {
-            DateTimeKind.Utc => value.ToLocalTime(),
-            DateTimeKind.Local => value,
-            _ => DateTime.SpecifyKind(value, DateTimeKind.Local)
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
         };
+
+        return TimeZoneInfo.ConvertTimeFromUtc(utcValue, timeZone);
     }
 
     public async Task<bool> HasUpcomingEventsAsync()

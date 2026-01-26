@@ -150,6 +150,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
                     .Set(e => e.PaidBy, expense.PaidBy)
                     .Set(e => e.ReceiptUrl!, expense.ReceiptUrl)
                     .Set(e => e.ChildId!, expense.ChildId)
+                    .Set(e => e.CreatedAt, expense.CreatedAt)
                     .Set(e => e.SettledAt!, expense.SettledAt)
                     .Update();
                 _logger.LogDebug("Expense updated successfully");
@@ -167,7 +168,6 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         {
             _logger.LogDebug("Inserting new expense");
             expense.CreatedBy = userId;
-            expense.CreatedAt = DateTime.UtcNow;
 
             try
             {
@@ -246,7 +246,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
                 .From<Expense>()
                 .Select("id, den_id, child_id, description, amount, paid_by, receipt_url, created_by, created_at, settled_at, split_percent")
                 .Where(e => e.DenId == denId)
-                .Filter<DateTime?>("settled_at, split_percent", Supabase.Postgrest.Constants.Operator.Is, null)
+                .Filter<DateTime?>("settled_at", Supabase.Postgrest.Constants.Operator.Is, null)
                 .Get();
 
             var unsettledExpenses = expenseResponse.Models;
@@ -466,7 +466,7 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
                 .From<Expense>()
                 .Select("id, den_id, child_id, description, amount, paid_by, receipt_url, created_by, created_at, settled_at, split_percent")
                 .Where(e => e.DenId == denId)
-                .Filter<DateTime?>("settled_at, split_percent", Supabase.Postgrest.Constants.Operator.Is, null)
+                .Filter<DateTime?>("settled_at", Supabase.Postgrest.Constants.Operator.Is, null)
                 .Get();
 
             var settledAt = DateTime.UtcNow;

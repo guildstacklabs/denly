@@ -46,7 +46,7 @@
                 <div class="child-tabs">
                     @foreach (var child in _children)
                     {
-                        <button class="child-tab @(_selectedChild == child ? "active" : "")" 
+                        <button class="child-tab den-chip @(_selectedChild == child ? "den-chip--active" : "")" 
                                 @onclick="() => SelectChild(child)">
                             @child.FirstName
                         </button>
@@ -99,13 +99,13 @@
         {
             <!-- Folder Filters -->
             <div class="folder-filters">
-                <button class="filter-bubble @(_selectedFolder == null ? "active" : "")" 
+                <button class="filter-bubble den-chip @(_selectedFolder == null ? "den-chip--active" : "")" 
                         @onclick="() => SelectFolder(null)">
                     All
                 </button>
                 @foreach (DocumentFolder folder in Enum.GetValues(typeof(DocumentFolder)))
                 {
-                    <button class="filter-bubble @(_selectedFolder == folder ? "active" : "")" 
+                    <button class="filter-bubble den-chip @(_selectedFolder == folder ? "den-chip--active" : "")" 
                             @onclick="() => SelectFolder(folder)">
                         @folder.ToString()
                     </button>
