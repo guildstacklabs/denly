@@ -72,3 +72,14 @@
     border: 1px solid var(--color-border);
     color: var(--color-text);
 }
+
+.dialog-btn.delete {
+    background: transparent;
+    border: 1px solid var(--color-danger);
+    color: var(--color-danger);
+    margin-right: auto;
+}
+
+.dialog-btn.delete:hover {
+    background: var(--color-danger-soft);
+}

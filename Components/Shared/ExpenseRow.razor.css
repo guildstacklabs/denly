@@ -2,8 +2,17 @@
     display: flex;
     align-items: center;
     padding: 1rem 0;
-    border-bottom: 1px solid rgba(0,0,0,0.03);
+    border-bottom: 1px solid var(--color-border-soft);
     background: transparent;
+}
+
+.expense-row.clickable {
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.expense-row.clickable:hover {
+    background-color: var(--color-surface-muted);
 }
 
 .expense-row:last-child {
@@ -17,12 +26,12 @@
 .expense-icon {
     width: 40px;
     height: 40px;
-    background: #f0f4f8;
+    background: var(--color-surface-muted);
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #555;
+    color: var(--color-text-muted);
 }
 
 .expense-icon svg {
@@ -40,18 +49,18 @@
 .expense-title {
     font-size: 0.9375rem;
     font-weight: 500;
-    color: #1a1a1a;
+    color: var(--color-text);
 }
 
 .expense-meta {
     font-size: 0.75rem;
-    color: #888;
+    color: var(--color-text-muted);
     display: flex;
     gap: 8px;
 }
 
 .expense-amount {
     font-weight: 600;
-    color: #1a1a1a;
+    color: var(--color-text);
     font-size: 1rem;
 }

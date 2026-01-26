@@ -10,7 +10,7 @@
 
 <div class="costs-page">
     <header class="costs-header">
-        <button class="back-btn">
+        <button class="back-btn" @onclick="GoBack">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="15 18 9 12 15 6"></polyline>
             </svg>
@@ -26,35 +26,86 @@
     else
     {
         <BalanceSummaryCard Balance="@_totalOwed" />
+        
+        @if (_totalOwed != 0)
+        {
+            <div class="settle-up-action">
+                <button class="settle-up-btn" @onclick="ShowSettleUp">Settle Up</button>
+            </div>
+        }
 
         <div class="recent-expenses-section">
             <h3 class="section-title">Recent expenses</h3>
             
             <div class="expenses-list-card">
-                @foreach (var expense in _expenses.Take(5))
+                @if (_expenses.Count > 0)
                 {
-                    <ExpenseRow Description="@expense.Description"
-                                Amount="@expense.Amount"
-                                PayerName="@expense.PayerName"
-                                SplitText="@expense.SplitText"
-                                Date="@expense.Date" />
+                    @foreach (var expense in _expenses)
+                    {
+                        <ExpenseRow Description="@expense.Description"
+                                    Amount="@expense.Amount"
+                                    PayerName="@expense.PayerName"
+                                    SplitText="@expense.SplitText"
+                                    Date="@expense.Date" 
+                                    OnClick="@(() => OpenEditExpense(expense))" />
+                    }
+                }
+                else
+                {
+                    <div class="empty-state">No expenses yet</div>
                 }
             </div>
-            
-            <button class="view-all-btn">View all expenses</button>
         </div>
+        
+        <button class="fab-btn" @onclick="ShowAddExpense">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+        </button>
     }
 </div>
 
+<AddExpenseDialog IsOpen="_showAddExpense"
+                  IsEditing="_isEditing"
+                  Model="_addExpenseModel"
+                  Caregivers="_caregivers"
+                  Children="_children"
+                  CurrentUserId="_currentUserId"
+                  OnCancel="HideAddExpense"
+                  OnSave="HandleAddExpense" 
+                  OnDelete="HandleDeleteExpense" />
+
+<SettleUpDialog IsOpen="_showSettleUp"
+                Balance="@_totalOwed"
+                Model="_settleUpModel"
+                Caregivers="_caregivers"
+                OnCancel="HideSettleUp"
+                OnSave="HandleSettleUp" />
+
 @code {
     private List<SharedCostsExpenseItem> _expenses = new();
+    private List<CaregiverOption> _caregivers = new();
+    private List<ChildOption> _children = new();
     private decimal _totalOwed;
     private bool _isLoading = true;
+    private string? _currentUserId;
+
+    // Dialog state
+    private bool _showAddExpense;
+    private bool _isEditing;
+    private bool _showSettleUp;
+    private AddExpenseDialog.AddExpenseInput _addExpenseModel = new();
+    private SettleUpDialog.SettleUpInput _settleUpModel = new();
+
+    [Inject] NavigationManager Navigation { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            var user = await Auth.GetCurrentUserAsync();
+            _currentUserId = user?.Id;
             await LoadData();
         }
         finally
@@ -63,13 +114,39 @@
         }
     }
 
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/");
+    }
+
     private async Task LoadData()
     {
         if (Connectivity.NetworkAccess != NetworkAccess.Internet) return;
 
-        var expenses = await ExpenseService.GetExpensesAsync();
-        var members = await DenService.GetDenMembersAsync();
-        var balances = await ExpenseService.GetBalancesAsync();
+        var expensesTask = ExpenseService.GetExpensesAsync();
+        var membersTask = DenService.GetDenMembersAsync();
+        var balancesTask = ExpenseService.GetBalancesAsync();
+        var childrenTask = ChildService.GetActiveChildrenAsync();
+
+        await Task.WhenAll(expensesTask, membersTask, balancesTask, childrenTask);
+
+        var expenses = await expensesTask;
+        var members = await membersTask;
+        var balances = await balancesTask;
+        var children = await childrenTask;
+
+        // Populate Options
+        _caregivers = members.Select(m => new CaregiverOption 
+        { 
+            Id = m.UserId, 
+            Name = m.DisplayName ?? m.Email ?? "Unknown" 
+        }).ToList();
+
+        _children = children.Select(c => new ChildOption 
+        { 
+            Id = c.Id, 
+            Name = c.FirstName 
+        }).ToList();
 
         if (balances != null && balances.Any())
         {
@@ -83,14 +160,132 @@
 
         _expenses = expenses.OrderByDescending(e => e.CreatedAt).Select(expense => {
              var payerName = members.FirstOrDefault(m => m.UserId == expense.PaidBy)?.DisplayName ?? "Someone";
+             
+             // Determine split text
+             string splitText = "split evenly";
+             if (splitMap.TryGetValue(expense.Id, out var expenseSplits) && expenseSplits.Count > 0)
+             {
+                 // Logic to describe split could be enhanced
+                 splitText = $"{expenseSplits.Count} ways"; 
+             }
+
              return new SharedCostsExpenseItem
              {
+                 Id = expense.Id,
                  Date = expense.CreatedAt,
                  Description = expense.Description,
                  Amount = expense.Amount,
                  PayerName = payerName,
-                 SplitText = "split evenly"
+                 SplitText = splitText
              };
         }).ToList();
+    }
+
+    // Add/Edit Logic
+    private void ShowAddExpense()
+    {
+        _isEditing = false;
+        _addExpenseModel = new AddExpenseDialog.AddExpenseInput();
+        _showAddExpense = true;
+    }
+
+    private async Task OpenEditExpense(SharedCostsExpenseItem item)
+    {
+        _isLoading = true; // Show loading while fetching details
+        StateHasChanged();
+
+        var expense = await ExpenseService.GetExpenseByIdAsync(item.Id);
+        if (expense == null) 
+        {
+            _isLoading = false;
+            return;
+        }
+
+        var splits = await ExpenseService.GetExpenseSplitsAsync(new[] { item.Id });
+
+        _addExpenseModel = new AddExpenseDialog.AddExpenseInput
+        {
+            Id = expense.Id,
+            Date = expense.CreatedAt,
+            Description = expense.Description,
+            Amount = expense.Amount,
+            PayerId = expense.PaidBy,
+            ChildId = expense.ChildId,
+            Splits = splits.Select(s => new AddExpenseDialog.SplitInput
+            {
+                CaregiverId = s.UserId,
+                Percent = s.Percent,
+                CaregiverName = _caregivers.FirstOrDefault(c => c.Id == s.UserId)?.Name ?? "Unknown"
+            }).ToList()
+        };
+
+        _isEditing = true;
+        _isLoading = false;
+        _showAddExpense = true;
+    }
+
+    private void HideAddExpense()
+    {
+        _showAddExpense = false;
+    }
+
+    private async Task HandleAddExpense(AddExpenseDialog.AddExpenseInput input)
+    {
+        var expense = new Expense
+        {
+            Id = input.Id ?? Guid.NewGuid().ToString(), // Use existing ID if editing
+            Description = input.Description,
+            Amount = input.Amount,
+            PaidBy = input.PayerId,
+            ChildId = input.ChildId,
+            CreatedAt = input.Date // Note: SaveExpenseAsync handles CreatedAt logic for new expenses
+        };
+
+        await ExpenseService.SaveExpenseAsync(expense);
+
+        if (input.Splits.Count > 0)
+        {
+            var splits = input.Splits.Select(s => new ExpenseSplit
+            {
+                ExpenseId = expense.Id,
+                UserId = s.CaregiverId,
+                Percent = s.Percent
+            }).ToList();
+            await ExpenseService.SaveExpenseSplitsAsync(expense.Id, splits);
+        }
+
+        HideAddExpense();
+        await LoadData();
+    }
+
+    private async Task HandleDeleteExpense()
+    {
+        if (string.IsNullOrEmpty(_addExpenseModel.Id)) return;
+
+        await ExpenseService.DeleteExpenseAsync(_addExpenseModel.Id);
+        HideAddExpense();
+        await LoadData();
+    }
+
+    // Settle Up Logic
+    private void ShowSettleUp()
+    {
+        _settleUpModel = new SettleUpDialog.SettleUpInput
+        {
+            Amount = _totalOwed
+        };
+        _showSettleUp = true;
+    }
+
+    private void HideSettleUp()
+    {
+        _showSettleUp = false;
+    }
+
+    private async Task HandleSettleUp(SettleUpDialog.SettleUpInput input)
+    {
+        await ExpenseService.CreateSettlementAsync(input.Amount, input.PayerId, input.ReceiverId);
+        HideSettleUp();
+        await LoadData();
     }
 }

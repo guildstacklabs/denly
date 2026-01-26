@@ -60,7 +60,7 @@
             {
                 @foreach (var evt in SelectedDayEvents)
                 {
-                    <div class="sanctuary-event-row">
+                    <div class="sanctuary-event-row" @onclick="() => OpenEditEventModal(evt)">
                         <div class="event-time">@FormatEventTime(evt)</div>
                         <div class="event-details">
                             <span class="event-title">@evt.Title</span>
@@ -80,7 +80,88 @@
             }
         </div>
     </div>
+
+    <!-- Floating Action Button -->
+    <button class="fab-btn" @onclick="OpenAddEventModal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+    </button>
 </div>
+
+<!-- Event Modal -->
+@if (_showEventModal)
+{
+    <div class="modal-overlay" @onclick="CloseModal">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>@(_editingEvent.Id == null || string.IsNullOrEmpty(_editingEvent.Title) ? "New Event" : "Edit Event")</h3>
+                <button class="close-btn" @onclick="CloseModal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" @bind="_editingEvent.Title" placeholder="Event title" />
+                </div>
+
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" @bind="_editingDate" />
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" @bind="_editingEvent.AllDay" />
+                        All Day
+                    </label>
+                </div>
+
+                @if (!_editingEvent.AllDay)
+                {
+                    <div class="form-group">
+                        <label>Time</label>
+                        <input type="time" @bind="_editingTime" />
+                    </div>
+                }
+
+                <div class="form-group">
+                    <label>Type</label>
+                    <div class="type-selector">
+                        @foreach (EventType type in Enum.GetValues(typeof(EventType)))
+                        {
+                            <button class="type-btn @(_editingEvent.Type == type ? "selected" : "")"
+                                    style="--type-color: @type.GetColor()"
+                                    @onclick="() => _editingEvent.Type = type">
+                                @type.GetDisplayName()
+                            </button>
+                        }
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" @bind="_editingEvent.Location" placeholder="Location (optional)" />
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                @if (!string.IsNullOrEmpty(_editingEvent.Id) && _isEditing)
+                {
+                    <button class="delete-btn" @onclick="DeleteEvent">Delete</button>
+                }
+                <button class="cancel-btn" @onclick="CloseModal">Cancel</button>
+                <button class="save-btn" @onclick="SaveEvent">Save</button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     private DateTime CurrentDate = DateTime.Today;
@@ -89,6 +170,12 @@
     private List<Event> MonthEvents = new();
     private List<Event> SelectedDayEvents = new();
     private static readonly string[] DayNames = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+
+    private bool _showEventModal;
+    private Event _editingEvent = new();
+    private DateTime _editingDate = DateTime.Today;
+    private DateTime _editingTime = DateTime.Now;
+    private bool _isEditing;
 
     protected override async Task OnInitializedAsync()
     {
@@ -101,7 +188,6 @@
         var startDate = new DateTime(CurrentDate.Year, CurrentDate.Month, 1);
         var endDate = startDate.AddMonths(1).AddDays(-1);
         
-        // Assuming ScheduleService exists and works
         MonthEvents = await ScheduleService.GetEventsByRangeAsync(startDate, endDate);
         BuildCalendarDays();
         
@@ -139,7 +225,6 @@
         if (date.Month != CurrentDate.Month)
         {
             CurrentDate = new DateTime(date.Year, date.Month, 1);
-            // Ideally reload month data here too
             _ = LoadMonthData();
         }
     }
@@ -153,6 +238,76 @@
     private async Task NextMonth()
     {
         CurrentDate = CurrentDate.AddMonths(1);
+        await LoadMonthData();
+    }
+
+    private void OpenAddEventModal()
+    {
+        _isEditing = false;
+        _editingEvent = new Event
+        {
+            Type = EventType.Other,
+            AllDay = false
+        };
+        _editingDate = SelectedDate ?? DateTime.Today;
+        _editingTime = DateTime.Now; // Default to now
+        _showEventModal = true;
+    }
+
+    private void OpenEditEventModal(Event evt)
+    {
+        _isEditing = true;
+        // Clone or create new instance to avoid live editing
+        _editingEvent = new Event
+        {
+            Id = evt.Id,
+            Title = evt.Title,
+            DenId = evt.DenId,
+            StartsAt = evt.StartsAt,
+            EndsAt = evt.EndsAt,
+            AllDay = evt.AllDay,
+            Type = evt.Type,
+            Location = evt.Location,
+            Notes = evt.Notes
+        };
+        
+        // Extract Local Date/Time
+        var localStart = evt.StartsAt.Kind == DateTimeKind.Utc ? evt.StartsAt.ToLocalTime() : evt.StartsAt;
+        _editingDate = localStart.Date;
+        _editingTime = localStart;
+        
+        _showEventModal = true;
+    }
+
+    private void CloseModal()
+    {
+        _showEventModal = false;
+    }
+
+    private async Task SaveEvent()
+    {
+        if (string.IsNullOrWhiteSpace(_editingEvent.Title)) return;
+
+        // Combine Date + Time
+        var combinedStart = _editingDate.Date;
+        if (!_editingEvent.AllDay)
+        {
+            combinedStart = combinedStart.Add(_editingTime.TimeOfDay);
+        }
+        
+        _editingEvent.StartsAt = DateTime.SpecifyKind(combinedStart, DateTimeKind.Local);
+        
+        await ScheduleService.SaveEventAsync(_editingEvent);
+        _showEventModal = false;
+        await LoadMonthData();
+    }
+
+    private async Task DeleteEvent()
+    {
+        if (string.IsNullOrEmpty(_editingEvent.Id)) return;
+        
+        await ScheduleService.DeleteEventAsync(_editingEvent.Id);
+        _showEventModal = false;
         await LoadMonthData();
     }
 

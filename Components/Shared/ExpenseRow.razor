@@ -1,9 +1,8 @@
 @namespace Denly.Components.Shared
 
-<div class="expense-row">
+<div class="expense-row @(OnClick.HasDelegate ? "clickable" : "")" @onclick="HandleClick">
     <div class="expense-icon-area">
         <div class="expense-icon">
-            <!-- Generic category icon based on random logic or type if available -->
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"></circle>
                 <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
@@ -35,4 +34,13 @@
     [Parameter] public string PayerName { get; set; } = string.Empty;
     [Parameter] public string SplitText { get; set; } = string.Empty;
     [Parameter] public DateTime Date { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    private async Task HandleClick()
+    {
+        if (OnClick.HasDelegate)
+        {
+            await OnClick.InvokeAsync();
+        }
+    }
 }
