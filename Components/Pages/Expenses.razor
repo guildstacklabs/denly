@@ -1,3 +1,96 @@
 @page "/costs"
+@using Denly.Models
+@using Denly.Services
+@using Denly.Components.Shared
+@inject IExpenseService ExpenseService
+@inject IDenService DenService
+@inject IChildService ChildService
+@inject IConnectivity Connectivity
+@inject IAuthService Auth
 
-<SharedCostsPage />
+<div class="costs-page">
+    <header class="costs-header">
+        <button class="back-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+        </button>
+        <h1>Expenses</h1>
+        <div class="header-spacer"></div>
+    </header>
+
+    @if (_isLoading)
+    {
+        <LoadingSpinner Message="Loading expenses..." Size="LoadingSize.Large" />
+    }
+    else
+    {
+        <BalanceSummaryCard Balance="@_totalOwed" />
+
+        <div class="recent-expenses-section">
+            <h3 class="section-title">Recent expenses</h3>
+            
+            <div class="expenses-list-card">
+                @foreach (var expense in _expenses.Take(5))
+                {
+                    <ExpenseRow Description="@expense.Description"
+                                Amount="@expense.Amount"
+                                PayerName="@expense.PayerName"
+                                SplitText="@expense.SplitText"
+                                Date="@expense.Date" />
+                }
+            </div>
+            
+            <button class="view-all-btn">View all expenses</button>
+        </div>
+    }
+</div>
+
+@code {
+    private List<SharedCostsExpenseItem> _expenses = new();
+    private decimal _totalOwed;
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadData();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadData()
+    {
+        if (Connectivity.NetworkAccess != NetworkAccess.Internet) return;
+
+        var expenses = await ExpenseService.GetExpensesAsync();
+        var members = await DenService.GetDenMembersAsync();
+        var balances = await ExpenseService.GetBalancesAsync();
+
+        if (balances != null && balances.Any())
+        {
+            var max = balances.Values.Any() ? balances.Values.Max() : 0;
+            var min = balances.Values.Any() ? balances.Values.Min() : 0;
+            _totalOwed = Math.Max(Math.Abs(max), Math.Abs(min));
+        }
+
+        var splits = await ExpenseService.GetExpenseSplitsAsync(expenses.Select(e => e.Id));
+        var splitMap = splits.GroupBy(s => s.ExpenseId).ToDictionary(g => g.Key, g => g.ToList());
+
+        _expenses = expenses.OrderByDescending(e => e.CreatedAt).Select(expense => {
+             var payerName = members.FirstOrDefault(m => m.UserId == expense.PaidBy)?.DisplayName ?? "Someone";
+             return new SharedCostsExpenseItem
+             {
+                 Date = expense.CreatedAt,
+                 Description = expense.Description,
+                 Amount = expense.Amount,
+                 PayerName = payerName,
+                 SplitText = "split evenly"
+             };
+        }).ToList();
+    }
+}
