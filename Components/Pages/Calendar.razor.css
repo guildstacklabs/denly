@@ -171,3 +171,35 @@
     padding: 1rem;
     font-style: italic;
 }
+
+/* Extended FAB */
+.fab-btn {
+    position: fixed;
+    bottom: calc(80px + env(safe-area-inset-bottom));
+    right: 1.5rem;
+    height: 56px;
+    border-radius: 28px;
+    background: var(--color-primary);
+    color: var(--color-text-inverse);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-pebble);
+    cursor: pointer;
+    z-index: 900;
+    padding: 0 20px;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: transform 0.2s;
+}
+
+.fab-btn:active {
+    transform: scale(0.95);
+}
+
+.fab-btn svg {
+    width: 20px;
+    height: 20px;
+}
