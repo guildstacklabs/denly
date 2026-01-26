@@ -1,12 +1,12 @@
 .day-card {
-    background: rgba(255, 255, 255, 0.6);
+    background: var(--color-surface);
     border-radius: 20px;
     padding: 1rem;
     margin-bottom: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow: 0 4px 24px -6px rgba(0, 0, 0, 0.04);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--color-border-soft);
+    box-shadow: var(--shadow-nook);
+    /* Optional: keep mild glass effect if desired, but solid is safer for readability */
+    /* backdrop-filter: blur(10px); */
 }
 
 .day-card-header {
@@ -20,12 +20,12 @@
 .day-name {
     font-size: 1.125rem;
     font-weight: 600;
-    color: #1a1a1a;
+    color: var(--color-text);
 }
 
 .day-date {
     font-size: 0.875rem;
-    color: #888;
+    color: var(--color-text-muted);
 }
 
 .day-card-body {
@@ -38,8 +38,8 @@
     margin-top: 0.75rem;
     text-align: center;
     font-size: 0.8125rem;
-    color: #888;
-    background: rgba(0, 0, 0, 0.03);
+    color: var(--color-text-muted);
+    background: var(--color-surface-muted);
     border-radius: 12px;
     padding: 0.5rem;
 }

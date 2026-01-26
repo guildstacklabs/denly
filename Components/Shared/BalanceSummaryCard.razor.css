@@ -1,11 +1,12 @@
 .balance-summary-card {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: var(--color-surface);
     border-radius: 24px;
     padding: 1.5rem;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    box-shadow: var(--shadow-nook);
     margin-bottom: 2rem;
     position: relative;
     overflow: hidden;
+    border: 1px solid var(--color-border-soft);
 }
 
 .balance-header {
@@ -17,20 +18,20 @@
 
 .balance-title {
     font-size: 0.875rem;
-    color: #666;
+    color: var(--color-text-muted);
     font-weight: 500;
 }
 
 .balance-arrow {
     width: 16px;
     height: 16px;
-    color: #999;
+    color: var(--color-text-subtle);
 }
 
 .balance-amount {
     font-size: 2.5rem;
     font-weight: 700;
-    color: #1a1a1a;
+    color: var(--color-text);
     margin-bottom: 1rem;
     letter-spacing: -0.02em;
 }
@@ -49,7 +50,7 @@
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    border: 2px solid #fff;
+    border: 2px solid var(--color-surface);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -64,8 +65,8 @@
     align-items: center;
     gap: 4px;
     font-size: 0.875rem;
-    color: #666;
-    background: rgba(255,255,255,0.5);
+    color: var(--color-text-muted);
+    background: var(--color-surface-muted);
     padding: 4px 12px;
     border-radius: 20px;
 }
