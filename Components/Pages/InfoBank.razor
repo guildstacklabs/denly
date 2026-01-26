@@ -3,6 +3,7 @@
 @using Denly.Services
 @using Denly.Components.Shared
 @inject IChildService ChildService
+@inject IDocumentService DocumentService
 @inject IAuthService AuthService
 @inject NavigationManager Navigation
 
@@ -15,72 +16,157 @@
     {
         <LoadingSpinner Message="Loading info..." Size="LoadingSize.Large" />
     }
-    else if (_children == null || !_children.Any())
-    {
-         <div class="empty-state">
-            <p>No children profiles found.</p>
-        </div>
-    }
     else
     {
-        <!-- Child Selector Tabs -->
-        <div class="child-tabs">
-            @foreach (var child in _children)
-            {
-                <button class="child-tab @(_selectedChild == child ? "active" : "")" 
-                        @onclick="() => SelectChild(child)">
-                    @child.FirstName
+        <!-- Top Level Toggle -->
+        <div class="view-toggle-container">
+            <div class="view-toggle">
+                <button class="toggle-option @(_activeView == InfoView.Children ? "active" : "")" 
+                        @onclick="() => SetView(InfoView.Children)">
+                    Children
                 </button>
-            }
+                <button class="toggle-option @(_activeView == InfoView.Vault ? "active" : "")" 
+                        @onclick="() => SetView(InfoView.Vault)">
+                    Vault
+                </button>
+            </div>
         </div>
 
-        @if (_selectedChild != null)
+        @if (_activeView == InfoView.Children)
         {
-             <div class="info-card">
-                 <div class="card-section">
-                     <h3>Medical</h3>
-                     <div class="info-row">
-                         <span class="label">Doctor</span>
-                         <span class="value">@(_selectedChild.DoctorName ?? "Not set")</span>
-                     </div>
-                      <div class="info-row">
-                         <span class="label">Contact</span>
-                         <span class="value">@(_selectedChild.DoctorContact ?? "--")</span>
-                     </div>
-                 </div>
-                 
-                 <div class="card-divider"></div>
-                 
-                 <div class="card-section">
-                     <h3>School & Sizes</h3>
-                      <div class="info-row">
-                         <span class="label">School</span>
-                         <span class="value">@(_selectedChild.SchoolName ?? "Not set")</span>
-                     </div>
-                     <div class="sizes-grid">
-                         <div class="size-item">
-                             <span class="label">Clothes</span>
-                             <span class="value">@(_selectedChild.ClothingSize ?? "--")</span>
+            @if (_children == null || !_children.Any())
+            {
+                 <div class="empty-state">
+                    <p>No children profiles found.</p>
+                </div>
+            }
+            else
+            {
+                <!-- Child Selector Tabs -->
+                <div class="child-tabs">
+                    @foreach (var child in _children)
+                    {
+                        <button class="child-tab @(_selectedChild == child ? "active" : "")" 
+                                @onclick="() => SelectChild(child)">
+                            @child.FirstName
+                        </button>
+                    }
+                </div>
+
+                @if (_selectedChild != null)
+                {
+                     <div class="info-card">
+                         <div class="card-section">
+                             <h3>Medical</h3>
+                             <div class="info-row">
+                                 <span class="label">Doctor</span>
+                                 <span class="value">@(_selectedChild.DoctorName ?? "Not set")</span>
+                             </div>
+                              <div class="info-row">
+                                 <span class="label">Contact</span>
+                                 <span class="value">@(_selectedChild.DoctorContact ?? "--")</span>
+                             </div>
                          </div>
-                         <div class="size-item">
-                             <span class="label">Shoes</span>
-                             <span class="value">@(_selectedChild.ShoeSize ?? "--")</span>
+                         
+                         <div class="card-divider"></div>
+                         
+                         <div class="card-section">
+                             <h3>School & Sizes</h3>
+                              <div class="info-row">
+                                 <span class="label">School</span>
+                                 <span class="value">@(_selectedChild.SchoolName ?? "Not set")</span>
+                             </div>
+                             <div class="sizes-grid">
+                                 <div class="size-item">
+                                     <span class="label">Clothes</span>
+                                     <span class="value">@(_selectedChild.ClothingSize ?? "--")</span>
+                                 </div>
+                                 <div class="size-item">
+                                     <span class="label">Shoes</span>
+                                     <span class="value">@(_selectedChild.ShoeSize ?? "--")</span>
+                                 </div>
+                             </div>
                          </div>
                      </div>
-                 </div>
-             </div>
-             
-             <button class="edit-btn" @onclick="EditChild">
-                 Edit Info
-             </button>
+                     
+                     <button class="edit-btn" @onclick="EditChild">
+                         Edit Info
+                     </button>
+                }
+            }
+        }
+        else // Vault View
+        {
+            <!-- Folder Filters -->
+            <div class="folder-filters">
+                <button class="filter-bubble @(_selectedFolder == null ? "active" : "")" 
+                        @onclick="() => SelectFolder(null)">
+                    All
+                </button>
+                @foreach (DocumentFolder folder in Enum.GetValues(typeof(DocumentFolder)))
+                {
+                    <button class="filter-bubble @(_selectedFolder == folder ? "active" : "")" 
+                            @onclick="() => SelectFolder(folder)">
+                        @folder.ToString()
+                    </button>
+                }
+            </div>
+
+            @if (_filteredDocuments.Any())
+            {
+                <div class="documents-list">
+                    @foreach (var doc in _filteredDocuments)
+                    {
+                        <div class="document-item">
+                            <div class="document-icon" style="background-color: @doc.Folder.GetColor()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="@doc.Folder.GetIcon()"></path>
+                                </svg>
+                            </div>
+                            <div class="document-info">
+                                <span class="document-title">@doc.Title</span>
+                                <span class="document-meta">@doc.CreatedAt.ToString("MMM d") • @doc.Folder.GetDisplayName()</span>
+                            </div>
+                            <button class="doc-action-btn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="1"></circle>
+                                    <circle cx="12" cy="5" r="1"></circle>
+                                    <circle cx="12" cy="19" r="1"></circle>
+                                </svg>
+                            </button>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <p>No documents found.</p>
+                </div>
+            }
+            
+            <button class="fab-btn" @onclick="UploadDocument">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+            </button>
         }
     }
 </div>
 
 @code {
     private bool _isLoading = true;
+    private InfoView _activeView = InfoView.Children;
+    
+    // Children Data
     private List<Child> _children = new();
     private Child? _selectedChild;
+
+    // Documents Data
+    private List<Document> _allDocuments = new();
+    private List<Document> _filteredDocuments = new();
+    private DocumentFolder? _selectedFolder;
 
     protected override async Task OnInitializedAsync()
     {
@@ -92,14 +178,27 @@
 
         try
         {
-            // Use ChildService instead of DenService
-            _children = await ChildService.GetActiveChildrenAsync();
+            // Load Children
+            var childrenTask = ChildService.GetActiveChildrenAsync();
+            var docsTask = DocumentService.GetAllDocumentsAsync();
+
+            await Task.WhenAll(childrenTask, docsTask);
+
+            _children = await childrenTask;
             _selectedChild = _children.FirstOrDefault();
+
+            _allDocuments = await docsTask;
+            FilterDocuments();
         }
         finally
         {
             _isLoading = false;
         }
+    }
+
+    private void SetView(InfoView view)
+    {
+        _activeView = view;
     }
 
     private void SelectChild(Child child)
@@ -109,7 +208,38 @@
     
     private void EditChild()
     {
-        // Logic to open edit modal or navigate to edit page
-        // For now, placeholder
+        // Placeholder
+    }
+
+    private void SelectFolder(DocumentFolder? folder)
+    {
+        _selectedFolder = folder;
+        FilterDocuments();
+    }
+
+    private void FilterDocuments()
+    {
+        if (_selectedFolder == null)
+        {
+            _filteredDocuments = _allDocuments.OrderByDescending(d => d.CreatedAt).ToList();
+        }
+        else
+        {
+            _filteredDocuments = _allDocuments
+                .Where(d => d.Folder == _selectedFolder)
+                .OrderByDescending(d => d.CreatedAt)
+                .ToList();
+        }
+    }
+
+    private void UploadDocument()
+    {
+        // Placeholder for upload logic
+    }
+
+    private enum InfoView
+    {
+        Children,
+        Vault
     }
 }

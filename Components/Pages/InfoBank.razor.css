@@ -3,15 +3,51 @@
     background-color: var(--color-background);
     min-height: 100vh;
     padding-bottom: 100px;
+    position: relative;
 }
 
 .info-header h1 {
     font-size: 1.75rem;
     font-weight: 600;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     color: var(--color-text);
 }
 
+/* View Toggle */
+.view-toggle-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.view-toggle {
+    background-color: var(--color-surface-muted);
+    border-radius: 999px;
+    padding: 4px;
+    display: flex;
+    gap: 4px;
+}
+
+.toggle-option {
+    border: none;
+    background: transparent;
+    padding: 8px 24px;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.toggle-option.active {
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    font-weight: 600;
+    box-shadow: var(--shadow-pebble);
+}
+
+/* Children View Styles */
 .child-tabs {
     display: flex;
     gap: 0.5rem;
@@ -107,6 +143,114 @@
     border-radius: 12px;
     color: var(--color-text);
     font-weight: 500;
+}
+
+/* Vault View Styles */
+.folder-filters {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.filter-bubble {
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+
+.filter-bubble.active {
+    background: var(--color-text);
+    color: var(--color-text-inverse);
+    border-color: var(--color-text);
+}
+
+.documents-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.document-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: var(--color-surface);
+    padding: 1rem;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px var(--shadow-color-04);
+}
+
+.document-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
+}
+
+.document-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.document-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.document-title {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+.document-meta {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.doc-action-btn {
+    background: none;
+    border: none;
+    padding: 8px;
+    color: var(--color-text-subtle);
+    cursor: pointer;
+}
+
+.fab-btn {
+    position: fixed;
+    bottom: calc(80px + env(safe-area-inset-bottom));
+    right: 1.5rem;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: var(--color-text-inverse);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    cursor: pointer;
+    z-index: 900;
+}
+
+.fab-btn:active {
+    transform: scale(0.95);
 }
 
 .empty-state {
