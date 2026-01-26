@@ -2,7 +2,7 @@
 @using Denly.Models
 @using Denly.Services
 @using Denly.Components.Shared
-@inject IDenService DenService
+@inject IChildService ChildService
 @inject IAuthService AuthService
 @inject NavigationManager Navigation
 
@@ -92,7 +92,8 @@
 
         try
         {
-            _children = await DenService.GetChildrenAsync();
+            // Use ChildService instead of DenService
+            _children = await ChildService.GetActiveChildrenAsync();
             _selectedChild = _children.FirstOrDefault();
         }
         finally

@@ -10,14 +10,11 @@ namespace Denly.Services;
 public class SupabaseDenService : IDenService
 {
     private const string CurrentDenStorageKey = "current_den_id";
-    private const string InviteCodeCharset = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-    private const int InviteCodeLength = 8;
-    private const int InviteExpirationDays = 3;
-    private const int MaxFailedAttempts = 5;
-    private const int RateLimitMinutes = 15;
     private static readonly TimeSpan MemberCacheTtl = TimeSpan.FromMinutes(5);
+    private const int MaxFailedAttempts = 5;
 
     private readonly IAuthService _authService;
+    private readonly IInviteService _inviteService;
     private readonly IClock _clock;
     private readonly ILogger<SupabaseDenService> _logger;
     private string? _currentDenId;
@@ -33,9 +30,14 @@ public class SupabaseDenService : IDenService
     // Use the authenticated client from AuthService
     private Supabase.Client? SupabaseClient => _authService.GetSupabaseClient();
 
-    public SupabaseDenService(IAuthService authService, IClock clock, ILogger<SupabaseDenService> logger)
+    public SupabaseDenService(
+        IAuthService authService, 
+        IInviteService inviteService,
+        IClock clock, 
+        ILogger<SupabaseDenService> logger)
     {
         _authService = authService;
+        _inviteService = inviteService;
         _clock = clock;
         _logger = logger;
     }
@@ -242,7 +244,6 @@ public class SupabaseDenService : IDenService
         _logger.LogDebug("CreateDenAsync called");
 
         // Get user ID directly from the Supabase auth session
-        // This ensures we use the same ID that auth.uid() sees on the server
         var supabaseUser = SupabaseClient?.Auth.CurrentUser;
         if (supabaseUser == null || string.IsNullOrEmpty(supabaseUser.Id))
         {
@@ -490,134 +491,6 @@ public class SupabaseDenService : IDenService
         }
     }
 
-    public async Task<DenInvite> CreateInviteAsync(string? denId = null, string role = "co-parent")
-    {
-        var user = await _authService.GetCurrentUserAsync();
-        if (user == null) throw new InvalidOperationException("User not authenticated");
-
-        var targetDenId = denId ?? _currentDenId;
-        if (string.IsNullOrEmpty(targetDenId))
-            throw new InvalidOperationException("No den selected");
-
-        // Generate unique code
-        var code = await GenerateUniqueCodeAsync();
-
-        var invite = new DenInvite
-        {
-            Id = Guid.NewGuid().ToString(),
-            DenId = targetDenId,
-            Code = code,
-            Role = role,
-            CreatedBy = user.Id,
-            CreatedAt = _clock.UtcNow,
-            ExpiresAt = _clock.UtcNow.AddDays(InviteExpirationDays)
-        };
-
-        await SupabaseClient!
-            .From<DenInvite>()
-            .Insert(invite);
-
-        return invite;
-    }
-
-    private async Task<string> GenerateUniqueCodeAsync()
-    {
-        var random = new Random();
-        string code;
-        bool isUnique;
-
-        do
-        {
-            var chars = new char[InviteCodeLength];
-            for (int i = 0; i < InviteCodeLength; i++)
-            {
-                chars[i] = InviteCodeCharset[random.Next(InviteCodeCharset.Length)];
-            }
-            code = new string(chars);
-
-            // Check uniqueness
-            try
-            {
-                var existing = await SupabaseClient!
-                    .From<DenInvite>()
-                    .Select("id, den_id, code, role, created_by, created_at, expires_at, used_by, used_at")
-                    .Where(i => i.Code == code)
-                    .Get();
-
-                isUnique = existing.Models.Count == 0;
-            }
-            catch
-            {
-                isUnique = true; // Assume unique on error
-            }
-        } while (!isUnique);
-
-        return code;
-    }
-
-    public async Task<DenInvite?> GetActiveInviteAsync(string? denId = null)
-    {
-        var targetDenId = denId ?? _currentDenId;
-        if (string.IsNullOrEmpty(targetDenId)) return null;
-
-        try
-        {
-            var response = await SupabaseClient!
-                .From<DenInvite>()
-                .Select("id, den_id, code, role, created_by, created_at, expires_at, used_by, used_at")
-                .Where(i => i.DenId == targetDenId)
-                .Order("created_at", Supabase.Postgrest.Constants.Ordering.Descending)
-                .Get();
-
-            // Find first valid (not expired, not used) invite
-            return response.Models.FirstOrDefault(i => i.IsValid);
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    public async Task DeleteInviteAsync(string inviteId)
-    {
-        await SupabaseClient!
-            .From<DenInvite>()
-            .Where(i => i.Id == inviteId)
-            .Delete();
-    }
-
-    public async Task<DenInvite?> ValidateInviteCodeAsync(string code)
-    {
-        var normalizedCode = NormalizeCode(code);
-
-        try
-        {
-            var response = await SupabaseClient!
-                .From<DenInvite>()
-                .Select("id, den_id, code, role, created_by, created_at, expires_at, used_by, used_at")
-                .Where(i => i.Code == normalizedCode)
-                .Single();
-
-            if (response == null || !response.IsValid)
-                return null;
-
-            // Get den name for display
-            var den = await SupabaseClient!
-                .From<Den>()
-                .Select("id, name, created_by, created_at, time_zone")
-                .Where(d => d.Id == response.DenId)
-                .Single();
-
-            response.DenName = den?.Name;
-
-            return response;
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
     public async Task<JoinDenResult> JoinDenAsync(string code)
     {
         try
@@ -632,18 +505,17 @@ public class SupabaseDenService : IDenService
             }
 
             // Check rate limit
-            var failedAttempts = await GetFailedAttemptsCountAsync(RateLimitMinutes);
+            var failedAttempts = await _inviteService.GetFailedAttemptsCountAsync(user.Id);
             _logger.LogDebug("JoinDenAsync - failed attempts: {Count}", failedAttempts);
             if (failedAttempts >= MaxFailedAttempts)
             {
                 return new JoinDenResult(false, $"Too many attempts. Please try again later.", 0);
             }
 
-            var normalizedCode = NormalizeCode(code);
-            var invite = await ValidateInviteCodeAsync(normalizedCode);
+            var invite = await _inviteService.ValidateInviteCodeAsync(code);
 
             // Log attempt
-            await LogAttemptAsync(user.Id, invite != null);
+            await _inviteService.LogAttemptAsync(user.Id, invite != null);
 
             if (invite == null)
             {
@@ -688,15 +560,7 @@ public class SupabaseDenService : IDenService
             InvalidateMembersCache();
 
             // Mark invite as used
-            invite.UsedAt = _clock.UtcNow;
-            invite.UsedBy = user.Id;
-
-            await SupabaseClient!
-                .From<DenInvite>()
-                .Where(i => i.Id == invite.Id)
-                .Set(i => i.UsedAt!, invite.UsedAt)
-                .Set(i => i.UsedBy!, invite.UsedBy)
-                .Update();
+            await _inviteService.MarkInviteUsedAsync(invite.Id, user.Id);
 
             // Set as current den
             await SetCurrentDenAsync(invite.DenId);
@@ -709,99 +573,6 @@ public class SupabaseDenService : IDenService
         {
             _logger.LogError(ex, "Failed to join den");
             return new JoinDenResult(false, $"Failed to join den: {ex.Message}");
-        }
-    }
-
-    public async Task<int> GetFailedAttemptsCountAsync(int minutes = 15)
-    {
-        var user = await _authService.GetCurrentUserAsync();
-        if (user == null) return 0;
-
-        try
-        {
-            var cutoff = _clock.UtcNow.AddMinutes(-minutes);
-
-            var response = await SupabaseClient!
-                .From<InviteAttempt>()
-                .Select("id, user_id, attempted_at, success")
-                .Where(a => a.UserId == user.Id && !a.Success)
-                .Filter("attempted_at", Supabase.Postgrest.Constants.Operator.GreaterThanOrEqual, cutoff.ToString("o"))
-                .Get();
-
-            return response.Models.Count;
-        }
-        catch
-        {
-            return 0;
-        }
-    }
-
-    private async Task LogAttemptAsync(string userId, bool success)
-    {
-        try
-        {
-            var attempt = new InviteAttempt
-            {
-                Id = Guid.NewGuid().ToString(),
-                UserId = userId,
-                Success = success,
-                AttemptedAt = _clock.UtcNow
-            };
-
-            await SupabaseClient!
-                .From<InviteAttempt>()
-                .Insert(attempt);
-        }
-        catch
-        {
-            // Best effort logging
-        }
-    }
-
-    private static string NormalizeCode(string code)
-    {
-        // Remove spaces, dashes, and convert to uppercase
-        return code.Replace(" ", "").Replace("-", "").ToUpperInvariant();
-    }
-
-    public async Task<List<Child>> GetChildrenAsync()
-    {
-        var denId = _currentDenId;
-        if (string.IsNullOrEmpty(denId))
-        {
-            return new List<Child>();
-        }
-
-        try
-        {
-            var response = await SupabaseClient!
-                .From<Child>()
-                .Select("id, den_id, first_name, middle_name, last_name, birth_date, color, doctor_name, doctor_contact, allergies, school_name, clothing_size, shoe_size, created_at, deactivated_at")
-                .Where(c => c.DenId == denId)
-                .Get();
-
-            return response.Models;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to get children for den {DenId}", denId);
-            return new List<Child>();
-        }
-    }
-
-    public async Task UpdateChildAsync(Child child)
-    {
-        try
-        {
-            // Use Upsert to handle both create and update
-            await SupabaseClient!
-                .From<Child>()
-                .Upsert(child);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to update child {ChildId}", child.Id);
-            // Optionally re-throw or handle
         }
     }
 }

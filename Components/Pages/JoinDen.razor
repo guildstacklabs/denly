@@ -4,6 +4,7 @@
 @using Denly.Services
 @using Microsoft.Extensions.Logging
 @inject IDenService DenService
+@inject IInviteService InviteService
 @inject IAuthService Auth
 @inject NavigationManager Navigation
 @inject ILogger<JoinDen> Logger
@@ -132,12 +133,19 @@
     {
         if (!IsValidCode || _isLoading) return;
 
+        var user = await Auth.GetCurrentUserAsync();
+        if (user == null) 
+        {
+             Navigation.NavigateTo("/login", forceLoad: true);
+             return;
+        }
+
         _isLoading = true;
         _error = null;
         StateHasChanged();
 
         // Check rate limit first
-        var failedAttempts = await DenService.GetFailedAttemptsCountAsync();
+        var failedAttempts = await InviteService.GetFailedAttemptsCountAsync(user.Id);
         if (failedAttempts >= 5)
         {
             _error = "Too many attempts. Please try again later.";
@@ -146,7 +154,7 @@
         }
 
         var normalizedCode = _inviteCode.Replace(" ", "").Replace("-", "").ToUpperInvariant();
-        _validatedInvite = await DenService.ValidateInviteCodeAsync(normalizedCode);
+        _validatedInvite = await InviteService.ValidateInviteCodeAsync(normalizedCode);
 
         if (_validatedInvite != null)
         {

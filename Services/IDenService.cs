@@ -23,20 +23,11 @@ public interface IDenService
     // Profile lookup (cached)
     Task<Dictionary<string, Profile>> GetProfilesAsync(List<string> userIds);
 
-    // Invites
-    Task<DenInvite> CreateInviteAsync(string? denId = null, string role = "co-parent");
-    Task<DenInvite?> GetActiveInviteAsync(string? denId = null);
-    Task DeleteInviteAsync(string inviteId);
-    Task<DenInvite?> ValidateInviteCodeAsync(string code);
+    // Joining
     Task<JoinDenResult> JoinDenAsync(string code);
-    Task<int> GetFailedAttemptsCountAsync(int minutes = 15);
 
     // Events
     event EventHandler<DenChangedEventArgs>? DenChanged;
-
-    // Children
-    Task<List<Child>> GetChildrenAsync();
-    Task UpdateChildAsync(Child child);
 }
 
 public record JoinDenResult(

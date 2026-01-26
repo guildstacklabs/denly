@@ -50,6 +50,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<IExpenseService, SupabaseExpenseService>();
 		builder.Services.AddSingleton<IDocumentService, SupabaseDocumentService>();
 		builder.Services.AddSingleton<IChildService, ChildService>();
+		builder.Services.AddSingleton<IInviteService, SupabaseInviteService>();
 
 		// Platform services
 #if ANDROID
