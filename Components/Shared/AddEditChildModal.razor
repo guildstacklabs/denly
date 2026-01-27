@@ -49,18 +49,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Color</label>
-                    <div class="color-picker">
-                        @foreach (var color in _availableColors)
-                        {
-                            <button type="button"
-                                    class="color-option @(_selectedColor == color ? "selected" : "")"
-                                    style="background-color: @color"
-                                    @onclick="() => _selectedColor = color"
-                                    title="@color">
-                            </button>
-                        }
-                    </div>
+                    <div class="field-note">Color assignment is disabled for now.</div>
                 </div>
             </div>
 
@@ -116,26 +105,12 @@
     private string? _middleName;
     private string? _lastName;
     private DateTime? _birthDate;
-    private string? _selectedColor;
-
     private string? _errorMessage;
     private string? _warningMessage;
     private bool _showPartialMatchWarning;
     private bool _partialMatchConfirmed;
     private bool _attemptedSubmit;
     private bool _isSaving;
-
-    private readonly string[] _availableColors = new[]
-    {
-        "#E07A5F", // Coral
-        "#3D8B8B", // Teal
-        "#F4A261", // Orange
-        "#81B29A", // Green
-        "#E9C46A", // Yellow
-        "#7B68EE", // Purple
-        "#F08080", // Light coral
-        "#4682B4"  // Steel blue
-    };
 
     protected override void OnParametersSet()
     {
@@ -145,7 +120,6 @@
             _middleName = Child.MiddleName;
             _lastName = Child.LastName;
             _birthDate = Child.BirthDate;
-            _selectedColor = Child.Color ?? _availableColors[0];
         }
         else
         {
@@ -153,7 +127,6 @@
             _middleName = null;
             _lastName = null;
             _birthDate = null;
-            _selectedColor = _availableColors[0];
         }
 
         _errorMessage = null;
@@ -181,7 +154,7 @@
         child.MiddleName = string.IsNullOrWhiteSpace(_middleName) ? null : _middleName.Trim();
         child.LastName = string.IsNullOrWhiteSpace(_lastName) ? null : _lastName.Trim();
         child.BirthDate = _birthDate;
-        child.Color = _selectedColor;
+        child.Color = null;
 
         // Validate name if validator provided
         if (ValidateNameAsync != null && !_partialMatchConfirmed)
@@ -209,6 +182,7 @@
 
         _isSaving = false;
     }
+
 
     private void ConfirmPartialMatch()
     {

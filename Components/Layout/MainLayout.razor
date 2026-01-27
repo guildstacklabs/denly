@@ -42,13 +42,13 @@ else if (_isAuthenticated)
                     @Body
                 </ChildContent>
                 <ErrorContent Context="context">
-                    <div style="padding: 2rem; text-align: center;">
-                        <h2 style="color: var(--color-danger);">Render Error</h2>
+                    <div class="render-error">
+                        <h2 class="render-error__title">Render Error</h2>
                         @{
                             Logger.LogError(context, "MainLayout render error");
                         }
-                        <pre style="text-align: left; background: var(--color-surface-muted); padding: 1rem; border-radius: 8px; font-size: 0.75rem; white-space: pre-wrap; word-break: break-word;">@context.ToString()</pre>
-                        <button @onclick="ClearSessionAndRetry" style="margin-top: 1rem; background: var(--color-primary); color: var(--color-text-inverse); border: none; padding: 0.75rem 1.5rem; border-radius: 8px;">
+                        <pre class="render-error__details">@context.ToString()</pre>
+                        <button class="render-error__button" @onclick="ClearSessionAndRetry">
                             Clear Session & Retry
                         </button>
                     </div>

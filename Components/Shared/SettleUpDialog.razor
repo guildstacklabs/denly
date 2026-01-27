@@ -17,7 +17,7 @@
             <EditForm Model="Model" OnValidSubmit="HandleValidSubmit">
                 <DataAnnotationsValidator />
                 <div class="modal-body">
-                    <div class="dialog-balance" style="@BalanceStyle">
+                    <div class="dialog-balance">
                         Shared balance: @Balance.ToString("C", CultureInfo.CurrentCulture)
                     </div>
 
@@ -67,11 +67,6 @@
     [Parameter] public IReadOnlyList<CaregiverOption> Caregivers { get; set; } = Array.Empty<CaregiverOption>();
     [Parameter] public EventCallback OnCancel { get; set; }
     [Parameter] public EventCallback<SettleUpInput> OnSave { get; set; }
-
-    private string BalanceStyle =>
-        $"font-size:{DesignTokens.Typography.SizeSm}px;" +
-        $"opacity:{DesignTokens.Opacity.Soft};" +
-        $"margin-bottom:{DesignTokens.Spacing.Md}px;";
 
     private async Task HandleValidSubmit()
     {

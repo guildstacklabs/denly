@@ -11,10 +11,139 @@
 @inject ILogger<Home> Logger
 
 <div class="home-sanctuary">
-    <SanctuaryHeader Title="Today"
-                     Subtitle="@_lastUpdatedText" />
-
     <div class="sanctuary-content">
+        <div class="home-hero">
+            <div class="hero-title">
+                <span>@_heroTitleLine1</span>
+                <span>@_heroTitleLine2</span>
+            </div>
+        </div>
+
+        <div class="hero-modules">
+            <div class="hero-module">
+                <div class="hero-label">Child cards strip</div>
+                <div class="child-cards">
+                    @foreach (var child in _heroChildren)
+                    {
+                        <div class="child-card">
+                            <div class="child-name">@child.Name</div>
+                            <div class="child-dots">
+                                @foreach (var dot in child.UpcomingDots)
+                                {
+                                    <span class="child-dot @(dot ? "active" : "")"></span>
+                                }
+                            </div>
+                            <div class="child-next">@child.NextItem</div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="hero-module">
+                <div class="hero-label">Child hero • Variant A</div>
+                <div class="child-hero-grid">
+                    @foreach (var child in _heroChildren)
+                    {
+                        <div class="child-hero-card">
+                            <div class="child-hero-top">
+                                <span class="child-hero-initials">@child.Initials</span>
+                                <span class="child-hero-name">@child.Name</span>
+                            </div>
+                            <div class="child-hero-next">@child.NextItem</div>
+                            <div class="child-hero-meta">
+                                <span>@child.UpcomingCount upcoming</span>
+                                <span>@(child.HasNext ? "Today" : "Soon")</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            
+            <div class="hero-module">
+                <div class="hero-label">Expenses tile • Variant A</div>
+                <div class="expense-tile expense-tile--summary">
+                    <div class="expense-tile__header">
+                        <div class="expense-tile__title">@_expenseTileA.Title</div>
+                        <div class="expense-tile__period">@_expenseTileA.Period</div>
+                    </div>
+                    <div class="expense-tile__amount">@_expenseTileA.Total</div>
+                    <div class="expense-tile__meta">
+                        <span>@_expenseTileA.PaidStatus</span>
+                        <span>•</span>
+                        <span>@_expenseTileA.NextDue</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hero-module">
+                <div class="hero-label">Expenses tile • Variant B</div>
+                <div class="expense-tile expense-tile--cards">
+                    <div class="expense-tile__stack">
+                        <div class="expense-pill">
+                            <span class="expense-pill__label">@_expenseTileB.TopLabel</span>
+                            <span class="expense-pill__value">@_expenseTileB.TopValue</span>
+                        </div>
+                        <div class="expense-pill">
+                            <span class="expense-pill__label">@_expenseTileB.BottomLabel</span>
+                            <span class="expense-pill__value">@_expenseTileB.BottomValue</span>
+                        </div>
+                    </div>
+                    <div class="expense-tile__footer">
+                        <span>@_expenseTileB.FooterLeft</span>
+                        <span>@_expenseTileB.FooterRight</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hero-module">
+                <div class="hero-label">Expenses tile • Variant C</div>
+                <div class="expense-tile expense-tile--list">
+                    <div class="expense-tile__header">
+                        <div class="expense-tile__title">@_expenseTileC.Title</div>
+                        <div class="expense-tile__period">@_expenseTileC.Period</div>
+                    </div>
+                    <div class="expense-row">
+                        <span class="expense-row__title">@_expenseTileC.Row1Title</span>
+                        <span class="expense-row__amount">@_expenseTileC.Row1Amount</span>
+                    </div>
+                    <div class="expense-row">
+                        <span class="expense-row__title">@_expenseTileC.Row2Title</span>
+                        <span class="expense-row__amount">@_expenseTileC.Row2Amount</span>
+                    </div>
+                    <div class="expense-tile__footer">
+                        <span>@_expenseTileC.FooterLeft</span>
+                        <span>@_expenseTileC.FooterRight</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hero-module">
+                <div class="hero-label">Expenses tile • Variant D</div>
+                <div class="expense-tile expense-tile--split">
+                    <div class="expense-tile__header">
+                        <div class="expense-tile__title">@_expenseTileD.Title</div>
+                        <div class="expense-tile__period">@_expenseTileD.Period</div>
+                    </div>
+                    <div class="expense-split">
+                        <div class="expense-split__card">
+                            <span class="expense-split__label">@_expenseTileD.LeftLabel</span>
+                            <span class="expense-split__value">@_expenseTileD.LeftValue</span>
+                        </div>
+                        <div class="expense-split__card">
+                            <span class="expense-split__label">@_expenseTileD.RightLabel</span>
+                            <span class="expense-split__value">@_expenseTileD.RightValue</span>
+                        </div>
+                    </div>
+                    <div class="expense-tile__footer">
+                        <span>@_expenseTileD.FooterLeft</span>
+                        <span>@_expenseTileD.FooterRight</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
         <!-- 4-Day Schedule Spine -->
         <div class="schedule-spine">
             @if (_isLoading)
@@ -30,8 +159,9 @@
                              OverflowCount="@day.OverflowCount">
                         @if (day.Events.Any())
                         {
-                            @foreach (var evt in day.Events.Take(3))
+                            @for (int idx = 0; idx < Math.Min(3, day.Events.Count); idx++)
                             {
+                                var evt = day.Events[idx];
                                 <div class="sanctuary-event-row" @onclick="() => NavigateToEvent(evt)">
                                     <div class="event-time">@FormatEventTime(evt)</div>
                                     <div class="event-details">
@@ -53,33 +183,7 @@
             }
         </div>
 
-        <!-- Life Snapshot Cards -->
-        @if (!_isLoading)
-        {
-            <div class="snapshot-widgets">
-                <CompactCostsCard OnClick="@(() => Navigation.NavigateTo("/costs"))">
-                    <div class="cost-summary">
-                        @if (_totalOwed == 0)
-                        {
-                            <div class="cost-settled">Nothing to settle</div>
-                        }
-                        else
-                        {
-                            <div class="cost-balance">@_totalOwed.ToString("C")</div>
-                            <div class="cost-label">Outstanding</div>
-                        }
-                    </div>
-                </CompactCostsCard>
-
-                <ChildInfoCard OnClick="@(() => Navigation.NavigateTo("/info"))">
-                     <span class="den-chip">School</span>
-                     <span class="den-chip">Care</span>
-                     <span class="den-chip">Health</span>
-                </ChildInfoCard>
-            </div>
-            
-            <div class="spacer-bottom"></div>
-        }
+        <div class="spacer-bottom"></div>
     </div>
 </div>
 
@@ -94,8 +198,268 @@
         padding: 1rem 1.5rem;
         display: flex;
         flex-direction: column;
-        gap: 1.5rem;
+        gap: 1.25rem;
     }
+
+    .home-hero {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .hero-title {
+        display: flex;
+        flex-direction: column;
+        gap: 0.1rem;
+        font-size: 2rem;
+        font-weight: 600;
+        color: var(--color-text);
+        letter-spacing: -0.02em;
+    }
+
+    .hero-modules {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .hero-module {
+        background: var(--color-surface-glass);
+        border: 1px solid var(--color-border-soft);
+        border-radius: 16px;
+        padding: 0.75rem;
+        box-shadow: var(--shadow-pebble);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+
+    .hero-label {
+        font-size: 0.8rem;
+        color: var(--color-text-subtle);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 0.5rem;
+    }
+
+    .child-cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+    }
+
+    .child-card {
+        background: var(--color-surface-glass-10);
+        border: 1px solid var(--color-border-soft);
+        border-radius: 12px;
+        padding: 0.5rem 0.6rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+
+    .child-name {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--color-text);
+    }
+
+    .child-dots {
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .child-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--color-border-soft);
+    }
+
+    .child-dot.active {
+        background: var(--color-text-muted);
+    }
+
+    .child-next {
+        font-size: 0.8rem;
+        color: var(--color-text-muted);
+    }
+
+    .child-hero-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+
+    .child-hero-card {
+        background: var(--color-surface-glass-10);
+        border: 1px solid var(--color-border-soft);
+        border-radius: 14px;
+        padding: 0.6rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+
+    .child-hero-top {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .child-hero-initials {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-surface-glass);
+        border: 1px solid var(--color-border-soft);
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--color-text);
+    }
+
+    .child-hero-name {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--color-text);
+    }
+
+    .child-hero-next {
+        font-size: 0.85rem;
+        color: var(--color-text-muted);
+    }
+
+    .child-hero-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        color: var(--color-text-subtle);
+    }
+
+    .expense-tile {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+        padding: 0.75rem;
+        border-radius: 14px;
+        background: var(--color-surface-glass-10);
+        border: 1px solid var(--color-border-soft);
+    }
+
+    .expense-tile__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 0.75rem;
+    }
+
+    .expense-tile__title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--color-text);
+    }
+
+    .expense-tile__period {
+        font-size: 0.8rem;
+        color: var(--color-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    .expense-tile__amount {
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: var(--color-text);
+        letter-spacing: -0.02em;
+    }
+
+    .expense-tile__meta,
+    .expense-tile__footer {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85rem;
+        color: var(--color-text-muted);
+    }
+
+    .expense-tile__stack {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .expense-pill {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.45rem 0.6rem;
+        border-radius: 999px;
+        background: var(--color-surface-glass);
+        border: 1px solid var(--color-border-soft);
+        font-size: 0.85rem;
+    }
+
+    .expense-pill__label {
+        color: var(--color-text-muted);
+    }
+
+    .expense-pill__value {
+        color: var(--color-text);
+        font-weight: 600;
+    }
+
+    .expense-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.35rem 0;
+        border-bottom: 1px solid var(--color-border-soft);
+        font-size: 0.9rem;
+    }
+
+    .expense-row:last-of-type {
+        border-bottom: none;
+    }
+
+    .expense-row__title {
+        color: var(--color-text);
+        font-weight: 500;
+    }
+
+    .expense-row__amount {
+        color: var(--color-text-muted);
+    }
+
+    .expense-split {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+
+    .expense-split__card {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        padding: 0.5rem 0.6rem;
+        border-radius: 12px;
+        background: var(--color-surface-glass);
+        border: 1px solid var(--color-border-soft);
+    }
+
+    .expense-split__label {
+        font-size: 0.75rem;
+        color: var(--color-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    .expense-split__value {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--color-text);
+    }
+
 
     .schedule-spine {
         display: flex;
@@ -105,15 +469,19 @@
 
     .sanctuary-event-row {
         display: flex;
-        gap: 1rem;
-        padding: 0.5rem 0;
-        border-bottom: 1px solid var(--color-border-soft);
+        gap: 0.75rem;
+        padding: 0.6rem 0.75rem;
+        border-radius: 14px;
+        background: var(--color-surface-glass-10);
+        border: 1px solid var(--color-border-soft);
         cursor: pointer;
+        margin-bottom: 0.5rem;
     }
     
     .sanctuary-event-row:last-child {
-        border-bottom: none;
+        margin-bottom: 0;
     }
+
 
     .event-time {
         font-size: 0.875rem;
@@ -146,34 +514,6 @@
         padding: 0.5rem 0;
     }
 
-    .snapshot-widgets {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-    }
-
-    .cost-summary {
-        text-align: center;
-        padding: 0.5rem 0;
-    }
-
-    .cost-balance {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: var(--color-text);
-    }
-    
-    .cost-label {
-        font-size: 0.75rem;
-        color: var(--color-text-muted);
-    }
-    
-    .cost-settled {
-        color: var(--color-text-muted);
-        font-size: 0.875rem;
-    }
-
-    
     .spacer-bottom {
         height: 40px;
     }
@@ -181,14 +521,75 @@
 
 @code {
     private bool _isLoading = true;
-    private string _lastUpdatedText = "Last updated a short while ago";
     private List<DaySchedule> _scheduleDays = new();
     private decimal _totalOwed = 0;
     private TimeZoneInfo? _denTimeZone;
+    private string _heroTitleLine1 = "Coming";
+    private string _heroTitleLine2 = "Up";
+
+    private readonly List<HeroChild> _heroChildren = new()
+    {
+        new HeroChild("Avery", "AV", "8:00 AM • School pickup", new [] { true, true, false }, 2, true),
+        new HeroChild("Jamie", "JM", "4:30 PM • Soccer", new [] { true, false, true }, 1, false),
+        new HeroChild("Rowan", "RW", "6:00 PM • Dinner", new [] { false, true, true }, 3, false)
+    };
+
+    private readonly ExpenseTileMock _expenseTileA = new(
+        "Den expenses",
+        "This month",
+        "$218.40",
+        "You owe $62.10",
+        "Next due Feb 2");
+
+    private readonly ExpenseTileStackMock _expenseTileB = new(
+        "Shared total",
+        "$218.40",
+        "Your share",
+        "$109.20",
+        "Last added: Field trip",
+        "Split 50/50");
+
+    private readonly ExpenseTileListMock _expenseTileC = new(
+        "Recent expenses",
+        "Last 7 days",
+        "Field trip fee",
+        "$25.00",
+        "Piano lesson",
+        "$45.00",
+        "2 more",
+        "View all");
+
+    private readonly ExpenseTileSplitMock _expenseTileD = new(
+        "Split snapshot",
+        "This month",
+        "Total",
+        "$218.40",
+        "Your share",
+        "$109.20",
+        "Unsettled $62.10",
+        "Auto-split 50/50");
+
 
     protected override async Task OnInitializedAsync()
     {
+        SetHeroTitle();
         await LoadData();
+    }
+
+    private void SetHeroTitle()
+    {
+        var phrases = new[]
+        {
+            ("Coming", "Up"),
+            ("Next", "Few Days"),
+            ("On the", "Agenda"),
+            ("In", "View"),
+            ("What's", "Next")
+        };
+
+        var pick = phrases[new Random().Next(phrases.Length)];
+        _heroTitleLine1 = pick.Item1;
+        _heroTitleLine2 = pick.Item2;
     }
 
     private async Task LoadData()
@@ -201,13 +602,13 @@
                 ? DateTime.Today 
                 : DenTimeService.ConvertToDenTime(DateTime.UtcNow, _denTimeZone).Date;
 
-            // Load 4 days of schedule
-            var endDate = today.AddDays(3);
+            // Load 3 days of schedule
+            var endDate = today.AddDays(2);
             // Assuming GetEventsByRangeAsync takes inclusive dates
             var events = await ScheduleService.GetEventsByRangeAsync(today, endDate);
 
             _scheduleDays.Clear();
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 3; i++)
             {
                 var date = today.AddDays(i);
                 var dayEvents = events.Where(e => 
@@ -224,14 +625,7 @@
                 });
             }
 
-            // Load Expenses Balance
-            var balances = await ExpenseService.GetBalancesAsync();
-            if (balances != null && balances.Any())
-            {
-                var max = balances.Values.Any() ? balances.Values.Max() : 0;
-                var min = balances.Values.Any() ? balances.Values.Min() : 0;
-                _totalOwed = Math.Max(Math.Abs(max), Math.Abs(min));
-            }
+            _totalOwed = 0;
         }
         catch (Exception ex)
         {
@@ -269,4 +663,48 @@
         public List<Event> Events { get; set; } = new();
         public int OverflowCount { get; set; }
     }
+
+    public record HeroChild(
+        string Name,
+        string Initials,
+        string NextItem,
+        IReadOnlyList<bool> UpcomingDots,
+        int UpcomingCount,
+        bool HasNext);
+
+    public record ExpenseTileMock(
+        string Title,
+        string Period,
+        string Total,
+        string PaidStatus,
+        string NextDue);
+
+    public record ExpenseTileStackMock(
+        string TopLabel,
+        string TopValue,
+        string BottomLabel,
+        string BottomValue,
+        string FooterLeft,
+        string FooterRight);
+
+    public record ExpenseTileListMock(
+        string Title,
+        string Period,
+        string Row1Title,
+        string Row1Amount,
+        string Row2Title,
+        string Row2Amount,
+        string FooterLeft,
+        string FooterRight);
+
+    public record ExpenseTileSplitMock(
+        string Title,
+        string Period,
+        string LeftLabel,
+        string LeftValue,
+        string RightLabel,
+        string RightValue,
+        string FooterLeft,
+        string FooterRight);
+
 }

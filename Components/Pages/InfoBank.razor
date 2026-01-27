@@ -10,6 +10,9 @@
 <div class="info-page">
     <header class="info-header">
          <h1>Info</h1>
+         <button class="settings-link" @onclick="NavigateToSettings">
+             Settings
+         </button>
     </header>
 
     @if (_isLoading)
@@ -118,7 +121,7 @@
                     @foreach (var doc in _filteredDocuments)
                     {
                         <div class="document-item">
-                            <div class="document-icon" style="background-color: @doc.Folder.GetColor()">
+                            <div class="document-icon @GetFolderClass(doc.Folder)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="@doc.Folder.GetIcon()"></path>
                                 </svg>
@@ -235,6 +238,21 @@
     private void UploadDocument()
     {
         // Placeholder for upload logic
+    }
+
+    private string GetFolderClass(DocumentFolder folder) => folder switch
+    {
+        DocumentFolder.Medical => "doc-folder-medical",
+        DocumentFolder.School => "doc-folder-school",
+        DocumentFolder.Legal => "doc-folder-legal",
+        DocumentFolder.Identity => "doc-folder-identity",
+        DocumentFolder.Other => "doc-folder-other",
+        _ => "doc-folder-other"
+    };
+
+    private void NavigateToSettings()
+    {
+        Navigation.NavigateTo("/settings");
     }
 
     private enum InfoView

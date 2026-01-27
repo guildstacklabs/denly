@@ -728,7 +728,7 @@
 }
 
 .deactivate-child-btn:hover {
-    background-color: rgba(239, 68, 68, 0.1);
+    background-color: var(--color-danger-soft);
     color: var(--color-danger);
 }
 

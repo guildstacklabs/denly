@@ -55,7 +55,7 @@
     border-radius: 10px;
     margin-bottom: 1.5rem;
     width: 100%;
-    max-width: 340px;
+    max-width: 420px;
     font-size: 0.875rem;
 }
 
@@ -67,7 +67,7 @@
 
 :deep(.auth-nook) {
     width: 100%;
-    max-width: 360px;
+    max-width: 420px;
 }
 
 .btn-google {
@@ -100,6 +100,18 @@
 .btn-google:disabled {
     opacity: 0.7;
     cursor: not-allowed;
+}
+
+.form-hint {
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    text-align: center;
+    min-height: 1.25rem;
+}
+
+.form-hint--hidden {
+    visibility: hidden;
 }
 
 .google-icon {
@@ -150,7 +162,9 @@
 }
 
 .form-group .den-input {
-    border-radius: 12px;
+    border-radius: 16px;
+    min-height: 44px;
+    width: 100%;
 }
 
 .btn-primary {

@@ -150,12 +150,12 @@ public static class EventTypeExtensions
 
     public static string GetColor(this EventType type) => type switch
     {
-        EventType.Handoff => "#e07a5f",      // Warm terracotta - transitions between homes
-        EventType.Doctor => "#81b29a",       // Sage green - health/wellness
-        EventType.School => "#f2cc8f",       // Soft gold - school events
-        EventType.Activity => "#3d85c6",     // Calm blue - activities
-        EventType.Family => "#a78bba",       // Soft purple - family gatherings
-        EventType.Other => "#9ca3af",        // Neutral gray
-        _ => "#9ca3af"
+        EventType.Handoff => "var(--color-category-handoff)",
+        EventType.Doctor => "var(--color-category-medical)",
+        EventType.School => "var(--color-category-school)",
+        EventType.Activity => "var(--color-category-activity)",
+        EventType.Family => "var(--color-category-family)",
+        EventType.Other => "var(--color-category-other)",
+        _ => "var(--color-category-other)"
     };
 }

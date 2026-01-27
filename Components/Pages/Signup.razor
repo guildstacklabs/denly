@@ -16,7 +16,7 @@
         <p class="tagline">Join Denly to coordinate with your co-parent</p>
     </div>
 
-    @if (!string.IsNullOrEmpty(_errorMessage))
+    @if (!string.IsNullOrWhiteSpace(_errorMessage))
     {
         <div class="error-banner">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -136,7 +136,7 @@
         }
         else
         {
-            _errorMessage = result.ErrorMessage;
+            _errorMessage = string.IsNullOrWhiteSpace(result.ErrorMessage) ? null : result.ErrorMessage;
         }
 
         _isLoading = false;
@@ -160,7 +160,7 @@
         }
         else
         {
-            _errorMessage = result.ErrorMessage;
+            _errorMessage = string.IsNullOrWhiteSpace(result.ErrorMessage) ? null : result.ErrorMessage;
         }
 
         _isLoading = false;

@@ -89,12 +89,12 @@ public static class DocumentFolderExtensions
 
     public static string GetColor(this DocumentFolder folder) => folder switch
     {
-        DocumentFolder.Medical => "#81b29a",    // Sage green
-        DocumentFolder.School => "#f2cc8f",     // Soft gold
-        DocumentFolder.Legal => "#3d85c6",      // Calm blue
-        DocumentFolder.Identity => "#a78bba",   // Soft purple
-        DocumentFolder.Other => "#9ca3af",      // Neutral gray
-        _ => "#9ca3af"
+        DocumentFolder.Medical => "var(--color-category-medical)",
+        DocumentFolder.School => "var(--color-category-school)",
+        DocumentFolder.Legal => "var(--color-category-legal)",
+        DocumentFolder.Identity => "var(--color-category-identity)",
+        DocumentFolder.Other => "var(--color-category-other)",
+        _ => "var(--color-category-other)"
     };
 
     public static string GetIcon(this DocumentFolder folder) => folder switch

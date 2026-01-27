@@ -16,7 +16,7 @@
         <p class="tagline">Co-parenting made simple</p>
     </div>
 
-    @if (!string.IsNullOrEmpty(_errorMessage))
+    @if (!string.IsNullOrWhiteSpace(_errorMessage))
     {
         <div class="error-banner">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -68,9 +68,12 @@
 
             <button class="btn-primary"
                     @onclick="SignInWithEmail"
-                    disabled="@(!IsValidForm || _isLoading)">
+                    disabled="@_isLoading">
                 @(_isLoading && _loadingType == "email" ? "Signing in..." : "Sign In")
             </button>
+            <div class="form-hint @(IsValidForm ? "form-hint--hidden" : "")">
+                Enter a valid email and password to continue.
+            </div>
         </div>
 
         <div class="signup-link">
@@ -118,7 +121,7 @@
         }
         else
         {
-            _errorMessage = result.ErrorMessage;
+            _errorMessage = string.IsNullOrWhiteSpace(result.ErrorMessage) ? null : result.ErrorMessage;
         }
 
         _isLoading = false;
@@ -142,7 +145,7 @@
         }
         else
         {
-            _errorMessage = result.ErrorMessage;
+            _errorMessage = string.IsNullOrWhiteSpace(result.ErrorMessage) ? null : result.ErrorMessage;
         }
 
         _isLoading = false;

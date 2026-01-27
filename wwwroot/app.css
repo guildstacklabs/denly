@@ -5,11 +5,11 @@
 :root {
     /* --- Core Palette (Quiet Glass) --- */
     --color-warm-bg: #F9F9F9;           /* Canvas - main app background (Soft Grey) */
-    --color-den-shadow: #1A1A1A;        /* Text - primary text */
-    --color-teal: #4A4A4A;              /* Action - primary buttons (Dark Grey/Black) */
-    --color-seafoam: #E0E0E0;           /* Secondary - tracks (Light Grey) */
-    --color-gold: #D4D4D4;              /* Highlight - (Silver/Grey) */
-    --color-coral: #E07A5F;             /* Alert - kept for importance */
+    --color-den-shadow: var(--color-text); /* Legacy alias - primary text */
+    --color-teal: var(--color-primary);    /* Legacy alias - primary action */
+    --color-seafoam: var(--color-surface-muted); /* Legacy alias - muted surfaces */
+    --color-gold: var(--color-border);     /* Legacy alias - borders */
+    --color-coral: var(--color-primary);   /* Legacy alias - alerts (kept neutral) */
     --color-border-soft: rgba(0, 0, 0, 0.05);
     --color-surface-glass: rgba(255, 255, 255, 0.85);
     --color-surface-glass-10: rgba(255, 255, 255, 0.6);
@@ -36,8 +36,8 @@
     --tap-min: 44px;
 
     /* --- Components --- */
-    --color-nook-bg: #FFFFFF;           /* White cards on soft grey bg */
-    --shadow-nook: 0 4px 20px rgba(0, 0, 0, 0.03);
+    --color-nook-bg: var(--color-surface-glass); /* Legacy alias - glass card */
+    --shadow-nook: var(--shadow-pebble);
     --shadow-pebble: 0 4px 12px rgba(0, 0, 0, 0.08);
     --shadow-glow: 0 0 16px rgba(0, 0, 0, 0.1);
     --motion-fast: 120ms;
@@ -56,6 +56,18 @@
     --color-secondary: #E0E0E0;
     --color-secondary-hover: #D0D0D0;
     --color-secondary-active: #CCCCCC;
+
+    --color-danger: #C06A5C;
+    --color-danger-dark: #A85A4E;
+    --color-danger-soft: rgba(192, 106, 92, 0.12);
+    --color-danger-border: rgba(192, 106, 92, 0.35);
+    --color-danger-tint: rgba(192, 106, 92, 0.08);
+
+    --color-success: #7E9F96;
+    --color-success-dark: #6B8C83;
+    --color-success-soft: rgba(126, 159, 150, 0.15);
+    --color-success-soft-alpha: rgba(126, 159, 150, 0.2);
+    --color-success-border: rgba(126, 159, 150, 0.3);
     
     --color-text: #1A1A1A;
     --color-text-muted: #666666;
@@ -67,17 +79,33 @@
     --color-surface-muted: #F0F0F0;
 
     --color-border: #E5E5E5;
-    
+
+    --color-category-medical: #D7E0DC;
+    --color-category-school: #E6E0D5;
+    --color-category-legal: #D6DDE7;
+    --color-category-identity: #E2DCE7;
+    --color-category-activity: #D8DFE8;
+    --color-category-family: #E4DEE7;
+    --color-category-handoff: #E5DED9;
+    --color-category-clothing: #E6E2DB;
+    --color-category-childcare: #E3DAD6;
+    --color-category-other: #E2E2E2;
+
     --shadow-color-10: rgba(0,0,0,0.1);
     --shadow-color-20: rgba(0,0,0,0.2);
+
+}
+
+#blazor-error-ui {
+    display: none;
 }
 
 /* Dark theme support (optional / partial) */
 [data-theme="dark"] {
     --color-warm-bg: #121212;
-    --color-den-shadow: #E0E0E0;
-    --color-teal: #FFFFFF;
-    --color-nook-bg: #1E1E1E;
+    --color-den-shadow: var(--color-text);
+    --color-teal: var(--color-primary);
+    --color-nook-bg: var(--color-surface-glass);
     --color-border-soft: rgba(255, 255, 255, 0.1);
     --color-surface-glass: rgba(30, 30, 30, 0.85);
     
@@ -87,7 +115,7 @@
     --color-text: #E0E0E0;
     --color-text-muted: #A0A0A0;
     
-    --shadow-nook: 0 4px 20px rgba(0, 0, 0, 0.5);
+    --shadow-nook: var(--shadow-pebble);
 }
 
 html, body {
@@ -144,6 +172,28 @@ select:focus {
     box-shadow: var(--focus-ring);
 }
 
+.den-input {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-soft);
+    border-radius: 16px;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.9rem;
+    color: var(--color-text);
+    width: 100%;
+    min-height: 44px;
+    box-sizing: border-box;
+}
+
+.den-input::placeholder {
+    color: var(--color-text-subtle);
+}
+
+.den-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: var(--focus-ring);
+}
+
 input[type="date"],
 input[type="time"],
 select {
@@ -183,6 +233,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     background: var(--color-primary-soft);
     color: var(--color-text);
 }
+
 
 /* Auth Loading specific */
 .auth-loading {

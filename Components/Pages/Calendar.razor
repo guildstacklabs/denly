@@ -21,75 +21,82 @@
         </button>
     </div>
 
-    <!-- Calendar Grid -->
-    <div class="calendar-grid-card">
-        <div class="week-days-header">
-            @foreach (var day in DayNames)
-            {
-                <span class="week-day">@day.Substring(0, 1)</span>
-            }
-        </div>
-        
-        <div class="days-grid">
-            @foreach (var day in CalendarDays)
-            {
-                <div class="grid-day @(day.IsCurrentMonth ? "" : "other-month") @(day.IsToday ? "today" : "") @(day.Date == SelectedDate ? "selected" : "")"
-                     @onclick="() => SelectDay(day.Date)">
-                    <span class="day-num">@day.Date.Day</span>
-                    @if (day.Events.Any())
-                    {
-                        <div class="dot-indicator"></div>
-                    }
-                </div>
-            }
-        </div>
-    </div>
-
-    <!-- Agenda Below Cal -->
-    <div class="agenda-container">
-        <div class="agenda-header">
-            <span class="agenda-date">
-                @(SelectedDate.HasValue ? SelectedDate.Value.ToString("dddd, MMM d") : "Select a day")
-            </span>
-            <span class="agenda-date-secondary">
-                @(SelectedDate.HasValue ? SelectedDate.Value.ToString("MMM d") : "")
-            </span>
-        </div>
-
-        <div class="agenda-items">
-            @if (DisplayedDayEvents.Any())
-            {
-                @foreach (var evt in DisplayedDayEvents)
+    @if (_isLoading)
+    {
+        <LoadingSpinner Message="Loading calendar..." Size="LoadingSize.Large" />
+    }
+    else
+    {
+        <!-- Calendar Grid -->
+        <div class="calendar-grid-card">
+            <div class="week-days-header">
+                @foreach (var day in DayNames)
                 {
-                    <div class="sanctuary-event-row" @onclick="() => OpenEditEventModal(evt)">
-                        <div class="event-time">@FormatEventTime(evt)</div>
-                        <div class="event-details">
-                            <span class="event-title">@evt.Title</span>
-                            <span class="event-location">@evt.Location</span>
-                        </div>
+                    <span class="week-day">@day.Substring(0, 1)</span>
+                }
+            </div>
+            
+            <div class="days-grid">
+                @foreach (var day in CalendarDays)
+                {
+                    <div class="grid-day @(day.IsCurrentMonth ? "" : "other-month") @(day.IsToday ? "today" : "") @(day.Date == SelectedDate ? "selected" : "")"
+                         @onclick="() => SelectDay(day.Date)">
+                        <span class="day-num">@day.Date.Day</span>
+                        @if (day.Events.Any())
+                        {
+                            <div class="dot-indicator"></div>
+                        }
                     </div>
                 }
-                
-                @if (RemainingEventsCount > 0)
-                {
-                    <div class="more-items-pill">+@RemainingEventsCount more items</div>
-                }
-            }
-            else
-            {
-                <div class="empty-state">No items</div>
-            }
+            </div>
         </div>
-    </div>
 
-    <!-- Floating Action Button -->
-    <button class="fab-btn" @onclick="OpenAddEventModal">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        <span>New item</span>
-    </button>
+        <!-- Agenda Below Cal -->
+        <div class="agenda-container">
+            <div class="agenda-header">
+                <span class="agenda-date">
+                    @(SelectedDate.HasValue ? SelectedDate.Value.ToString("dddd, MMM d") : "Select a day")
+                </span>
+                <span class="agenda-date-secondary">
+                    @(SelectedDate.HasValue ? SelectedDate.Value.ToString("MMM d") : "")
+                </span>
+            </div>
+
+            <div class="agenda-items">
+                @if (DisplayedDayEvents.Any())
+                {
+                    @foreach (var evt in DisplayedDayEvents)
+                    {
+                        <div class="sanctuary-event-row" @onclick="() => OpenEditEventModal(evt)">
+                            <div class="event-time">@FormatEventTime(evt)</div>
+                            <div class="event-details">
+                                <span class="event-title">@evt.Title</span>
+                                <span class="event-location">@evt.Location</span>
+                            </div>
+                        </div>
+                    }
+                    
+                    @if (RemainingEventsCount > 0)
+                    {
+                        <div class="more-items-pill">+@RemainingEventsCount more items</div>
+                    }
+                }
+                else
+                {
+                    <div class="empty-state">No items</div>
+                }
+            </div>
+        </div>
+
+        <!-- Floating Action Button -->
+        <button class="fab-btn" @onclick="OpenAddEventModal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>New item</span>
+        </button>
+    }
 </div>
 
 <!-- Event Modal -->
@@ -139,7 +146,6 @@
                         @foreach (EventType type in Enum.GetValues(typeof(EventType)))
                         {
                             <button class="type-btn den-chip @(_editingEvent.Type == type ? "den-chip--active" : "")"
-                                    style="--type-color: @type.GetColor()"
                                     @onclick="() => _editingEvent.Type = type">
                                 @type.GetDisplayName()
                             </button>
@@ -181,6 +187,7 @@
     private DateTime _editingTime = DateTime.Now;
     private bool _isEditing;
     private TimeZoneInfo? _denTimeZone;
+    private bool _isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -189,29 +196,37 @@
 
     private async Task LoadMonthData()
     {
-        _denTimeZone ??= await DenTimeService.GetDenTimeZoneAsync();
-
-        var todayDen = DenTimeService.ConvertToDenTime(DateTime.Now, _denTimeZone).Date;
-        if (CurrentDate == DateTime.Today)
+        _isLoading = true;
+        try
         {
-            CurrentDate = todayDen;
+            _denTimeZone ??= await DenTimeService.GetDenTimeZoneAsync();
+
+            var todayDen = DenTimeService.ConvertToDenTime(DateTime.Now, _denTimeZone).Date;
+            if (CurrentDate == DateTime.Today)
+            {
+                CurrentDate = todayDen;
+            }
+
+            if (SelectedDate == DateTime.Today)
+            {
+                SelectedDate = todayDen;
+            }
+
+            // Simple mock or load logic
+            var startDate = new DateTime(CurrentDate.Year, CurrentDate.Month, 1);
+            var endDate = startDate.AddMonths(1).AddDays(-1);
+            
+            MonthEvents = await ScheduleService.GetEventsByRangeAsync(startDate, endDate);
+            BuildCalendarDays();
+            
+            if (SelectedDate.HasValue)
+            {
+                SetSelectedDayEvents(SelectedDate.Value);
+            }
         }
-
-        if (SelectedDate == DateTime.Today)
+        finally
         {
-            SelectedDate = todayDen;
-        }
-
-        // Simple mock or load logic
-        var startDate = new DateTime(CurrentDate.Year, CurrentDate.Month, 1);
-        var endDate = startDate.AddMonths(1).AddDays(-1);
-        
-        MonthEvents = await ScheduleService.GetEventsByRangeAsync(startDate, endDate);
-        BuildCalendarDays();
-        
-        if (SelectedDate.HasValue)
-        {
-            SetSelectedDayEvents(SelectedDate.Value);
+            _isLoading = false;
         }
     }
 

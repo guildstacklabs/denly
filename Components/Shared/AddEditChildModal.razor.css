@@ -120,28 +120,9 @@
     flex: 1;
 }
 
-.color-picker {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.color-option {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: 2px solid transparent;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.color-option:hover {
-    transform: scale(1.1);
-}
-
-.color-option.selected {
-    border-color: var(--color-text);
-    box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-text);
+.field-note {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
 }
 
 .validation-error {

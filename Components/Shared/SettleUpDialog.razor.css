@@ -55,6 +55,13 @@
     gap: 0.75rem;
 }
 
+.dialog-balance {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    opacity: 0.8;
+    margin-bottom: 0.5rem;
+}
+
 .form-group {
     display: flex;
     flex-direction: column;

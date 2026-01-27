@@ -10,15 +10,15 @@ public static class DesignTokens
         // Quiet Glass Palette
         public static readonly Color WarmBackground = new(0.976f, 0.976f, 0.976f, 1f); // #F9F9F9
         public static readonly Color DenShadow = new(0.102f, 0.102f, 0.102f, 1f);   // #1A1A1A
-        public static readonly Color Teal = new(0.290f, 0.290f, 0.290f, 1f);        // #4A4A4A (Dark Grey)
-        public static readonly Color Seafoam = new(0.878f, 0.878f, 0.878f, 1f);     // #E0E0E0 (Light Grey)
-        public static readonly Color Gold = new(0.831f, 0.831f, 0.831f, 1f);        // #D4D4D4 (Silver)
-        public static readonly Color Coral = new(0.878f, 0.478f, 0.373f, 1f);       // #E07A5F (Kept)
+        public static readonly Color Teal = new(0.102f, 0.102f, 0.102f, 1f);        // #1A1A1A
+        public static readonly Color Seafoam = new(0.941f, 0.941f, 0.941f, 1f);     // #F0F0F0
+        public static readonly Color Gold = new(0.898f, 0.898f, 0.898f, 1f);        // #E5E5E5
+        public static readonly Color Coral = new(0.753f, 0.416f, 0.361f, 1f);       // #C06A5C
         public static readonly Color NookBackground = new(1f, 1f, 1f, 1f);          // #FFFFFF
         public static readonly Color BorderSoft = new(0f, 0f, 0f, 0.05f);           // Black @ 5%
         public static readonly Color SurfaceGlass = new(1f, 1f, 1f, 0.85f);         // White @ 85%
-        public static readonly Color UserSienna = new(0.831f, 0.639f, 0.451f, 1f);  // #D4A373
-        public static readonly Color UserLavender = new(0.663f, 0.667f, 0.737f, 1f); // #A9AABC
+        public static readonly Color UserSienna = new(0.788f, 0.749f, 0.714f, 1f);  // #C9BFB6
+        public static readonly Color UserLavender = new(0.780f, 0.800f, 0.839f, 1f); // #C7CCD6
     }
 
     public static class Spacing
@@ -62,7 +62,7 @@ public static class DesignTokens
 
     public static class Shadows
     {
-        public const string Nook = "0 4px 20px rgba(0, 0, 0, 0.03)";
+        public const string Nook = "0 4px 12px rgba(0, 0, 0, 0.08)";
         public const string Pebble = "0 4px 12px rgba(0, 0, 0, 0.08)";
         public const string Glow = "0 0 16px rgba(0, 0, 0, 0.1)";
     }

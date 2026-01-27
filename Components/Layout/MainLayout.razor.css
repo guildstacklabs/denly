@@ -75,3 +75,36 @@
 .retry-btn:active {
     background: var(--color-primary-active);
 }
+
+.render-error {
+    padding: 2rem;
+    text-align: center;
+}
+
+.render-error__title {
+    color: var(--color-danger);
+    margin: 0 0 0.75rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.render-error__details {
+    text-align: left;
+    background: var(--color-surface-muted);
+    padding: 1rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--color-text-muted);
+}
+
+.render-error__button {
+    margin-top: 1rem;
+    background: var(--color-primary);
+    color: var(--color-text-inverse);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 999px;
+    cursor: pointer;
+}

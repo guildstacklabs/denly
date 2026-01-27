@@ -139,12 +139,12 @@ public static class ExpenseCategoryExtensions
 
     public static string GetColor(this ExpenseCategory category) => category switch
     {
-        ExpenseCategory.Medical => "#81b29a",    // Sage green
-        ExpenseCategory.School => "#f2cc8f",     // Soft gold
-        ExpenseCategory.Activities => "#3d85c6", // Calm blue
-        ExpenseCategory.Clothing => "#a78bba",   // Soft purple
-        ExpenseCategory.Childcare => "#e07a5f",  // Warm terracotta
-        ExpenseCategory.Other => "#9ca3af",      // Neutral gray
-        _ => "#9ca3af"
+        ExpenseCategory.Medical => "var(--color-category-medical)",
+        ExpenseCategory.School => "var(--color-category-school)",
+        ExpenseCategory.Activities => "var(--color-category-activity)",
+        ExpenseCategory.Clothing => "var(--color-category-clothing)",
+        ExpenseCategory.Childcare => "var(--color-category-childcare)",
+        ExpenseCategory.Other => "var(--color-category-other)",
+        _ => "var(--color-category-other)"
     };
 }

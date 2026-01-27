@@ -86,7 +86,6 @@
                     @foreach (var child in _children)
                     {
                         <div class="child-card-mini">
-                            <div class="child-color" style="background-color: @(child.Color ?? "#3D8B8B")"></div>
                             <div class="child-info">
                                 <span class="child-name">@child.FirstName</span>
                                 @if (child.BirthDate.HasValue)
@@ -147,18 +146,7 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Color</label>
-                            <div class="color-picker">
-                                @foreach (var color in _availableColors)
-                                {
-                                    <button type="button"
-                                            class="color-option @(_newChildColor == color ? "selected" : "")"
-                                            style="background-color: @color"
-                                            @onclick="() => _newChildColor = color"
-                                            disabled="@_isLoading">
-                                    </button>
-                                }
-                            </div>
+                            <div class="field-note">Color assignment is disabled for now.</div>
                         </div>
                     </div>
 
@@ -229,21 +217,9 @@
     private string? _newChildMiddleName;
     private string? _newChildLastName;
     private DateTime? _newChildBirthDate;
-    private string _newChildColor = "#E07A5F";
+    private string? _newChildColor;
     private string? _childErrorMessage;
     private bool _attemptedAddChild;
-
-    private readonly string[] _availableColors = new[]
-    {
-        "#E07A5F", // Coral
-        "#3D8B8B", // Teal
-        "#F4A261", // Orange
-        "#81B29A", // Green
-        "#E9C46A", // Yellow
-        "#7B68EE", // Purple
-        "#F08080", // Light coral
-        "#4682B4"  // Steel blue
-    };
 
     private bool IsValidDenName => !string.IsNullOrWhiteSpace(_denName) && _denName.Length >= 2;
     private bool CanCreateDen => IsValidDenName && _children.Count > 0;
@@ -292,17 +268,11 @@
         _newChildMiddleName = null;
         _newChildLastName = null;
         _newChildBirthDate = null;
-        _newChildColor = GetNextColor();
+        _newChildColor = null;
         _childErrorMessage = null;
         _attemptedAddChild = false;
     }
 
-    private string GetNextColor()
-    {
-        // Pick a color that isn't already used
-        var usedColors = _children.Select(c => c.Color).ToHashSet();
-        return _availableColors.FirstOrDefault(c => !usedColors.Contains(c)) ?? _availableColors[0];
-    }
 
     private void CancelAddChild()
     {
@@ -338,7 +308,7 @@
             MiddleName = string.IsNullOrWhiteSpace(_newChildMiddleName) ? null : _newChildMiddleName.Trim(),
             LastName = string.IsNullOrWhiteSpace(_newChildLastName) ? null : _newChildLastName.Trim(),
             BirthDate = _newChildBirthDate,
-            Color = _newChildColor
+            Color = null
         };
 
         _children.Add(child);

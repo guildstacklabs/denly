@@ -133,7 +133,7 @@
                     {
                         var displayName = ChildService.GetDisplayName(child, _activeChildren);
                         <div class="child-card">
-                            <div class="child-avatar" style="@(child.Color != null ? $"background-color: {child.Color}" : "")">
+                            <div class="child-avatar">
                                 @(displayName.Length > 0 ? displayName[0].ToString().ToUpperInvariant() : "?")
                             </div>
                             <div class="child-info">
@@ -741,4 +741,5 @@
     {
         _showInactiveChildren = !_showInactiveChildren;
     }
+
 }

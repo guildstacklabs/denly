@@ -6,11 +6,31 @@
     position: relative;
 }
 
+.info-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
 .info-header h1 {
     font-size: 1.75rem;
     font-weight: 600;
-    margin-bottom: 1rem;
+    margin: 0;
     color: var(--color-text);
+}
+
+.settings-link {
+    background: var(--color-surface-glass);
+    border: 1px solid var(--color-border-soft);
+    border-radius: 999px;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text);
+    box-shadow: var(--shadow-pebble);
+    cursor: pointer;
 }
 
 /* View Toggle */
@@ -167,6 +187,26 @@
     justify-content: center;
     color: white;
     flex-shrink: 0;
+}
+
+.document-icon.doc-folder-medical {
+    background-color: var(--color-category-medical);
+}
+
+.document-icon.doc-folder-school {
+    background-color: var(--color-category-school);
+}
+
+.document-icon.doc-folder-legal {
+    background-color: var(--color-category-legal);
+}
+
+.document-icon.doc-folder-identity {
+    background-color: var(--color-category-identity);
+}
+
+.document-icon.doc-folder-other {
+    background-color: var(--color-category-other);
 }
 
 .document-icon svg {
