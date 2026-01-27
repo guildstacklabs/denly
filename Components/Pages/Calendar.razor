@@ -8,13 +8,13 @@
 
 <div class="calendar-page">
     <div class="calendar-header-area">
-        <button class="nav-btn" @onclick="PreviousMonth">
+        <button class="nav-btn" @onclick="PreviousMonth" disabled="@(_isLoading || _isMonthLoading)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="15 18 9 12 15 6"></polyline>
             </svg>
         </button>
         <h2 class="calendar-title">@CurrentDate.ToString("MMMM yyyy")</h2>
-        <button class="nav-btn" @onclick="NextMonth">
+        <button class="nav-btn" @onclick="NextMonth" disabled="@(_isLoading || _isMonthLoading)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="9 18 15 12 9 6"></polyline>
             </svg>
@@ -28,7 +28,13 @@
     else
     {
         <!-- Calendar Grid -->
-        <div class="calendar-grid-card">
+        <div class="calendar-grid-card @(_isMonthLoading ? "is-loading" : "")">
+            @if (_isMonthLoading)
+            {
+                <div class="calendar-loading-overlay">
+                    <LoadingSpinner Message="Updating calendar..." Size="LoadingSize.Small" />
+                </div>
+            }
             <div class="week-days-header">
                 @foreach (var day in DayNames)
                 {
@@ -53,14 +59,11 @@
 
         <!-- Agenda Below Cal -->
         <div class="agenda-container">
-            <div class="agenda-header">
-                <span class="agenda-date">
-                    @(SelectedDate.HasValue ? SelectedDate.Value.ToString("dddd, MMM d") : "Select a day")
-                </span>
-                <span class="agenda-date-secondary">
-                    @(SelectedDate.HasValue ? SelectedDate.Value.ToString("MMM d") : "")
-                </span>
-            </div>
+        <div class="agenda-header">
+            <span class="agenda-date">
+                @(SelectedDate.HasValue ? SelectedDate.Value.ToString("dddd, MMM d") : "Select a day")
+            </span>
+        </div>
 
             <div class="agenda-items">
                 @if (DisplayedDayEvents.Any())
@@ -188,15 +191,23 @@
     private bool _isEditing;
     private TimeZoneInfo? _denTimeZone;
     private bool _isLoading = true;
+    private bool _isMonthLoading;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadMonthData();
+        await LoadMonthData(showFullLoader: true);
     }
 
-    private async Task LoadMonthData()
+    private async Task LoadMonthData(bool showFullLoader = false)
     {
-        _isLoading = true;
+        if (showFullLoader)
+        {
+            _isLoading = true;
+        }
+        else
+        {
+            _isMonthLoading = true;
+        }
         try
         {
             _denTimeZone ??= await DenTimeService.GetDenTimeZoneAsync();
@@ -227,6 +238,7 @@
         finally
         {
             _isLoading = false;
+            _isMonthLoading = false;
         }
     }
 
