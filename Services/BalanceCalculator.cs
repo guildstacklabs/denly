@@ -109,6 +109,7 @@ public static class BalanceCalculator
                 var totalPercent = splits.Sum(s => s.Percent);
                 if (totalPercent <= 0)
                 {
+                    System.Diagnostics.Debug.WriteLine($"WARNING: Expense {expense.ExpenseId} has splits totaling {totalPercent}%. Falling back to even split.");
                     var evenShare = expense.Amount / memberIds.Count;
                     foreach (var memberId in memberIds)
                     {

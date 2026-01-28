@@ -449,13 +449,17 @@ public class SupabaseDenService : IDenService
             throw new InvalidOperationException("Only the den owner can remove members");
 
         // Cannot remove owner - check member role
-        var memberToRemove = await SupabaseClient!
+        var memberResponse = await SupabaseClient!
             .From<DenMember>()
             .Select("id, den_id, user_id, role, invited_by, joined_at")
             .Where(m => m.DenId == denId && m.UserId == userId)
-            .Single();
+            .Get();
 
-        if (memberToRemove?.Role == "owner")
+        var memberToRemove = memberResponse.Models.FirstOrDefault();
+        if (memberToRemove == null)
+            throw new InvalidOperationException("Member not found");
+
+        if (memberToRemove.Role == "owner")
             throw new InvalidOperationException("Cannot remove the den owner");
 
         await SupabaseClient!

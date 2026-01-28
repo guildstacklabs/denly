@@ -63,9 +63,8 @@ public class SupabaseAuthService : IAuthService
             System.Diagnostics.Debug.WriteLine(">>> AuthService: Calling _supabase.InitializeAsync()...");
 
             // Add timeout to prevent indefinite hanging
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             var initTask = _supabase.InitializeAsync();
-            var completedTask = await Task.WhenAny(initTask, Task.Delay(Timeout.Infinite, cts.Token));
+            var completedTask = await Task.WhenAny(initTask, Task.Delay(TimeSpan.FromSeconds(10)));
 
             if (completedTask != initTask)
             {
@@ -116,9 +115,9 @@ public class SupabaseAuthService : IAuthService
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Session restore failed, user will need to log in again
+            _logger.LogWarning(ex, "Session restore failed, user will need to log in again");
         }
     }
 
@@ -133,9 +132,9 @@ public class SupabaseAuthService : IAuthService
                 await SecureStorage.SetAsync(SessionStorageKey, sessionJson);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Secure storage not available
+            _logger.LogWarning(ex, "Failed to persist session to secure storage");
         }
     }
 

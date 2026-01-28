@@ -1,5 +1,4 @@
 @inherits LayoutComponentBase
-@implements IDisposable
 @inject IJSRuntime JS
 @inject Denly.Services.ISafeAreaService SafeArea
 @inject Denly.Services.IAuthService Auth
@@ -165,7 +164,4 @@ else if (_isAuthenticated)
         }
     }
 
-    public void Dispose()
-    {
-    }
 }

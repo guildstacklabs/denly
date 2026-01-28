@@ -161,7 +161,7 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
                 .From<Event>()
                 .Select("id, den_id, child_id, title, event_type, starts_at, ends_at, all_day, location, notes, created_by, created_at, updated_at")
                 .Where(e => e.DenId == denId)
-                .Filter("starts_at", Supabase.Postgrest.Constants.Operator.GreaterThanOrEqual, now.ToString("yyyy-MM-ddTHH:mm:ss"))
+                .Filter("starts_at", Supabase.Postgrest.Constants.Operator.GreaterThanOrEqual, now.ToString("O"))
                 .Order("starts_at", Supabase.Postgrest.Constants.Ordering.Ascending)
                 .Limit(count)
                 .Get();

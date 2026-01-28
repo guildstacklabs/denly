@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Denly.Models;
 using Microsoft.Extensions.Logging;
 using Supabase;
@@ -173,16 +174,18 @@ public class SupabaseInviteService : IInviteService
 
     private async Task<string> GenerateUniqueCodeAsync()
     {
-        var random = new Random();
         string code;
         bool isUnique;
+
+        Span<byte> randomBytes = stackalloc byte[InviteCodeLength];
 
         do
         {
             var chars = new char[InviteCodeLength];
+            RandomNumberGenerator.Fill(randomBytes);
             for (int i = 0; i < InviteCodeLength; i++)
             {
-                chars[i] = InviteCodeCharset[random.Next(InviteCodeCharset.Length)];
+                chars[i] = InviteCodeCharset[randomBytes[i] % InviteCodeCharset.Length];
             }
             code = new string(chars);
 

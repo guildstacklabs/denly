@@ -49,6 +49,27 @@ These don't fit the "amicable co-parents" target market:
 
 ---
 
+## Code Improvements
+
+| # | Issue | Severity | File(s) |
+|---|-------|----------|---------|
+| C1 | ~~Insecure invite code generation (`Random` → crypto RNG)~~ | Critical | `SupabaseInviteService.cs` |
+| C2 | ~~Broken auth timeout (CTS applied to wrong task)~~ | Critical | `SupabaseAuthService.cs` |
+| C3 | ~~Silent exception swallowing in session restore/persist~~ | Critical | `SupabaseAuthService.cs` |
+| C4 | ~~Crash in `RemoveMemberAsync` (`.Single()` → `.SingleOrDefault()`)~~ | Critical | `SupabaseDenService.cs` |
+| C5 | ~~Inconsistent DateTime formatting in Supabase queries~~ | High | `SupabaseScheduleService.cs` |
+| C6 | ~~BalanceCalculator silent fallback on zero splits~~ | High | `BalanceCalculator.cs` |
+| C7 | ~~Empty `Dispose()` in MainLayout~~ | Low | `MainLayout.razor` |
+| C8 | Duplicate `GetInitials()` logic | Medium | `Expenses.razor`, `Settings.razor` |
+| C9 | CSS duplication across modal components | Medium | Multiple `.razor.css` files |
+| C10 | Calendar O(n×42) performance in `BuildCalendarDays()` | Medium | `Calendar.razor` |
+| C11 | Serial awaits in `Settings.LoadData()` | Medium | `Settings.razor` |
+| C12 | Missing input length limits on forms | Low | Calendar, Expenses, InfoBank |
+| C13 | Accessibility: missing `aria-label`, `role="alert"` | Low | Multiple components |
+| C14 | CSS inconsistencies (border-radius, padding, font-size) | Low | Multiple `.razor.css` |
+
+---
+
 ## Pre-Release Checklist
 
 ### iOS Push Notifications Setup
