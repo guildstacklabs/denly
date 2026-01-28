@@ -12,4 +12,7 @@ public interface IScheduleService
     Task SaveEventAsync(Event evt, CancellationToken cancellationToken = default);
     Task DeleteEventAsync(string id, CancellationToken cancellationToken = default);
     Task<bool> HasUpcomingEventsAsync();
+    Task<string> GetOrCreateSubscriptionUrlAsync(CancellationToken cancellationToken = default);
+    Task<List<EventChild>> GetEventChildrenAsync(IEnumerable<string> eventIds, CancellationToken cancellationToken = default);
+    Task SaveEventChildrenAsync(string eventId, List<string> childIds, CancellationToken cancellationToken = default);
 }

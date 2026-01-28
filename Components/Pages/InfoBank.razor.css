@@ -267,3 +267,148 @@
     text-align: center;
     margin-top: 2rem;
 }
+
+/* Upload Modal */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--color-overlay-50);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1.5rem;
+}
+
+.modal-content {
+    width: 100%;
+    max-width: 420px;
+    background: var(--color-surface-glass);
+    border-radius: 20px;
+    box-shadow: var(--shadow-pebble);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--color-border-soft);
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem 0.5rem;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    color: var(--color-text-muted);
+    padding: 0.25rem;
+    cursor: pointer;
+}
+
+.close-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.modal-body {
+    padding: 0.5rem 1.25rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.form-group label {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.form-group input[type="text"],
+.form-group select {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-soft);
+    border-radius: 12px;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text);
+    width: 100%;
+}
+
+.file-picker-btn {
+    background: var(--color-surface);
+    border: 1px dashed var(--color-border-soft);
+    border-radius: 12px;
+    padding: 1rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text);
+    width: 100%;
+    cursor: pointer;
+    text-align: center;
+}
+
+.file-picker-btn:active {
+    background: var(--color-surface-muted);
+}
+
+.file-placeholder {
+    color: var(--color-text-muted);
+}
+
+.file-name {
+    color: var(--color-text);
+    font-weight: 500;
+}
+
+.upload-error {
+    color: var(--color-error);
+    font-size: 0.8125rem;
+    padding: 0.5rem;
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: 8px;
+}
+
+.modal-footer {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem 1.25rem;
+    justify-content: flex-end;
+}
+
+.cancel-btn,
+.save-btn {
+    border-radius: 999px;
+    padding: 0.5rem 0.9rem;
+    font-size: 0.8125rem;
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+.cancel-btn {
+    background: var(--color-surface);
+    border-color: var(--color-border-soft);
+    color: var(--color-text);
+}
+
+.save-btn {
+    background: var(--color-primary);
+    color: var(--color-text-inverse);
+}
+
+.save-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

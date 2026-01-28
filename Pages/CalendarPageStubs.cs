@@ -14,6 +14,9 @@ internal sealed class StubScheduleService : IScheduleService
     public Task SaveEventAsync(Event evt, CancellationToken cancellationToken = default) => Task.CompletedTask;
     public Task DeleteEventAsync(string id, CancellationToken cancellationToken = default) => Task.CompletedTask;
     public Task<bool> HasUpcomingEventsAsync() => Task.FromResult(false);
+    public Task<string> GetOrCreateSubscriptionUrlAsync(CancellationToken cancellationToken = default) => Task.FromResult(string.Empty);
+    public Task<List<EventChild>> GetEventChildrenAsync(IEnumerable<string> eventIds, CancellationToken cancellationToken = default) => Task.FromResult(new List<EventChild>());
+    public Task SaveEventChildrenAsync(string eventId, List<string> childIds, CancellationToken cancellationToken = default) => Task.CompletedTask;
 }
 
 internal sealed class StubChildService : IChildService

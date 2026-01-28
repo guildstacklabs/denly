@@ -10,4 +10,5 @@ public class SharedCostsExpenseItem
     public string PayerName { get; set; } = string.Empty;
     public string? PayerInitials { get; set; }
     public string? ChildTag { get; set; }
+    public List<string> ChildIds { get; set; } = new();
 }

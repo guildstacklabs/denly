@@ -27,6 +27,9 @@
     <Compile Include="..\Services\IExpenseService.cs" Link="LinkedSources\IExpenseService.cs" />
     <Compile Include="..\Models\Expense.cs" Link="LinkedSources\Expense.cs" />
     <Compile Include="..\Models\ExpenseSplit.cs" Link="LinkedSources\ExpenseSplit.cs" />
+    <Compile Include="..\Models\ExpenseChild.cs" Link="LinkedSources\ExpenseChild.cs" />
+    <Compile Include="..\Models\Event.cs" Link="LinkedSources\Event.cs" />
+    <Compile Include="..\Models\EventChild.cs" Link="LinkedSources\EventChild.cs" />
     <Compile Include="..\Models\NullableDateTimeOrArrayConverter.cs" Link="LinkedSources\NullableDateTimeOrArrayConverter.cs" />
   </ItemGroup>
 

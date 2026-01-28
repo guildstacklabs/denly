@@ -64,6 +64,11 @@ public class Expense : BaseModel
     [JsonProperty("split_percent")]
     public decimal? SplitPercent { get; set; }
 
+    // Multi-child associations (populated from expense_children junction table)
+    [Newtonsoft.Json.JsonIgnore]
+    [System.Text.Json.Serialization.JsonIgnore]
+    public List<string> ChildIds { get; set; } = new();
+
     // Helper properties for UI
     [Newtonsoft.Json.JsonIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
@@ -114,6 +119,15 @@ public class Settlement : BaseModel
     [JsonProperty("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    [Column("confirmed_at")]
+    [JsonProperty("confirmed_at")]
+    [Newtonsoft.Json.JsonConverter(typeof(NullableDateTimeOrArrayConverter))]
+    public DateTime? ConfirmedAt { get; set; }
+
+    [Column("confirmed_by")]
+    [JsonProperty("confirmed_by")]
+    public string? ConfirmedBy { get; set; }
+
     // Helper properties for UI
     [Newtonsoft.Json.JsonIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
@@ -122,6 +136,10 @@ public class Settlement : BaseModel
     [Newtonsoft.Json.JsonIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     public string? ToUserName { get; set; }
+
+    [Newtonsoft.Json.JsonIgnore]
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsConfirmed => ConfirmedAt.HasValue;
 }
 
 public static class ExpenseCategoryExtensions

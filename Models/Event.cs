@@ -100,6 +100,11 @@ public class Event : BaseModel
     [JsonProperty("updated_at")]
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+    // Multi-child associations (populated from event_children junction table)
+    [Newtonsoft.Json.JsonIgnore]
+    [System.Text.Json.Serialization.JsonIgnore]
+    public List<string> ChildIds { get; set; } = new();
+
     // Helper properties for UI compatibility
     // Convert from UTC (stored) to local time for display
     // Note: Supabase/Newtonsoft might return Local time depending on configuration.

@@ -495,6 +495,40 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         return settlement;
     }
 
+    public async Task ConfirmSettlementAsync(string settlementId, CancellationToken cancellationToken = default)
+    {
+        _logger.LogDebug("ConfirmSettlementAsync called - SettlementId: {SettlementId}", settlementId);
+
+        await EnsureInitializedAsync();
+
+        var denId = GetCurrentDenIdOrThrow();
+        var userId = GetAuthenticatedUserIdOrThrow();
+        var client = GetClientOrThrow();
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        try
+        {
+            await client
+                .From<Settlement>()
+                .Where(s => s.Id == settlementId && s.DenId == denId)
+                .Set(s => s.ConfirmedAt!, DateTime.UtcNow)
+                .Set(s => s.ConfirmedBy!, userId)
+                .Update();
+
+            _logger.LogDebug("Settlement confirmed successfully");
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to confirm settlement");
+            throw;
+        }
+    }
+
     public async Task<string> SaveReceiptAsync(Stream imageStream, string fileName, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("SaveReceiptAsync called");
@@ -549,6 +583,79 @@ public class SupabaseExpenseService : SupabaseServiceBase, IExpenseService, IDis
         {
             _logger.LogError(ex, "Failed to check for expenses");
             return false;
+        }
+    }
+
+    public async Task<List<ExpenseChild>> GetExpenseChildrenAsync(IEnumerable<string> expenseIds, CancellationToken cancellationToken = default)
+    {
+        await EnsureInitializedAsync();
+
+        var denId = TryGetCurrentDenId();
+        if (denId == null) return new List<ExpenseChild>();
+
+        var ids = expenseIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
+        if (ids.Count == 0) return new List<ExpenseChild>();
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        try
+        {
+            var response = await GetClientOrThrow()
+                .From<ExpenseChild>()
+                .Select("id, expense_id, child_id, den_id, created_at")
+                .Where(ec => ec.DenId == denId)
+                .Filter("expense_id", Supabase.Postgrest.Constants.Operator.In, ids)
+                .Get();
+
+            return response.Models;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get expense children");
+            return new List<ExpenseChild>();
+        }
+    }
+
+    public async Task SaveExpenseChildrenAsync(string expenseId, List<string> childIds, CancellationToken cancellationToken = default)
+    {
+        await EnsureInitializedAsync();
+
+        var denId = GetCurrentDenIdOrThrow();
+        var client = GetClientOrThrow();
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        try
+        {
+            await client
+                .From<ExpenseChild>()
+                .Where(ec => ec.ExpenseId == expenseId && ec.DenId == denId)
+                .Delete();
+
+            if (childIds.Count == 0) return;
+
+            var associations = childIds.Select(childId => new ExpenseChild
+            {
+                ExpenseId = expenseId,
+                ChildId = childId,
+                DenId = denId
+            }).ToList();
+
+            await client
+                .From<ExpenseChild>()
+                .Insert(associations);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save expense children");
         }
     }
 

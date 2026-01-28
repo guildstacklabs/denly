@@ -13,7 +13,10 @@ public interface IExpenseService
     Task SaveExpenseSplitsAsync(string expenseId, IReadOnlyList<ExpenseSplit> splits, CancellationToken cancellationToken = default);
     Task<List<Settlement>> GetAllSettlementsAsync(CancellationToken cancellationToken = default);
     Task<Settlement> CreateSettlementAsync(decimal amount, string fromUserId, string toUserId, string? note = null, CancellationToken cancellationToken = default);
+    Task ConfirmSettlementAsync(string settlementId, CancellationToken cancellationToken = default);
     Task<string> SaveReceiptAsync(Stream imageStream, string fileName, CancellationToken cancellationToken = default);
     Task DeleteReceiptAsync(string receiptPath, CancellationToken cancellationToken = default);
     Task<bool> HasExpensesAsync();
+    Task<List<ExpenseChild>> GetExpenseChildrenAsync(IEnumerable<string> expenseIds, CancellationToken cancellationToken = default);
+    Task SaveExpenseChildrenAsync(string expenseId, List<string> childIds, CancellationToken cancellationToken = default);
 }

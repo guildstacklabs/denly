@@ -8,6 +8,7 @@
 @inject IDocumentService DocumentService
 @inject IDenTimeService DenTimeService
 @inject NavigationManager Navigation
+@inject IAuthService AuthService
 @inject ILogger<Home> Logger
 
 <div class="home-sanctuary">
@@ -534,39 +535,46 @@
         new HeroChild("Rowan", "RW", "6:00 PM • Dinner", new [] { false, true, true }, 3, false)
     };
 
-    private readonly ExpenseTileMock _expenseTileA = new(
+    // Real expense data
+    private decimal _monthTotal = 0;
+    private decimal _userBalance = 0;  // Positive = owed to user, Negative = user owes
+    private decimal _userShare = 0;
+    private List<Expense> _recentExpenses = new();
+
+    // Computed expense tiles from real data
+    private ExpenseTileMock _expenseTileA => new(
         "Den expenses",
         "This month",
-        "$218.40",
-        "You owe $62.10",
-        "Next due Feb 2");
+        _monthTotal.ToString("C"),
+        _userBalance >= 0 ? $"You're owed {Math.Abs(_userBalance):C}" : $"You owe {Math.Abs(_userBalance):C}",
+        "");
 
-    private readonly ExpenseTileStackMock _expenseTileB = new(
+    private ExpenseTileStackMock _expenseTileB => new(
         "Shared total",
-        "$218.40",
+        _monthTotal.ToString("C"),
         "Your share",
-        "$109.20",
-        "Last added: Field trip",
+        _userShare.ToString("C"),
+        _recentExpenses.FirstOrDefault()?.Description ?? "No expenses",
         "Split 50/50");
 
-    private readonly ExpenseTileListMock _expenseTileC = new(
+    private ExpenseTileListMock _expenseTileC => new(
         "Recent expenses",
         "Last 7 days",
-        "Field trip fee",
-        "$25.00",
-        "Piano lesson",
-        "$45.00",
-        "2 more",
+        _recentExpenses.ElementAtOrDefault(0)?.Description ?? "—",
+        _recentExpenses.ElementAtOrDefault(0)?.Amount.ToString("C") ?? "",
+        _recentExpenses.ElementAtOrDefault(1)?.Description ?? "—",
+        _recentExpenses.ElementAtOrDefault(1)?.Amount.ToString("C") ?? "",
+        _recentExpenses.Count > 2 ? $"{_recentExpenses.Count - 2} more" : "",
         "View all");
 
-    private readonly ExpenseTileSplitMock _expenseTileD = new(
+    private ExpenseTileSplitMock _expenseTileD => new(
         "Split snapshot",
         "This month",
         "Total",
-        "$218.40",
+        _monthTotal.ToString("C"),
         "Your share",
-        "$109.20",
-        "Unsettled $62.10",
+        _userShare.ToString("C"),
+        _userBalance != 0 ? (_userBalance >= 0 ? $"Owed {Math.Abs(_userBalance):C}" : $"Unsettled {Math.Abs(_userBalance):C}") : "Settled",
         "Auto-split 50/50");
 
 
@@ -598,20 +606,30 @@
         try
         {
             _denTimeZone = await DenTimeService.GetDenTimeZoneAsync();
-            var today = _denTimeZone == null 
-                ? DateTime.Today 
+            var today = _denTimeZone == null
+                ? DateTime.Today
                 : DenTimeService.ConvertToDenTime(DateTime.UtcNow, _denTimeZone).Date;
 
-            // Load 3 days of schedule
+            // Load schedule and expense data in parallel
             var endDate = today.AddDays(2);
-            // Assuming GetEventsByRangeAsync takes inclusive dates
-            var events = await ScheduleService.GetEventsByRangeAsync(today, endDate);
+            var eventsTask = ScheduleService.GetEventsByRangeAsync(today, endDate);
+            var expensesTask = ExpenseService.GetExpensesAsync();
+            var balancesTask = ExpenseService.GetBalancesAsync();
+            var userTask = AuthService.GetCurrentUserAsync();
 
+            await Task.WhenAll(eventsTask, expensesTask, balancesTask, userTask);
+
+            var events = await eventsTask;
+            var expenses = await expensesTask;
+            var balances = await balancesTask;
+            var currentUser = await userTask;
+
+            // Build schedule days
             _scheduleDays.Clear();
             for (int i = 0; i < 3; i++)
             {
                 var date = today.AddDays(i);
-                var dayEvents = events.Where(e => 
+                var dayEvents = events.Where(e =>
                     (_denTimeZone == null ? e.Date.Date : DenTimeService.ConvertToDenTime(e.StartsAt, _denTimeZone).Date) == date
                 ).OrderBy(e => e.StartsAt).ToList();
 
@@ -625,7 +643,31 @@
                 });
             }
 
-            _totalOwed = 0;
+            // Calculate expense totals
+            var startOfMonth = new DateTime(today.Year, today.Month, 1);
+            var monthExpenses = expenses.Where(e => e.CreatedAt >= startOfMonth && !e.IsSettled).ToList();
+            _monthTotal = monthExpenses.Sum(e => e.Amount);
+            _userShare = _monthTotal / 2; // Default 50/50 split
+
+            // Get user's balance (positive = owed to user, negative = user owes)
+            if (currentUser != null && balances.TryGetValue(currentUser.Id, out var balance))
+            {
+                _userBalance = balance;
+            }
+            else
+            {
+                _userBalance = 0;
+            }
+
+            // Get recent expenses (last 7 days)
+            var sevenDaysAgo = today.AddDays(-7);
+            _recentExpenses = expenses
+                .Where(e => e.CreatedAt >= sevenDaysAgo)
+                .OrderByDescending(e => e.CreatedAt)
+                .Take(5)
+                .ToList();
+
+            _totalOwed = Math.Abs(_userBalance);
         }
         catch (Exception ex)
         {

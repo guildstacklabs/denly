@@ -38,16 +38,44 @@
                         </InputSelect>
                     </div>
 
-                    <div class="form-group">
-                        <label>Child association (optional)</label>
-                        <InputSelect @bind-Value="Model.ChildId" class="modal-input">
-                            <option value="">None</option>
-                            @foreach (var child in Children)
-                            {
-                                <option value="@child.Id">@child.Name</option>
-                            }
-                        </InputSelect>
-                    </div>
+                    @if (Children.Count > 0)
+                    {
+                        <div class="form-group">
+                            <label>Children (optional)</label>
+                            <div class="child-checkboxes">
+                                @foreach (var child in Children)
+                                {
+                                    <label class="checkbox-label">
+                                        <input type="checkbox"
+                                               checked="@Model.ChildIds.Contains(child.Id)"
+                                               @onchange="e => ToggleChild(child.Id, (bool)(e.Value ?? false))" />
+                                        @child.Name
+                                    </label>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @if (Caregivers.Count == 2)
+                    {
+                        <div class="form-group">
+                            <label>Split</label>
+                            <select class="modal-input" @onchange="OnSplitChanged" value="@_selectedSplit">
+                                <option value="50-50">50/50 (even)</option>
+                                <option value="60-40">60/40</option>
+                                <option value="70-30">70/30</option>
+                                <option value="80-20">80/20</option>
+                            </select>
+                            <div class="split-preview">
+                                @if (Model.Splits.Count >= 2)
+                                {
+                                    <span>@Model.Splits[0].CaregiverName: @Model.Splits[0].Percent%</span>
+                                    <span class="split-separator">•</span>
+                                    <span>@Model.Splits[1].CaregiverName: @Model.Splits[1].Percent%</span>
+                                }
+                            </div>
+                        </div>
+                    }
 
                     <ValidationSummary />
                 </div>
@@ -76,24 +104,35 @@
     [Parameter] public EventCallback<AddExpenseInput> OnSave { get; set; }
     [Parameter] public EventCallback OnDelete { get; set; }
 
+    private string _selectedSplit = "50-50";
+
     protected override void OnParametersSet()
     {
         if (Caregivers.Count == 0) return;
 
-        var updated = new List<SplitInput>();
-        var even = Caregivers.Count > 0 ? Math.Round(100m / Caregivers.Count, 2) : 100m;
-
-        foreach (var caregiver in Caregivers)
+        // Initialize splits if empty or reset for new expense
+        if (Model.Splits.Count == 0 || Model.Id == null)
         {
-            updated.Add(new SplitInput
-            {
-                CaregiverId = caregiver.Id,
-                CaregiverName = caregiver.Name,
-                Percent = even
-            });
+            _selectedSplit = "50-50";
+            ApplySplit(50, 50);
         }
-
-        Model.Splits = updated;
+        else if (Model.Splits.Count >= 2)
+        {
+            // Detect current split from existing data
+            var p1 = Model.Splits[0].Percent;
+            var p2 = Model.Splits[1].Percent;
+            _selectedSplit = (p1, p2) switch
+            {
+                (50, 50) => "50-50",
+                (60, 40) => "60-40",
+                (70, 30) => "70-30",
+                (80, 20) => "80-20",
+                (40, 60) => "60-40",
+                (30, 70) => "70-30",
+                (20, 80) => "80-20",
+                _ => "50-50"
+            };
+        }
 
         if (string.IsNullOrWhiteSpace(Model.PayerId))
         {
@@ -103,6 +142,51 @@
                 : Caregivers.FirstOrDefault()?.Id;
             Model.PayerId = preferred ?? string.Empty;
         }
+    }
+
+    private void OnSplitChanged(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString() ?? "50-50";
+        _selectedSplit = value;
+
+        var (p1, p2) = value switch
+        {
+            "60-40" => (60m, 40m),
+            "70-30" => (70m, 30m),
+            "80-20" => (80m, 20m),
+            _ => (50m, 50m)
+        };
+
+        ApplySplit(p1, p2);
+    }
+
+    private void ApplySplit(decimal percent1, decimal percent2)
+    {
+        if (Caregivers.Count < 2) return;
+
+        Model.Splits = new List<SplitInput>
+        {
+            new SplitInput
+            {
+                CaregiverId = Caregivers[0].Id,
+                CaregiverName = Caregivers[0].Name,
+                Percent = percent1
+            },
+            new SplitInput
+            {
+                CaregiverId = Caregivers[1].Id,
+                CaregiverName = Caregivers[1].Name,
+                Percent = percent2
+            }
+        };
+    }
+
+    private void ToggleChild(string childId, bool isChecked)
+    {
+        if (isChecked && !Model.ChildIds.Contains(childId))
+            Model.ChildIds.Add(childId);
+        else if (!isChecked)
+            Model.ChildIds.Remove(childId);
     }
 
     private async Task HandleValidSubmit()
@@ -127,7 +211,7 @@
 
         public List<SplitInput> Splits { get; set; } = new();
 
-        public string? ChildId { get; set; }
+        public List<string> ChildIds { get; set; } = new();
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {

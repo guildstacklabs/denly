@@ -3,6 +3,7 @@
 @using Denly.Services
 @using Denly.Components.Shared
 @inject IScheduleService ScheduleService
+@inject IChildService ChildService
 @inject IDenTimeService DenTimeService
 @inject IConnectivity Connectivity
 
@@ -14,12 +15,34 @@
             </svg>
         </button>
         <h2 class="calendar-title">@CurrentDate.ToString("MMMM yyyy")</h2>
-        <button class="nav-btn" @onclick="NextMonth" disabled="@(_isLoading || _isMonthLoading)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-        </button>
+        <div class="header-actions">
+            <button class="nav-btn" @onclick="ShowSubscribeDialog" title="Subscribe to calendar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 11a9 9 0 0 1 9 9"></path>
+                    <path d="M4 4a16 16 0 0 1 16 16"></path>
+                    <circle cx="5" cy="19" r="1"></circle>
+                </svg>
+            </button>
+            <button class="nav-btn" @onclick="NextMonth" disabled="@(_isLoading || _isMonthLoading)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </button>
+        </div>
     </div>
+
+    @if (_children.Count > 0)
+    {
+        <div class="child-filter-bar">
+            <button class="den-chip @(_selectedChildFilter == null ? "den-chip--active" : "")"
+                    @onclick="() => FilterByChild(null)">All</button>
+            @foreach (var child in _children)
+            {
+                <button class="den-chip @(_selectedChildFilter == child.Id ? "den-chip--active" : "")"
+                        @onclick="() => FilterByChild(child.Id)">@child.FirstName</button>
+            }
+        </div>
+    }
 
     @if (_isLoading)
     {
@@ -160,6 +183,24 @@
                     <label>Location</label>
                     <input type="text" @bind="_editingEvent.Location" placeholder="Location (optional)" />
                 </div>
+
+                @if (_children.Count > 0)
+                {
+                    <div class="form-group">
+                        <label>Children</label>
+                        <div class="child-checkboxes">
+                            @foreach (var child in _children)
+                            {
+                                <label class="checkbox-label">
+                                    <input type="checkbox"
+                                           checked="@_editingChildIds.Contains(child.Id)"
+                                           @onchange="e => ToggleEditingChild(child.Id, (bool)(e.Value ?? false))" />
+                                    @child.FirstName
+                                </label>
+                            }
+                        </div>
+                    </div>
+                }
             </div>
 
             <div class="modal-footer">
@@ -169,6 +210,43 @@
                 }
                 <button class="cancel-btn" @onclick="CloseModal">Cancel</button>
                 <button class="save-btn" @onclick="SaveEvent">Save item</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_showSubscribeDialog)
+{
+    <div class="modal-overlay" @onclick="() => _showSubscribeDialog = false">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>Subscribe to Calendar</h3>
+                <button class="close-btn" @onclick="() => _showSubscribeDialog = false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                @if (_subscriptionUrl == null)
+                {
+                    <p class="subscribe-hint">Loading subscription link...</p>
+                }
+                else
+                {
+                    <p class="subscribe-hint">Add this calendar to Google Calendar, Apple Calendar, or any app that supports ICS subscriptions.</p>
+                    <div class="subscribe-url-box">
+                        <code class="subscribe-url">@_subscriptionUrl</code>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                @if (_subscriptionUrl != null)
+                {
+                    <button class="save-btn" @onclick="CopySubscriptionUrl">Copy URL</button>
+                }
+                <button class="cancel-btn" @onclick="() => _showSubscribeDialog = false">Close</button>
             </div>
         </div>
     </div>
@@ -193,8 +271,18 @@
     private bool _isLoading = true;
     private bool _isMonthLoading;
 
+    // Child filter
+    private List<Child> _children = new();
+    private string? _selectedChildFilter;
+    private HashSet<string> _editingChildIds = new();
+
+    // Subscribe dialog
+    private bool _showSubscribeDialog;
+    private string? _subscriptionUrl;
+
     protected override async Task OnInitializedAsync()
     {
+        _children = await ChildService.GetActiveChildrenAsync();
         await LoadMonthData(showFullLoader: true);
     }
 
@@ -228,8 +316,23 @@
             var endDate = startDate.AddMonths(1).AddDays(-1);
             
             MonthEvents = await ScheduleService.GetEventsByRangeAsync(startDate, endDate);
+
+            // Populate child associations
+            var eventIds = MonthEvents.Select(e => e.Id).ToList();
+            if (eventIds.Count > 0)
+            {
+                var eventChildren = await ScheduleService.GetEventChildrenAsync(eventIds);
+                var childMap = eventChildren.GroupBy(ec => ec.EventId)
+                    .ToDictionary(g => g.Key, g => g.Select(ec => ec.ChildId).ToList());
+                foreach (var evt in MonthEvents)
+                {
+                    if (childMap.TryGetValue(evt.Id, out var ids))
+                        evt.ChildIds = ids;
+                }
+            }
+
             BuildCalendarDays();
-            
+
             if (SelectedDate.HasValue)
             {
                 SetSelectedDayEvents(SelectedDate.Value);
@@ -242,16 +345,23 @@
         }
     }
 
+    private List<Event> GetFilteredEvents()
+    {
+        if (_selectedChildFilter == null) return MonthEvents;
+        return MonthEvents.Where(e => e.ChildIds.Contains(_selectedChildFilter)).ToList();
+    }
+
     private void BuildCalendarDays()
     {
         CalendarDays.Clear();
         var firstOfMonth = new DateTime(CurrentDate.Year, CurrentDate.Month, 1);
         var startDate = firstOfMonth.AddDays(-(int)firstOfMonth.DayOfWeek);
+        var filtered = GetFilteredEvents();
 
         for (int i = 0; i < 42; i++) // 6 weeks
         {
             var date = startDate.AddDays(i);
-            var dayEvents = MonthEvents.Where(e => EventOverlapsDate(e, date)).ToList();
+            var dayEvents = filtered.Where(e => EventOverlapsDate(e, date)).ToList();
             CalendarDays.Add(new CalendarDay
             {
                 Date = date,
@@ -294,15 +404,15 @@
             Type = EventType.Other,
             AllDay = false
         };
+        _editingChildIds = new HashSet<string>();
         _editingDate = SelectedDate ?? DenTimeService.ConvertToDenTime(DateTime.Now, _denTimeZone).Date;
-        _editingTime = DenTimeService.ConvertToDenTime(DateTime.Now, _denTimeZone); // Default to now
+        _editingTime = DenTimeService.ConvertToDenTime(DateTime.Now, _denTimeZone);
         _showEventModal = true;
     }
 
     private void OpenEditEventModal(Event evt)
     {
         _isEditing = true;
-        // Clone or create new instance to avoid live editing
         _editingEvent = new Event
         {
             Id = evt.Id,
@@ -315,11 +425,11 @@
             Location = evt.Location,
             Notes = evt.Notes
         };
-        
-        // Extract Local Date/Time
+        _editingChildIds = new HashSet<string>(evt.ChildIds);
+
         _editingDate = evt.StartsAt.Date;
         _editingTime = evt.StartsAt;
-        
+
         _showEventModal = true;
     }
 
@@ -346,6 +456,7 @@
         }
         
         await ScheduleService.SaveEventAsync(_editingEvent);
+        await ScheduleService.SaveEventChildrenAsync(_editingEvent.Id, _editingChildIds.ToList());
         _showEventModal = false;
         await LoadMonthData();
     }
@@ -367,7 +478,8 @@
 
     private void SetSelectedDayEvents(DateTime date)
     {
-        SelectedDayEvents = MonthEvents
+        var filtered = GetFilteredEvents();
+        SelectedDayEvents = filtered
             .Where(e => EventOverlapsDate(e, date))
             .OrderBy(e => e.StartsAt)
             .ToList();
@@ -383,6 +495,46 @@
             ? evt.EndsAt.Value.Date
             : start;
         return start <= date.Date && end >= date.Date;
+    }
+
+    private void FilterByChild(string? childId)
+    {
+        _selectedChildFilter = childId;
+        BuildCalendarDays();
+        if (SelectedDate.HasValue)
+            SetSelectedDayEvents(SelectedDate.Value);
+    }
+
+    private void ToggleEditingChild(string childId, bool isChecked)
+    {
+        if (isChecked)
+            _editingChildIds.Add(childId);
+        else
+            _editingChildIds.Remove(childId);
+    }
+
+    private async Task ShowSubscribeDialog()
+    {
+        _showSubscribeDialog = true;
+        _subscriptionUrl = null;
+        StateHasChanged();
+
+        try
+        {
+            _subscriptionUrl = await ScheduleService.GetOrCreateSubscriptionUrlAsync();
+        }
+        catch
+        {
+            _subscriptionUrl = "Failed to generate subscription URL.";
+        }
+    }
+
+    private async Task CopySubscriptionUrl()
+    {
+        if (_subscriptionUrl != null)
+        {
+            await Clipboard.Default.SetTextAsync(_subscriptionUrl);
+        }
     }
 
     private class CalendarDay

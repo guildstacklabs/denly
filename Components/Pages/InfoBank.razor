@@ -148,7 +148,7 @@
                 </div>
             }
             
-            <button class="fab-btn" @onclick="UploadDocument">
+            <button class="fab-btn" @onclick="ShowUploadDialog">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -157,6 +157,72 @@
         }
     }
 </div>
+
+@* Document Upload Modal *@
+@if (_showUploadDialog)
+{
+    <div class="modal-overlay" @onclick="CloseUploadDialog">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>Upload Document</h3>
+                <button class="close-btn" @onclick="CloseUploadDialog" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>File</label>
+                    <button type="button" class="file-picker-btn" @onclick="PickFile">
+                        @if (_selectedFile != null)
+                        {
+                            <span class="file-name">@_selectedFileName</span>
+                        }
+                        else
+                        {
+                            <span class="file-placeholder">Tap to select file</span>
+                        }
+                    </button>
+                </div>
+
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" @bind="_uploadTitle" placeholder="Document title" />
+                </div>
+
+                <div class="form-group">
+                    <label>Folder</label>
+                    <select @bind="_uploadFolder">
+                        @foreach (DocumentFolder folder in Enum.GetValues(typeof(DocumentFolder)))
+                        {
+                            <option value="@folder">@folder.GetDisplayName()</option>
+                        }
+                    </select>
+                </div>
+
+                @if (!string.IsNullOrEmpty(_uploadError))
+                {
+                    <div class="upload-error">@_uploadError</div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="cancel-btn" @onclick="CloseUploadDialog">Cancel</button>
+                <button type="button" class="save-btn" @onclick="PerformUpload" disabled="@(_isUploading || _selectedFile == null)">
+                    @if (_isUploading)
+                    {
+                        <span>Uploading...</span>
+                    }
+                    else
+                    {
+                        <span>Upload</span>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     private bool _isLoading = true;
@@ -170,6 +236,15 @@
     private List<Document> _allDocuments = new();
     private List<Document> _filteredDocuments = new();
     private DocumentFolder? _selectedFolder;
+
+    // Upload Dialog State
+    private bool _showUploadDialog;
+    private bool _isUploading;
+    private FileResult? _selectedFile;
+    private string _selectedFileName = "";
+    private string _uploadTitle = "";
+    private DocumentFolder _uploadFolder = DocumentFolder.Other;
+    private string _uploadError = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -211,7 +286,8 @@
     
     private void EditChild()
     {
-        // Placeholder
+        // Navigate to Settings where full child editing is available
+        Navigation.NavigateTo("/settings");
     }
 
     private void SelectFolder(DocumentFolder? folder)
@@ -235,9 +311,99 @@
         }
     }
 
-    private void UploadDocument()
+    private void ShowUploadDialog()
     {
-        // Placeholder for upload logic
+        _showUploadDialog = true;
+        _selectedFile = null;
+        _selectedFileName = "";
+        _uploadTitle = "";
+        _uploadFolder = DocumentFolder.Other;
+        _uploadError = "";
+    }
+
+    private void CloseUploadDialog()
+    {
+        _showUploadDialog = false;
+        _selectedFile = null;
+        _selectedFileName = "";
+        _uploadTitle = "";
+        _uploadError = "";
+    }
+
+    private async Task PickFile()
+    {
+        try
+        {
+            var result = await FilePicker.Default.PickAsync();
+            if (result != null)
+            {
+                _selectedFile = result;
+                _selectedFileName = result.FileName;
+
+                // Auto-fill title from filename if empty
+                if (string.IsNullOrWhiteSpace(_uploadTitle))
+                {
+                    _uploadTitle = Path.GetFileNameWithoutExtension(result.FileName);
+                }
+            }
+        }
+        catch
+        {
+            _uploadError = "Could not select file. Please try again.";
+        }
+    }
+
+    private async Task PerformUpload()
+    {
+        if (_selectedFile == null)
+        {
+            _uploadError = "Please select a file first.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_uploadTitle))
+        {
+            _uploadError = "Please enter a title for the document.";
+            return;
+        }
+
+        _isUploading = true;
+        _uploadError = "";
+        StateHasChanged();
+
+        try
+        {
+            // Open file stream and upload
+            using var stream = await _selectedFile.OpenReadAsync();
+            var fileUrl = await DocumentService.UploadDocumentAsync(stream, _selectedFile.FileName);
+
+            // Create and save document metadata
+            var currentUser = await AuthService.GetCurrentUserAsync();
+            var document = new Document
+            {
+                Title = _uploadTitle.Trim(),
+                Folder = _uploadFolder,
+                FileUrl = fileUrl,
+                UploadedBy = currentUser?.Id ?? ""
+            };
+
+            await DocumentService.SaveDocumentAsync(document);
+
+            // Refresh documents list
+            _allDocuments = await DocumentService.GetAllDocumentsAsync();
+            FilterDocuments();
+
+            CloseUploadDialog();
+        }
+        catch (Exception ex)
+        {
+            _uploadError = "Upload failed. Please try again.";
+        }
+        finally
+        {
+            _isUploading = false;
+            StateHasChanged();
+        }
     }
 
     private string GetFolderClass(DocumentFolder folder) => folder switch

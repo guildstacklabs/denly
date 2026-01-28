@@ -25,6 +25,19 @@
     }
     else
     {
+        @if (_childOptions.Count > 0)
+        {
+            <div class="child-filter-bar">
+                <button class="den-chip @(_selectedChildFilter == null ? "den-chip--active" : "")"
+                        @onclick="() => FilterByChild(null)">All</button>
+                @foreach (var child in _childOptions)
+                {
+                    <button class="den-chip @(_selectedChildFilter == child.Id ? "den-chip--active" : "")"
+                            @onclick="() => FilterByChild(child.Id)">@child.Name</button>
+                }
+            </div>
+        }
+
         <BalanceSummaryCard Balance="@_totalOwed" />
         
         @if (_totalOwed != 0)
@@ -36,18 +49,18 @@
 
         <div class="recent-expenses-section">
             <h3 class="section-title">Recent items</h3>
-            
+
             <div class="expenses-list-card">
-                @if (_expenses.Count > 0)
+                @if (FilteredExpenses.Count > 0)
                 {
-                    @foreach (var expense in _expenses)
+                    @foreach (var expense in FilteredExpenses)
                     {
                         <ExpenseRow Description="@expense.Description"
                                     Amount="@expense.Amount"
                                     PayerName="@expense.PayerName"
                                     PayerInitials="@expense.PayerInitials"
                                     SplitText="@expense.SplitText"
-                                    Date="@expense.Date" 
+                                    Date="@expense.Date"
                                     OnClick="@(() => OpenEditExpense(expense))" />
                     }
                 }
@@ -57,7 +70,44 @@
                 }
             </div>
         </div>
-        
+
+        @if (_settlements.Count > 0)
+        {
+            <div class="settlements-section">
+                <h3 class="section-title">Recent settlements</h3>
+                <div class="settlements-list">
+                    @foreach (var settlement in _settlements)
+                    {
+                        <div class="settlement-card @(settlement.IsConfirmed ? "confirmed" : "")">
+                            <div class="settlement-info">
+                                <div class="settlement-amount">@settlement.Amount.ToString("C")</div>
+                                <div class="settlement-details">
+                                    @(settlement.FromUserName ?? "Someone") paid @(settlement.ToUserName ?? "someone")
+                                </div>
+                                <div class="settlement-date">@settlement.CreatedAt.ToString("MMM d")</div>
+                            </div>
+                            <div class="settlement-status">
+                                @if (settlement.IsConfirmed)
+                                {
+                                    <span class="status-badge confirmed">Confirmed</span>
+                                }
+                                else if (settlement.ToUserId == _currentUserId)
+                                {
+                                    <button class="confirm-btn" @onclick="() => ConfirmSettlement(settlement.Id)">
+                                        Confirm receipt
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="status-badge pending">Pending</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
         <button class="fab-btn" @onclick="ShowAddExpense">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -72,7 +122,7 @@
                   IsEditing="_isEditing"
                   Model="_addExpenseModel"
                   Caregivers="_caregivers"
-                  Children="_children"
+                  Children="_childOptions"
                   CurrentUserId="_currentUserId"
                   OnCancel="HideAddExpense"
                   OnSave="HandleAddExpense" 
@@ -88,10 +138,12 @@
 @code {
     private List<SharedCostsExpenseItem> _expenses = new();
     private List<CaregiverOption> _caregivers = new();
-    private List<ChildOption> _children = new();
+    private List<ChildOption> _childOptions = new();
+    private List<Settlement> _settlements = new();
     private decimal _totalOwed;
     private bool _isLoading = true;
     private string? _currentUserId;
+    private string? _selectedChildFilter;
 
     // Dialog state
     private bool _showAddExpense;
@@ -99,6 +151,15 @@
     private bool _showSettleUp;
     private AddExpenseDialog.AddExpenseInput _addExpenseModel = new();
     private SettleUpDialog.SettleUpInput _settleUpModel = new();
+
+    private List<SharedCostsExpenseItem> FilteredExpenses => _selectedChildFilter == null
+        ? _expenses
+        : _expenses.Where(e => e.ChildIds.Contains(_selectedChildFilter)).ToList();
+
+    private void FilterByChild(string? childId)
+    {
+        _selectedChildFilter = childId;
+    }
 
     [Inject] NavigationManager Navigation { get; set; } = default!;
 
@@ -129,13 +190,15 @@
         var membersTask = DenService.GetDenMembersAsync();
         var balancesTask = ExpenseService.GetBalancesAsync();
         var childrenTask = ChildService.GetActiveChildrenAsync();
+        var settlementsTask = ExpenseService.GetAllSettlementsAsync();
 
-        await Task.WhenAll(expensesTask, membersTask, balancesTask, childrenTask);
+        await Task.WhenAll(expensesTask, membersTask, balancesTask, childrenTask, settlementsTask);
 
         var expenses = await expensesTask;
         var members = await membersTask;
         var balances = await balancesTask;
         var children = await childrenTask;
+        _settlements = (await settlementsTask).OrderByDescending(s => s.CreatedAt).Take(5).ToList();
 
         // Populate Options
         _caregivers = members.Select(m => new CaregiverOption 
@@ -144,10 +207,10 @@
             Name = m.DisplayName ?? m.Email ?? "Unknown" 
         }).ToList();
 
-        _children = children.Select(c => new ChildOption 
-        { 
-            Id = c.Id, 
-            Name = c.FirstName 
+        _childOptions = children.Select(c => new ChildOption
+        {
+            Id = c.Id,
+            Name = c.FirstName
         }).ToList();
 
         if (balances != null && balances.Any())
@@ -157,8 +220,14 @@
             _totalOwed = Math.Max(Math.Abs(max), Math.Abs(min));
         }
 
-        var splits = await ExpenseService.GetExpenseSplitsAsync(expenses.Select(e => e.Id));
+        var expenseIds = expenses.Select(e => e.Id).ToList();
+        var splits = await ExpenseService.GetExpenseSplitsAsync(expenseIds);
         var splitMap = splits.GroupBy(s => s.ExpenseId).ToDictionary(g => g.Key, g => g.ToList());
+
+        // Load child associations
+        var expenseChildren = await ExpenseService.GetExpenseChildrenAsync(expenseIds);
+        var childMap = expenseChildren.GroupBy(ec => ec.ExpenseId)
+            .ToDictionary(g => g.Key, g => g.Select(ec => ec.ChildId).ToList());
 
         _expenses = expenses.OrderByDescending(e => e.CreatedAt).Select(expense => {
              var payerName = members.FirstOrDefault(m => m.UserId == expense.PaidBy)?.DisplayName ?? "Someone";
@@ -180,7 +249,8 @@
                  Amount = expense.Amount,
                  PayerName = payerName,
                  SplitText = splitText,
-                 PayerInitials = initials
+                 PayerInitials = initials,
+                 ChildIds = childMap.TryGetValue(expense.Id, out var cids) ? cids : new()
              };
         }).ToList();
     }
@@ -207,6 +277,7 @@
             }
 
             var splits = await ExpenseService.GetExpenseSplitsAsync(new[] { item.Id });
+            var expenseChildAssoc = await ExpenseService.GetExpenseChildrenAsync(new[] { item.Id });
 
             _addExpenseModel = new AddExpenseDialog.AddExpenseInput
             {
@@ -215,7 +286,7 @@
                 Description = expense.Description,
                 Amount = expense.Amount,
                 PayerId = expense.PaidBy,
-                ChildId = expense.ChildId,
+                ChildIds = expenseChildAssoc.Select(ec => ec.ChildId).ToList(),
                 Splits = splits.Select(s => new AddExpenseDialog.SplitInput
                 {
                     CaregiverId = s.UserId,
@@ -244,11 +315,10 @@
 
         var expense = new Expense
         {
-            Id = input.Id ?? Guid.NewGuid().ToString(), // Use existing ID if editing
+            Id = input.Id ?? Guid.NewGuid().ToString(),
             Description = description,
             Amount = input.Amount,
             PaidBy = input.PayerId,
-            ChildId = input.ChildId,
             CreatedAt = input.Date.Date
         };
 
@@ -264,6 +334,8 @@
             }).ToList();
             await ExpenseService.SaveExpenseSplitsAsync(expense.Id, splits);
         }
+
+        await ExpenseService.SaveExpenseChildrenAsync(expense.Id, input.ChildIds);
 
         HideAddExpense();
         await LoadData();
@@ -297,6 +369,12 @@
     {
         await ExpenseService.CreateSettlementAsync(input.Amount, input.PayerId, input.ReceiverId);
         HideSettleUp();
+        await LoadData();
+    }
+
+    private async Task ConfirmSettlement(string settlementId)
+    {
+        await ExpenseService.ConfirmSettlementAsync(settlementId);
         await LoadData();
     }
 

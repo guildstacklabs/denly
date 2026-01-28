@@ -380,3 +380,53 @@
     color: var(--color-text-muted);
     margin-right: auto;
 }
+
+/* Header actions */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Child filter bar */
+.child-filter-bar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    overflow-x: auto;
+    padding: 0 0.25rem;
+    scrollbar-width: none;
+}
+
+.child-filter-bar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Child checkboxes in modal */
+.child-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+/* Subscribe dialog */
+.subscribe-hint {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin: 0 0 0.75rem;
+    line-height: 1.4;
+}
+
+.subscribe-url-box {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-soft);
+    border-radius: 12px;
+    padding: 0.75rem;
+    overflow-x: auto;
+}
+
+.subscribe-url {
+    font-size: 0.75rem;
+    color: var(--color-text);
+    word-break: break-all;
+}

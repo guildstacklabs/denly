@@ -75,16 +75,20 @@ That's it. No complex setup wizards.
 ### Entity Overview
 
 ```
-profiles       - User accounts (extends Supabase auth.users)
-dens           - Coordination spaces between co-parents
-den_members    - Junction table linking users to dens with roles
-children       - Children belonging to a den
-events         - Calendar events (handoffs, appointments, etc.)
-expenses       - Shared expenses between co-parents
-settlements    - Records of settling up balances
-documents      - Stored documents (medical records, IDs, etc.)
-den_invites    - Invite codes for joining a den
-invite_attempts - Rate limiting for invite code attempts
+profiles              - User accounts (extends Supabase auth.users)
+dens                  - Coordination spaces between co-parents
+den_members           - Junction: users ↔ dens with roles
+children              - Children belonging to a den
+events                - Calendar events (handoffs, appointments, etc.)
+event_children        - Junction: events ↔ children (many-to-many)
+expenses              - Shared expenses between co-parents
+expense_children      - Junction: expenses ↔ children (many-to-many)
+expense_splits        - Per-expense split percentages between co-parents
+settlements           - Records of settling up balances
+calendar_subscriptions - ICS feed tokens for external calendar apps
+documents             - Stored documents (medical records, IDs, etc.)
+den_invites           - Invite codes for joining a den
+invite_attempts       - Rate limiting for invite code attempts
 ```
 
 ### Key Relationships
@@ -92,17 +96,22 @@ invite_attempts - Rate limiting for invite code attempts
 - **Den** → created_by → profiles
 - **DenMember** → den_id → dens, user_id → profiles, invited_by → profiles
 - **Child** → den_id → dens
-- **Event/Expense/Document** → den_id → dens, child_id → children (optional)
-- **Expense** → paid_by → profiles
-- **Settlement** → from_user_id/to_user_id → profiles
+- **Event** → den_id → dens; linked to children via **event_children** junction table
+- **Expense** → den_id → dens, paid_by → profiles; linked to children via **expense_children** junction table
+- **ExpenseSplit** → expense_id → expenses, user_id → profiles (per-expense split percentages)
+- **Document** → den_id → dens, child_id → children (optional)
+- **Settlement** → from_user_id/to_user_id → profiles; confirmed_at/confirmed_by for receipt confirmation
+- **CalendarSubscription** → den_id → dens, user_id → auth.users; token-based ICS feed access
 
 ### Notes on the Model
 
-**child_id is optional on Event, Expense, Document:** This allows "family dinner" events, "groceries" expenses, or "custody agreement" documents that apply to the whole den, not a specific child.
+**Multi-child associations via junction tables:** Events and expenses can be linked to multiple children through `event_children` and `expense_children` tables. The legacy `child_id` column on events/expenses is deprecated but retained for backward compatibility.
 
-**Settlements are separate from Expenses:** An expense creates a balance. A settlement zeroes it out. When a settlement is created, all unsettled expenses are marked with `settled_at`.
+**Settlements are separate from Expenses:** An expense creates a balance. A settlement zeroes it out. When a settlement is created, all unsettled expenses are marked with `settled_at`. Recipients can confirm receipt via `confirmed_at`/`confirmed_by`.
 
-**No split_type or percentage fields:** For MVP, assume 50/50 split. Can add complexity later if users request it. Most co-parents split equally or have fixed arrangements they track mentally.
+**Flexible expense splits:** Expenses support configurable splits (50/50, 60/40, 70/30, 80/20) stored in the `expense_splits` table. Each split record tracks a user's percentage for a specific expense.
+
+**ICS calendar subscriptions:** Users can subscribe to their den's calendar from external apps (Google Calendar, Apple Calendar) via a token-authenticated Edge Function that serves a live `.ics` feed.
 
 ---
 

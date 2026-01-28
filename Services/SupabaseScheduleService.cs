@@ -1,5 +1,7 @@
+using System.Security.Cryptography;
 using Denly.Models;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 
 namespace Denly.Services;
@@ -8,12 +10,14 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
 {
     private readonly ILogger<SupabaseScheduleService> _logger;
     private readonly IDenTimeService _denTimeService;
+    private readonly DenlyOptions _options;
 
-    public SupabaseScheduleService(IDenService denService, IAuthService authService, IDenTimeService denTimeService, ILogger<SupabaseScheduleService> logger)
+    public SupabaseScheduleService(IDenService denService, IAuthService authService, IDenTimeService denTimeService, IOptions<DenlyOptions> options, ILogger<SupabaseScheduleService> logger)
         : base(denService, authService)
     {
         _logger = logger;
         _denTimeService = denTimeService;
+        _options = options.Value;
     }
 
     public async Task<List<Event>> GetEventsByMonthAsync(int year, int month, CancellationToken cancellationToken = default)
@@ -433,6 +437,137 @@ public class SupabaseScheduleService : SupabaseServiceBase, IScheduleService
         {
             _logger.LogError(ex, "Failed to check for upcoming events");
             return false;
+        }
+    }
+
+    public async Task<string> GetOrCreateSubscriptionUrlAsync(CancellationToken cancellationToken = default)
+    {
+        await EnsureInitializedAsync();
+
+        var denId = GetCurrentDenIdOrThrow();
+        var userId = GetAuthenticatedUserIdOrThrow();
+        var client = GetClientOrThrow();
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        try
+        {
+            // Check for existing subscription
+            var existing = await client
+                .From<CalendarSubscription>()
+                .Select("*")
+                .Where(s => s.DenId == denId && s.UserId == userId)
+                .Limit(1)
+                .Get();
+
+            string token;
+            if (existing.Models.Count > 0)
+            {
+                token = existing.Models[0].Token;
+            }
+            else
+            {
+                // Generate a secure random token
+                token = Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
+
+                var subscription = new CalendarSubscription
+                {
+                    DenId = denId,
+                    UserId = userId,
+                    Token = token
+                };
+
+                await client
+                    .From<CalendarSubscription>()
+                    .Insert(subscription);
+            }
+
+            // Build the webcal URL
+            var baseUrl = _options.SupabaseUrl.TrimEnd('/');
+            return $"{baseUrl}/functions/v1/calendar-ics?token={token}";
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get or create calendar subscription");
+            throw;
+        }
+    }
+
+    public async Task<List<EventChild>> GetEventChildrenAsync(IEnumerable<string> eventIds, CancellationToken cancellationToken = default)
+    {
+        await EnsureInitializedAsync();
+
+        var denId = TryGetCurrentDenId();
+        if (denId == null) return new List<EventChild>();
+
+        var ids = eventIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
+        if (ids.Count == 0) return new List<EventChild>();
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        try
+        {
+            var response = await GetClientOrThrow()
+                .From<EventChild>()
+                .Select("id, event_id, child_id, den_id, created_at")
+                .Where(ec => ec.DenId == denId)
+                .Filter("event_id", Supabase.Postgrest.Constants.Operator.In, ids)
+                .Get();
+
+            return response.Models;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get event children");
+            return new List<EventChild>();
+        }
+    }
+
+    public async Task SaveEventChildrenAsync(string eventId, List<string> childIds, CancellationToken cancellationToken = default)
+    {
+        await EnsureInitializedAsync();
+
+        var denId = GetCurrentDenIdOrThrow();
+        var client = GetClientOrThrow();
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        try
+        {
+            // Delete existing associations
+            await client
+                .From<EventChild>()
+                .Where(ec => ec.EventId == eventId && ec.DenId == denId)
+                .Delete();
+
+            if (childIds.Count == 0) return;
+
+            var associations = childIds.Select(childId => new EventChild
+            {
+                EventId = eventId,
+                ChildId = childId,
+                DenId = denId
+            }).ToList();
+
+            await client
+                .From<EventChild>()
+                .Insert(associations);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save event children");
         }
     }
 }
